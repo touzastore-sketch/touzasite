@@ -928,11 +928,13 @@ export const AppContent: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <Footer
-        onNavigate={(view, cat) => handleNavigate(view, cat)}
-        onOpenPolicyModal={(title, content) => setPolicyModal({ title, content })}
-        storeSettings={storeSettings}
-      />
+      {currentView !== 'admin' && (
+        <Footer
+          onNavigate={(view, cat) => handleNavigate(view, cat)}
+          onOpenPolicyModal={(title, content) => setPolicyModal({ title, content })}
+          storeSettings={storeSettings}
+        />
+      )}
 
       {/* Drawers & Modals */}
       <CartDrawer
@@ -1008,7 +1010,9 @@ export const AppContent: React.FC = () => {
       )}
 
       {/* Floating Animated Contact Buttons (WhatsApp & Call) */}
-      <FloatingContactButtons storeSettings={storeSettings} />
+      {currentView !== 'admin' && (
+        <FloatingContactButtons storeSettings={storeSettings} />
+      )}
     </div>
   );
 };

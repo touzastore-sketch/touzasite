@@ -1242,71 +1242,72 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     <div className="min-h-screen bg-[#f4f5f7] text-[#1f1f1f] flex flex-col font-body">
       {/* Top Admin Navigation Header */}
       <header className="bg-[#000000] text-white border-b border-[#333333] sticky top-0 z-40 shadow-md">
-        <div className="max-w-[1500px] mx-auto px-4 sm:px-8 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-              <span className="material-symbols-outlined text-[24px] text-white">dashboard</span>
+        <div className="max-w-[1500px] mx-auto px-3 sm:px-8 py-2.5 sm:py-3.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[20px] sm:text-[24px] text-[#c5a059]">dashboard</span>
             </div>
             <div>
-              <h1 className="font-display text-[18px] sm:text-[20px] font-bold tracking-wide">
-                {language === 'ar' ? 'لوحة تحكم TOUZA STORE' : 'TOUZA STORE Admin Dashboard'}
+              <h1 className="font-display text-[14px] sm:text-[20px] font-bold tracking-wide leading-tight text-white">
+                {language === 'ar' ? 'لوحة تحكم TOUZA' : 'TOUZA STORE Admin Dashboard'}
               </h1>
-              <p className="font-label-caps text-[10px] text-white/70">
+              <p className="font-label-caps text-[9px] sm:text-[10px] text-white/70">
                 {language === 'ar' ? 'التحكم الشامل في المتجر والطلبات' : 'Full Store & Order Administration'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <button
               onClick={() => setIsChangingPin(true)}
-              className="hidden sm:flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-[12px] font-label-caps transition-colors cursor-pointer"
+              className="flex items-center gap-1 bg-white/10 hover:bg-white/20 text-white px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-[12px] font-label-caps transition-colors cursor-pointer"
+              title={language === 'ar' ? 'تغيير الرمز' : 'Change PIN'}
             >
-              <span className="material-symbols-outlined text-[16px]">lock_reset</span>
-              <span>{language === 'ar' ? 'تغيير الرمز' : 'Change PIN'}</span>
+              <span className="material-symbols-outlined text-[15px] sm:text-[16px]">lock_reset</span>
+              <span className="hidden xs:inline sm:inline">{language === 'ar' ? 'تغيير الرمز' : 'Change PIN'}</span>
             </button>
 
             <button
               onClick={handleLogoutAdmin}
-              className="flex items-center gap-1.5 bg-[#ba1a1a]/80 hover:bg-[#ba1a1a] text-white px-3 py-1.5 rounded-lg text-[12px] font-label-caps transition-colors cursor-pointer"
+              className="flex items-center gap-1 bg-[#ba1a1a]/90 hover:bg-[#ba1a1a] text-white px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-[12px] font-label-caps transition-colors cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[16px]">logout</span>
+              <span className="material-symbols-outlined text-[15px] sm:text-[16px]">logout</span>
               <span>{language === 'ar' ? 'قفل' : 'Lock'}</span>
             </button>
 
             <button
               onClick={onCloseAdmin}
-              className="bg-white text-black hover:bg-[#e0e0e0] px-4 py-1.5 rounded-lg text-[12px] font-label-caps font-bold transition-colors cursor-pointer flex items-center gap-1"
+              className="bg-white text-black hover:bg-[#e0e0e0] px-2.5 py-1.5 sm:px-4 sm:py-1.5 rounded-lg text-[11px] sm:text-[12px] font-label-caps font-bold transition-colors cursor-pointer flex items-center gap-1 shrink-0"
             >
-              <span className="material-symbols-outlined text-[16px]">storefront</span>
+              <span className="material-symbols-outlined text-[15px] sm:text-[16px]">storefront</span>
               <span>{language === 'ar' ? 'عرض المتجر' : 'Store Preview'}</span>
             </button>
           </div>
         </div>
 
         {/* Tab Navigation Bar */}
-        <div className="max-w-[1500px] mx-auto px-4 sm:px-8 flex overflow-x-auto border-t border-[#222222] scrollbar-none">
+        <div className="max-w-[1500px] mx-auto px-2 sm:px-8 flex overflow-x-auto border-t border-[#222222] scrollbar-none">
           {[
-            { id: 'overview', icon: 'analytics', labelAr: 'الإحصائيات والشاشة الرئيسية', labelEn: 'Overview' },
-            { id: 'products', icon: 'apparel', labelAr: `إدارة المنتجات (${products.length})`, labelEn: `Products (${products.length})` },
-            { id: 'orders', icon: 'local_shipping', labelAr: `إدارة الطلبات (${orders.length})`, labelEn: `Orders (${orders.length})` },
-            { id: 'users', icon: 'group', labelAr: `إدارة المستخدمين (${users.length})`, labelEn: `Users (${users.length})` },
+            { id: 'overview', icon: 'analytics', labelAr: 'الإحصائيات', labelEn: 'Overview' },
+            { id: 'products', icon: 'apparel', labelAr: `المنتجات (${products.length})`, labelEn: `Products (${products.length})` },
+            { id: 'orders', icon: 'local_shipping', labelAr: `الطلبات (${orders.length})`, labelEn: `Orders (${orders.length})` },
+            { id: 'users', icon: 'group', labelAr: `المستخدمين (${users.length})`, labelEn: `Users (${users.length})` },
             { id: 'promos', icon: 'sell', labelAr: `أكواد الخصم (${promoCodes.length})`, labelEn: `Promo Codes (${promoCodes.length})` },
-            { id: 'reviews', icon: 'rate_review', labelAr: `التحكم في التقييمات (${reviews.length})`, labelEn: `Reviews (${reviews.length})` },
+            { id: 'reviews', icon: 'rate_review', labelAr: `التقييمات (${reviews.length})`, labelEn: `Reviews (${reviews.length})` },
             { id: 'newsletter', icon: 'mark_email_unread', labelAr: `النشرة البريدية (${subscribers.length})`, labelEn: `Newsletter (${subscribers.length})` },
-            { id: 'settings', icon: 'settings', labelAr: 'إعدادات الواجهة والبنرات', labelEn: 'Store Settings' },
-            { id: 'payment_settings', icon: 'payments', labelAr: 'إعدادات طرق الدفع (فودافون كاش وإنستا باي)', labelEn: 'Payment Settings' },
+            { id: 'settings', icon: 'settings', labelAr: 'إعدادات البنرات', labelEn: 'Store Settings' },
+            { id: 'payment_settings', icon: 'payments', labelAr: 'إعدادات طرق الدفع', labelEn: 'Payment Settings' },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-5 py-3 border-b-2 font-label-caps text-[13px] whitespace-nowrap transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 border-b-2 font-label-caps text-[12px] sm:text-[13px] whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                 activeTab === tab.id
-                  ? 'border-white text-white font-bold bg-white/5'
-                  : 'border-transparent text-white/60 hover:text-white hover:bg-white/5'
+                  ? 'border-white text-white font-bold bg-white/10'
+                  : 'border-transparent text-white/65 hover:text-white hover:bg-white/5'
               }`}
             >
-              <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+              <span className="material-symbols-outlined text-[17px] sm:text-[18px]">{tab.icon}</span>
               <span>{language === 'ar' ? tab.labelAr : tab.labelEn}</span>
             </button>
           ))}
