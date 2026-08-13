@@ -19,6 +19,7 @@ import { SizeGuideModal } from './components/SizeGuideModal';
 import { PolicyModal } from './components/PolicyModal';
 import { AccountModal } from './components/AccountModal';
 import { AdminDashboard } from './components/AdminDashboard';
+import { ResetPasswordView } from './components/ResetPasswordView';
 import { CustomerReviewsSection } from './components/CustomerReviewsSection';
 import { PhilosophySection } from './components/PhilosophySection';
 import { LogoMarqueeSection } from './components/LogoMarqueeSection';
@@ -49,12 +50,19 @@ import {
   safeJsonStringify,
 } from './firebase';
 
-const getInitialViewState = () => {
+const getInitialViewState = (): { view: ViewMode; category: string; productId: string | null; oobCode?: string | null } => {
   if (typeof window !== 'undefined') {
     const path = window.location.pathname;
     const searchParams = new URLSearchParams(window.location.search);
     const hash = window.location.hash;
+    const hashParams = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
 
+    const oobCode = searchParams.get('oobCode') || hashParams.get('oobCode');
+    const mode = searchParams.get('mode') || hashParams.get('mode');
+
+    if (path.includes('/reset-password') || mode === 'resetPassword' || oobCode || searchParams.get('view') === 'reset-password') {
+      return { view: 'reset-password' as ViewMode, category: 'All', productId: null, oobCode };
+    }
     if (path.includes('/admin') || searchParams.get('view') === 'admin' || hash.includes('admin')) {
       return { view: 'admin' as ViewMode, category: 'All', productId: null };
     }
@@ -569,9 +577,11 @@ export const AppContent: React.FC = () => {
         }
       } else if (view === 'checkout') {
         params.set('view', 'checkout');
+      } else if (view === 'reset-password') {
+        params.set('view', 'reset-password');
       }
 
-      const newUrl = params.toString() ? `?${params.toString()}` : '/';
+      const newUrl = view === 'reset-password' ? '/reset-password' : (params.toString() ? `?${params.toString()}` : '/');
       window.history.pushState({}, '', newUrl);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -900,6 +910,17 @@ export const AppContent: React.FC = () => {
             onSignInGoogle={handleSignInGoogle}
             promoCodes={promoCodes}
             onUsePromoCode={handleUsePromoCode}
+          />
+        )}
+
+        {currentView === 'reset-password' && (
+          <ResetPasswordView
+            initialOobCode={initialUrlState.oobCode}
+            onOpenLogin={() => {
+              handleNavigate('home');
+              setIsAccountOpen(true);
+            }}
+            onNavigateHome={() => handleNavigate('home')}
           />
         )}
       </main>

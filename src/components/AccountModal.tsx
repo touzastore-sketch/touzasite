@@ -154,22 +154,45 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     setAuthError(null);
     setAuthSuccess(null);
 
-    if (!email.trim()) {
-      setAuthError(language === 'ar' ? 'يرجى إدخال البريد الإلكتروني' : 'Please enter your email');
+    if (isSubmittingAuth) return;
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setAuthError(language === 'ar' ? 'يرجى إدخال البريد الإلكتروني' : 'Please enter your email address');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setAuthError(language === 'ar' ? 'صيغة البريد الإلكتروني غير صحيحة' : 'Invalid email address format');
       return;
     }
 
     setIsSubmittingAuth(true);
     try {
-      await resetPassword(email);
-      setAuthSuccess(language === 'ar' ? 'تم إرسال رابط إعادة ضبط كلمة المرور إلى بريدك الإلكتروني بنجاح' : 'Reset link sent to your email');
+      console.log('[AccountModal] Submitting password reset request for:', cleanEmail);
+      await resetPassword(cleanEmail);
+      console.log('[AccountModal] Password reset email sent successfully via Firebase');
+      setAuthSuccess(
+        language === 'ar'
+          ? 'تم إرسال رابط إعادة ضبط كلمة المرور إلى بريدك الإلكتروني بنجاح. يرجى مراجعة البريد الإلكتروني (ومجلد الرسائل غير المرغوب فيها / Spam).'
+          : 'Password reset link sent to your email successfully. Please check your inbox and spam folder.'
+      );
     } catch (err: any) {
-      console.error(err);
-      let msg = language === 'ar' ? 'فشل إرسال رابط الضبط' : 'Failed to send reset link';
-      if (err.code === 'auth/user-not-found') {
-        msg = language === 'ar' ? 'البريد الإلكتروني غير مسجل لدينا' : 'Email not found';
-      } else if (err.code === 'auth/invalid-email') {
-        msg = language === 'ar' ? 'البريد الإلكتروني غير صحيح' : 'Invalid email format';
+      console.error('[AccountModal] Error sending password reset email:', err?.code, err?.message, err);
+      const errorCode = err?.code || '';
+      let msg = language === 'ar' ? 'فشل إرسال رابط الضبط، يرجى المحاولة لاحقاً' : 'Failed to send reset link, please try again later';
+
+      if (errorCode === 'auth/user-not-found') {
+        msg = language === 'ar' ? 'البريد الإلكتروني غير مسجل لدينا' : 'Email address not found';
+      } else if (errorCode === 'auth/invalid-email') {
+        msg = language === 'ar' ? 'صيغة البريد الإلكتروني غير صحيحة' : 'Invalid email format';
+      } else if (errorCode === 'auth/too-many-requests') {
+        msg = language === 'ar' ? 'تم حظر المحاولات مؤقتاً بسبب كثرة الطلبات. يرجى الانتظار والمحاولة لاحقاً' : 'Too many requests. Please try again later.';
+      } else if (errorCode === 'auth/network-request-failed') {
+        msg = language === 'ar' ? 'فشل الاتصال بالشبكة، يرجى التحقق من اتصالك بالإنترنت' : 'Network request failed. Please check your internet connection.';
+      } else if (err?.message) {
+        msg = language === 'ar' ? `خطأ: ${err.message}` : `Error: ${err.message}`;
       }
       setAuthError(msg);
     } finally {

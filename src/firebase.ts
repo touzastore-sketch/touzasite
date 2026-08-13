@@ -8,6 +8,9 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
+  verifyPasswordResetCode,
+  confirmPasswordReset,
+  ActionCodeSettings,
   updateProfile,
   User,
 } from 'firebase/auth';
@@ -253,7 +256,49 @@ export const signInWithEmail = async (email: string, password: string) => {
 // Reset Password via Firebase
 export const resetPassword = async (email: string) => {
   const cleanEmail = email.trim().toLowerCase();
-  await sendPasswordResetEmail(auth, cleanEmail);
+  
+  // Determine production vs dev redirect URL
+  const isProd = typeof window !== 'undefined' && window.location.hostname.includes('touza.shop');
+  const redirectUrl = isProd ? 'https://touza.shop/reset-password' : `${window.location.origin}/reset-password`;
+
+  const actionCodeSettings: ActionCodeSettings = {
+    url: redirectUrl,
+    handleCodeInApp: true,
+  };
+
+  console.log('[Firebase Auth] Calling sendPasswordResetEmail for:', cleanEmail, 'with redirectUrl:', redirectUrl);
+  try {
+    await sendPasswordResetEmail(auth, cleanEmail, actionCodeSettings);
+    console.log('[Firebase Auth] sendPasswordResetEmail completed successfully for:', cleanEmail);
+  } catch (error: any) {
+    console.error('[Firebase Auth] sendPasswordResetEmail error:', error?.code, error?.message, error);
+    throw error;
+  }
+};
+
+// Verify Password Reset Code (oobCode)
+export const verifyResetCode = async (oobCode: string): Promise<string> => {
+  console.log('[Firebase Auth] Verifying password reset code...');
+  try {
+    const userEmail = await verifyPasswordResetCode(auth, oobCode);
+    console.log('[Firebase Auth] Code verified successfully for email:', userEmail);
+    return userEmail;
+  } catch (error: any) {
+    console.error('[Firebase Auth] verifyPasswordResetCode error:', error?.code, error?.message, error);
+    throw error;
+  }
+};
+
+// Confirm New Password with Reset Code
+export const confirmNewPassword = async (oobCode: string, newPassword: string): Promise<void> => {
+  console.log('[Firebase Auth] Confirming new password...');
+  try {
+    await confirmPasswordReset(auth, oobCode, newPassword);
+    console.log('[Firebase Auth] Password reset confirmed successfully');
+  } catch (error: any) {
+    console.error('[Firebase Auth] confirmPasswordReset error:', error?.code, error?.message, error);
+    throw error;
+  }
 };
 
 // Get User Profile details from 'users' collection

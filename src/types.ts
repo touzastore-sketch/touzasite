@@ -50,7 +50,7 @@ export interface CartItem {
   quantity: number;
 }
 
-export type ViewMode = 'home' | 'shop' | 'product' | 'checkout' | 'admin';
+export type ViewMode = 'home' | 'shop' | 'product' | 'checkout' | 'admin' | 'reset-password';
 
 export interface PromoCode {
   id: string;
