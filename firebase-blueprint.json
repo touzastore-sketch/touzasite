@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "User": {
+      "collectionName": "users",
+      "fields": {
+        "uid": { "type": "string", "required": true },
+        "email": { "type": "string", "required": true },
+        "displayName": { "type": "string", "required": false },
+        "photoURL": { "type": "string", "required": false },
+        "createdAt": { "type": "timestamp", "required": true }
+      }
+    },
+    "Order": {
+      "collectionName": "users/{userId}/orders",
+      "fields": {
+        "id": { "type": "string", "required": true },
+        "userId": { "type": "string", "required": true },
+        "userEmail": { "type": "string", "required": true },
+        "orderNumber": { "type": "string", "required": true },
+        "items": { "type": "array", "required": true },
+        "subtotal": { "type": "number", "required": true },
+        "discountAmount": { "type": "number", "required": true },
+        "shipping": { "type": "number", "required": true },
+        "total": { "type": "number", "required": true },
+        "status": { "type": "string", "required": true },
+        "shippingAddress": { "type": "map", "required": true },
+        "paymentMethod": { "type": "string", "required": true },
+        "createdAt": { "type": "timestamp", "required": true }
+      }
+    },
+    "Review": {
+      "collectionName": "reviews",
+      "fields": {
+        "id": { "type": "string", "required": true },
+        "productId": { "type": "string", "required": true },
+        "productTitle": { "type": "string", "required": true },
+        "rating": { "type": "number", "required": true },
+        "comment": { "type": "string", "required": true },
+        "userId": { "type": "string", "required": true },
+        "userName": { "type": "string", "required": true },
+        "userPhoto": { "type": "string", "required": false },
+        "orderNumber": { "type": "string", "required": false },
+        "createdAt": { "type": "timestamp", "required": true }
+      }
+    }
+  }
+}

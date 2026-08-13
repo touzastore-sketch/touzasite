@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>TOUZA - Premium Casual Menswear</title>
+    <script>
+      // Immediate Cache & Service Worker Purge Logic for Safari & Modern Browsers
+      (function() {
+        var APP_VERSION = 'v2.4.0-touza-20260812';
+        
+        // 1. Unregister all Service Workers if any existed
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for (var i = 0; i < registrations.length; i++) {
+              registrations[i].unregister();
+            }
+          }).catch(function() {});
+        }
+
+        // 2. Clear CacheStorage (caches API)
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (var i = 0; i < names.length; i++) {
+              caches.delete(names[i]);
+            }
+          }).catch(function() {});
+        }
+
+        // 3. Invalidate stale localStorage data if app version changed
+        try {
+          var currentVersion = localStorage.getItem('touza_app_version');
+          if (currentVersion !== APP_VERSION) {
+            // Purge cached products, categories, promos, settings, and orders cache
+            localStorage.removeItem('maison_products');
+            localStorage.removeItem('maison_categories');
+            localStorage.removeItem('maison_promos');
+            localStorage.removeItem('maison_settings');
+            localStorage.removeItem('maison_orders_cache');
+            localStorage.removeItem('maison_reviews_cache');
+            localStorage.setItem('touza_app_version', APP_VERSION);
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="image" href="/images/philosophy_model.jpg" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-[#f9f9f9] text-[#1a1c1c] antialiased selection:bg-[#1c1b1b] selection:text-[#ffffff]">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

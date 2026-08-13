@@ -1,0 +1,514 @@
+import React, { useState, useEffect } from 'react';
+import { User } from 'firebase/auth';
+import { ViewMode, StoreSettings } from '../types';
+import { useLanguage } from '../context/LanguageContext';
+import { SocialLinks } from './SocialLinks';
+
+interface NavbarProps {
+  currentView: ViewMode;
+  onNavigate: (view: ViewMode, categoryFilter?: string) => void;
+  cartCount: number;
+  wishlistCount: number;
+  onOpenCart: () => void;
+  onOpenWishlist: () => void;
+  onOpenSearch: () => void;
+  onOpenAccount: () => void;
+  onOpenAdmin?: () => void;
+  storeSettings?: StoreSettings;
+  user?: User | null;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({
+  currentView,
+  onNavigate,
+  cartCount,
+  wishlistCount,
+  onOpenCart,
+  onOpenWishlist,
+  onOpenSearch,
+  onOpenAccount,
+  onOpenAdmin,
+  storeSettings,
+  user,
+}) => {
+  const { language, setLanguage, t } = useLanguage();
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollTop, setLastScrollTop] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuAnimated, setMenuAnimated] = useState(false);
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const timer = setTimeout(() => setMenuAnimated(true), 30);
+      return () => clearTimeout(timer);
+    } else {
+      setMenuAnimated(false);
+    }
+  }, [mobileMenuOpen]);
+
+  const displayBrandName =
+    (language === 'ar' ? storeSettings?.storeNameAr : storeSettings?.storeNameEn) ||
+    t('brand.name', language === 'ar' ? 'ميزون إيليجانت' : 'MAISON ÉLÉGANT');
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      if (scrollTop > lastScrollTop && scrollTop > 100) {
+        setIsVisible(false);
+      } else {
+        setIsVisible(true);
+      }
+      setIsScrolled(scrollTop > 50);
+      setLastScrollTop(scrollTop <= 0 ? 0 : scrollTop);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollTop]);
+
+  const navLinks = [
+    { labelKey: 'nav.home', defaultLabel: 'Home', view: 'home' as ViewMode },
+    { labelKey: 'nav.about', defaultLabel: 'About', view: 'home' as ViewMode, anchor: '#about' },
+    { labelKey: 'nav.collections', defaultLabel: 'Collections', view: 'shop' as ViewMode, category: 'All' },
+    { labelKey: 'nav.contact', defaultLabel: 'Contact Us', view: 'home' as ViewMode, anchor: '#footer' },
+  ];
+
+  const handleNavClick = (link: (typeof navLinks)[0]) => {
+    onNavigate(link.view, link.category);
+    if (link.anchor) {
+      setTimeout(() => {
+        const el = document.querySelector(link.anchor!);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  };
+
+  const isTransparent = currentView === 'home' && !isScrolled;
+  const topAnnouncement = language === 'ar' ? storeSettings?.announcementAr : storeSettings?.announcementEn;
+
+  return (
+    <>
+      <header
+        id="navbar"
+        className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ease-in-out ${
+          isVisible ? 'translate-y-0' : '-translate-y-full'
+        } ${
+          isTransparent
+            ? 'bg-transparent shadow-none'
+            : 'bg-white/95 backdrop-blur-md shadow-md border-b border-[#000000]/10'
+        }`}
+      >
+        {/* Top Announcement Bar (Infinite Moving Marquee Ticker) */}
+        {topAnnouncement && (
+          <div className="w-full bg-[#111111] text-[#e2c792] text-[11px] sm:text-[12px] font-medium py-1.5 border-b border-[#e2c792]/20 overflow-hidden font-label-caps whitespace-nowrap marquee-container select-none">
+            <div
+              className={`flex whitespace-nowrap gap-12 ${
+                language === 'ar' ? 'animate-marquee-rtl' : 'animate-marquee'
+              }`}
+              style={{ animationDuration: '24s' }}
+            >
+              <div className="flex items-center gap-12 shrink-0">
+                <span className="flex items-center gap-3">
+                  <span className="text-[#e2c792] text-[10px]">✦</span>
+                  <span className="tracking-[0.18em]">{topAnnouncement}</span>
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="text-[#e2c792] text-[10px]">✦</span>
+                  <span className="tracking-[0.18em]">TOUZA MEN'S WEAR</span>
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="text-[#e2c792] text-[10px]">✦</span>
+                  <span className="tracking-[0.18em]">{topAnnouncement}</span>
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="text-[#e2c792] text-[10px]">✦</span>
+                  <span className="tracking-[0.18em]">TOUZA MEN'S WEAR</span>
+                </span>
+              </div>
+              <div className="flex items-center gap-12 shrink-0">
+                <span className="flex items-center gap-3">
+                  <span className="text-[#e2c792] text-[10px]">✦</span>
+                  <span className="tracking-[0.18em]">{topAnnouncement}</span>
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="text-[#e2c792] text-[10px]">✦</span>
+                  <span className="tracking-[0.18em]">TOUZA MEN'S WEAR</span>
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="text-[#e2c792] text-[10px]">✦</span>
+                  <span className="tracking-[0.18em]">{topAnnouncement}</span>
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="text-[#e2c792] text-[10px]">✦</span>
+                  <span className="tracking-[0.18em]">TOUZA MEN'S WEAR</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className={`max-w-[1440px] mx-auto px-4 sm:px-6 md:px-16 flex justify-between items-center ${
+          isTransparent ? 'py-3 md:py-4 border-b border-white/15' : 'py-2.5 md:py-3.5'
+        }`}>
+          {/* Menu Button (Frameless, Minimalist & Luxury) */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className={`group flex items-center gap-3 transition-colors duration-300 focus:outline-none cursor-pointer py-1.5 px-0.5 ${
+              isTransparent
+                ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)] hover:text-[#e2c792]'
+                : 'text-[#000000] hover:text-[#8c734b]'
+            }`}
+            aria-label="Toggle menu"
+          >
+            {/* Custom Ultra-Thin 3-Line Animated Hamburger Icon (~26px wide) */}
+            <div className="relative w-[26px] h-3.5 flex flex-col justify-between items-start py-[1px]">
+              <span
+                className={`block h-[1px] bg-current transition-all duration-300 ease-out origin-center ${
+                  mobileMenuOpen
+                    ? 'w-[26px] translate-y-[5.5px] rotate-45'
+                    : 'w-[26px]'
+                }`}
+              />
+              <span
+                className={`block h-[1px] bg-current transition-all duration-300 ease-out ${
+                  mobileMenuOpen
+                    ? 'w-0 opacity-0'
+                    : 'w-[18px] group-hover:w-[26px]'
+                }`}
+              />
+              <span
+                className={`block h-[1px] bg-current transition-all duration-300 ease-out origin-center ${
+                  mobileMenuOpen
+                    ? 'w-[26px] -translate-y-[5.5px] -rotate-45'
+                    : 'w-[22px] group-hover:w-[26px]'
+                }`}
+              />
+            </div>
+            <span className="font-label-caps text-[11px] sm:text-[12px] font-light tracking-[0.28em] uppercase transition-colors">
+              {language === 'ar' ? 'القائمة' : 'MENU'}
+            </span>
+          </button>
+
+          {/* Brand Logo */}
+          <button
+            onClick={() => onNavigate('home')}
+            className={`font-display text-[24px] sm:text-[28px] md:text-[36px] tracking-tighter truncate mx-auto cursor-pointer transition-all ${
+              isTransparent
+                ? 'text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] hover:text-white/90'
+                : 'text-[#000000] hover:opacity-90'
+            }`}
+          >
+            {displayBrandName}
+          </button>
+
+          {/* Trailing Icons & Language Switcher */}
+          <div
+            className={`flex items-center gap-1 sm:gap-2 md:gap-3 transition-colors ${
+              isTransparent ? 'text-white' : 'text-[#000000]'
+            }`}
+          >
+            {/* Social Media Links (Desktop/Tablet) */}
+            <div
+              className={`hidden xl:flex items-center ltr:mr-1 rtl:ml-1 ltr:pr-2 rtl:pl-2 border-r ltr:border-r rtl:border-l ${
+                isTransparent ? 'border-white/20' : 'border-[#c4c7c7]/30'
+              }`}
+            >
+              <SocialLinks variant="horizontal" theme={isTransparent ? 'dark' : 'light'} storeSettings={storeSettings} />
+            </div>
+
+            {/* Language Switcher */}
+            <div
+              className={`flex items-center rounded-full px-1.5 py-0.5 text-[11px] sm:text-[12px] font-medium transition-all h-8 sm:h-9 ${
+                isTransparent
+                  ? 'border border-white/30 bg-black/35 backdrop-blur-md text-white drop-shadow-sm'
+                  : 'border border-[#747878]/30 bg-white/80 text-[#000000] shadow-2xs'
+              }`}
+            >
+              <button
+                onClick={() => setLanguage('ar')}
+                className={`px-1.5 sm:px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                  language === 'ar'
+                    ? isTransparent
+                      ? 'bg-white text-black font-bold'
+                      : 'bg-[#000000] text-white font-bold'
+                    : isTransparent
+                    ? 'text-white/80 hover:text-white'
+                    : 'text-[#5e5e5c] hover:text-[#000000]'
+                }`}
+              >
+                عربي
+              </button>
+              <span className={`mx-0.5 ${isTransparent ? 'text-white/40' : 'text-[#c4c7c7]'}`}>|</span>
+              <button
+                onClick={() => setLanguage('en')}
+                className={`px-1.5 sm:px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                  language === 'en'
+                    ? isTransparent
+                      ? 'bg-white text-black font-bold'
+                      : 'bg-[#000000] text-white font-bold'
+                    : isTransparent
+                    ? 'text-white/80 hover:text-white'
+                    : 'text-[#5e5e5c] hover:text-[#000000]'
+                }`}
+              >
+                EN
+              </button>
+            </div>
+
+            {/* Search */}
+            <button
+              onClick={onOpenSearch}
+              className={`w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer ${
+                isTransparent
+                  ? 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
+                  : 'text-[#000000] hover:bg-[#000000]/5'
+              }`}
+              title={t('nav.search', 'Search')}
+            >
+              <span className="material-symbols-outlined text-[22px] md:text-[24px]">
+                search
+              </span>
+            </button>
+
+            {/* Wishlist */}
+            <button
+              onClick={onOpenWishlist}
+              className={`w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
+                isTransparent
+                  ? 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
+                  : 'text-[#000000] hover:bg-[#000000]/5'
+              }`}
+              title={t('nav.wishlist', 'Saved Items')}
+            >
+              <span
+                className={`material-symbols-outlined text-[22px] md:text-[24px] ${
+                  wishlistCount > 0
+                    ? isTransparent
+                      ? 'text-red-400'
+                      : 'text-[#ba1a1a]'
+                    : isTransparent
+                    ? 'text-white'
+                    : 'text-[#000000]'
+                }`}
+              >
+                favorite
+              </span>
+              {wishlistCount > 0 && (
+                <span className="absolute top-0 right-0 bg-[#ba1a1a] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-xs">
+                  {wishlistCount}
+                </span>
+              )}
+            </button>
+
+            {/* Account */}
+            <button
+              onClick={onOpenAccount}
+              className={`w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
+                isTransparent
+                  ? 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
+                  : 'text-[#000000] hover:bg-[#000000]/5'
+              }`}
+              title={user?.email || t('nav.account', 'Account')}
+            >
+              {user?.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName || 'Account'}
+                  className={`w-6 h-6 md:w-7 md:h-7 rounded-full object-cover border ${
+                    isTransparent ? 'border-white/40' : 'border-[#000000]/20'
+                  }`}
+                />
+              ) : (
+                <div className="relative flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[22px] md:text-[24px]">
+                    person
+                  </span>
+                  {user && (
+                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-[#2e7d32] rounded-full ring-1 ring-white" />
+                  )}
+                </div>
+              )}
+            </button>
+
+            {/* Cart */}
+            <button
+              onClick={onOpenCart}
+              className={`w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
+                isTransparent
+                  ? 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
+                  : 'text-[#000000] hover:bg-[#000000]/5'
+              }`}
+              title={t('nav.cart', 'Shopping Bag')}
+            >
+              <span className="material-symbols-outlined text-[22px] md:text-[24px]">
+                shopping_bag
+              </span>
+              {cartCount > 0 && (
+                <span
+                  className={`absolute top-0 right-0 text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold ${
+                    isTransparent
+                      ? 'bg-white text-black shadow-sm'
+                      : 'bg-[#000000] text-white'
+                  }`}
+                >
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Side Drawer Navigation (Mobile & Desktop) */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Backdrop */}
+          <div
+            onClick={() => setMobileMenuOpen(false)}
+            className={`absolute inset-0 bg-black/75 backdrop-blur-md transition-opacity duration-500 ${
+              menuAnimated ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+
+          {/* Side Drawer */}
+          <aside
+            className={`absolute inset-y-0 ${
+              language === 'ar' ? 'right-0' : 'left-0'
+            } max-w-full flex transition-transform duration-500 ease-out`}
+          >
+            <div className="w-screen max-w-xs sm:max-w-md bg-[#0a0a0b] text-[#f5f0eb] border-r border-white/10 rtl:border-l rtl:border-r-0 shadow-2xl flex flex-col justify-between h-full py-8 px-6 sm:px-10 overflow-y-auto">
+              <div>
+                {/* Header with Brand & Close button */}
+                <div className="flex items-center justify-between pb-6 mb-6 border-b border-white/10">
+                  <div className="flex flex-col">
+                    <span className="font-display text-[22px] sm:text-[26px] font-light tracking-wide text-[#f5f0eb]">
+                      {displayBrandName}
+                    </span>
+                    <span className="font-label-caps text-[10px] tracking-[0.3em] text-[#c5a059] uppercase mt-0.5">
+                      {language === 'ar' ? 'أزياء رجالية' : "MEN'S WEAR"}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-2 text-white/70 hover:text-[#c5a059] hover:bg-white/5 rounded-full transition-all duration-300 cursor-pointer"
+                    aria-label="Close menu"
+                  >
+                    <span className="material-symbols-outlined text-[26px]">close</span>
+                  </button>
+                </div>
+
+                {/* Main Nav links with Staggered Animation & Editorial Styling */}
+                <div className="flex flex-col text-start py-2">
+                  {navLinks.map((link, index) => {
+                    const formattedNum = `0${index + 1}`;
+                    return (
+                      <button
+                        key={link.labelKey}
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          handleNavClick(link);
+                        }}
+                        style={{
+                          transitionDelay: `${index * 80 + 100}ms`,
+                        }}
+                        className={`group relative py-4 sm:py-5 border-b border-white/10 flex items-baseline gap-4 text-start cursor-pointer transition-all duration-500 ease-out ${
+                          menuAnimated
+                            ? 'translate-x-0 opacity-100'
+                            : language === 'ar'
+                            ? 'translate-x-8 opacity-0'
+                            : '-translate-x-8 opacity-0'
+                        }`}
+                      >
+                        {/* Refined Gold Number */}
+                        <span className="font-mono text-[12px] sm:text-[13px] text-[#c5a059] tracking-[0.25em] font-light min-w-[30px]">
+                          {formattedNum}
+                        </span>
+
+                        {/* Editorial Typography & Hover Underline */}
+                        <span className="font-display text-[28px] sm:text-[34px] md:text-[38px] font-extralight tracking-wide text-[#f5f0eb] group-hover:text-[#c5a059] transition-colors duration-300 relative">
+                          {t(link.labelKey, link.defaultLabel)}
+                          {/* Animated Underline */}
+                          <span className="absolute bottom-[-2px] left-0 right-0 h-[1px] bg-[#c5a059] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left rtl:origin-right" />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Footer actions inside drawer */}
+              <div className="pt-6 border-t border-white/10 flex flex-col gap-5">
+                {/* Minimalist Language Switcher EN / عربي */}
+                <div className="flex items-center justify-center gap-3 py-1">
+                  <button
+                    onClick={() => {
+                      setLanguage('ar');
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`font-label-caps text-[12px] sm:text-[13px] tracking-[0.2em] transition-all cursor-pointer ${
+                      language === 'ar'
+                        ? 'text-[#c5a059] font-medium'
+                        : 'text-white/40 hover:text-white'
+                    }`}
+                  >
+                    العربية
+                  </button>
+                  <span className="text-white/20 text-[12px] font-light">/</span>
+                  <button
+                    onClick={() => {
+                      setLanguage('en');
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`font-label-caps text-[12px] sm:text-[13px] tracking-[0.2em] transition-all cursor-pointer ${
+                      language === 'en'
+                        ? 'text-[#c5a059] font-medium'
+                        : 'text-white/40 hover:text-white'
+                    }`}
+                  >
+                    ENGLISH
+                  </button>
+                </div>
+
+                {/* Outline Buttons for Saved Items & Account */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onOpenWishlist();
+                    }}
+                    className="flex items-center justify-center gap-2 py-3 px-3 border border-white/20 hover:border-[#c5a059] text-white/90 hover:text-[#c5a059] transition-all duration-300 font-label-caps text-[11px] sm:text-[12px] tracking-widest cursor-pointer bg-transparent rounded-none"
+                  >
+                    <span className="material-symbols-outlined text-[18px] text-[#c5a059]">favorite</span>
+                    <span>{t('nav.wishlist', 'المفضلة')} ({wishlistCount})</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onOpenAccount();
+                    }}
+                    className="flex items-center justify-center gap-2 py-3 px-3 border border-white/20 hover:border-[#c5a059] text-white/90 hover:text-[#c5a059] transition-all duration-300 font-label-caps text-[11px] sm:text-[12px] tracking-widest cursor-pointer bg-transparent rounded-none"
+                  >
+                    <span className="material-symbols-outlined text-[18px] text-[#c5a059]">person</span>
+                    <span>{t('nav.account', 'الحساب')}</span>
+                  </button>
+                </div>
+
+                {/* Mobile Drawer Social Links */}
+                <div className="flex flex-col items-center pt-4 border-t border-white/10">
+                  <span className="font-label-caps text-[10px] text-[#c5a059] mb-3 tracking-[0.25em] uppercase opacity-80">
+                    {language === 'ar' ? 'منصات الدار' : 'ATELIER PLATFORMS'}
+                  </span>
+                  <SocialLinks variant="horizontal" theme="dark" storeSettings={storeSettings} />
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
+    </>
+  );
+};

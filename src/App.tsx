@@ -1,0 +1,945 @@
+import React, { useState, useEffect } from 'react';
+import { User } from 'firebase/auth';
+import { Category, Product, CartItem, ViewMode, PromoCode, StoreSettings } from './types';
+import { PRODUCTS } from './data/products';
+import { DEFAULT_CATEGORIES } from './data/defaultCategories';
+import { Navbar } from './components/Navbar';
+import { Footer } from './components/Footer';
+import { HeroBanner } from './components/HeroBanner';
+import { CategorySection } from './components/CategorySection';
+import { ProductCard } from './components/ProductCard';
+import { ProductDetail } from './components/ProductDetail';
+import { CollectionsView } from './components/CollectionsView';
+import { CartDrawer } from './components/CartDrawer';
+import { CheckoutView } from './components/CheckoutView';
+import { SearchModal } from './components/SearchModal';
+import { WishlistModal } from './components/WishlistModal';
+import { ImageModal } from './components/ImageModal';
+import { SizeGuideModal } from './components/SizeGuideModal';
+import { PolicyModal } from './components/PolicyModal';
+import { AccountModal } from './components/AccountModal';
+import { AdminDashboard } from './components/AdminDashboard';
+import { CustomerReviewsSection } from './components/CustomerReviewsSection';
+import { PhilosophySection } from './components/PhilosophySection';
+import { LogoMarqueeSection } from './components/LogoMarqueeSection';
+import { PerksMarqueeBar } from './components/PerksMarqueeBar';
+import { FloatingContactButtons } from './components/FloatingContactButtons';
+import { ScrollReveal } from './components/ScrollReveal';
+import { useLanguage } from './context/LanguageContext';
+import {
+  subscribeToAuth,
+  signInWithGoogle,
+  getAllCategories,
+  saveCategoryAdmin,
+  updateCategoryAdmin,
+  deleteCategoryAdmin,
+  resetDefaultCategoriesAdmin,
+  addNewsletterSubscriber,
+  getAllProductsAdmin,
+  subscribeToProducts,
+  saveProductAdmin,
+  deleteProductAdmin,
+  getStoreSettingsAdmin,
+  subscribeToStoreSettings,
+  saveStoreSettingsAdmin,
+  getAllPromoCodesAdmin,
+  savePromoCodeAdmin,
+  deletePromoCodeAdmin,
+  safeJsonStringify,
+} from './firebase';
+
+const getInitialViewState = () => {
+  if (typeof window !== 'undefined') {
+    const path = window.location.pathname;
+    const searchParams = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
+
+    if (path.includes('/admin') || searchParams.get('view') === 'admin' || hash.includes('admin')) {
+      return { view: 'admin' as ViewMode, category: 'All', productId: null };
+    }
+    if (searchParams.get('view') === 'shop' || searchParams.has('category') || searchParams.has('page')) {
+      return { view: 'shop' as ViewMode, category: searchParams.get('category') || 'All', productId: null };
+    }
+    if (searchParams.get('view') === 'product' || searchParams.has('id')) {
+      return { view: 'product' as ViewMode, category: 'All', productId: searchParams.get('id') || searchParams.get('productId') };
+    }
+    if (searchParams.get('view') === 'checkout') {
+      return { view: 'checkout' as ViewMode, category: 'All', productId: null };
+    }
+  }
+  return { view: 'home' as ViewMode, category: 'All', productId: null };
+};
+
+export const AppContent: React.FC = () => {
+  const { language, setLanguage, t } = useLanguage();
+  const initialUrlState = getInitialViewState();
+  const [currentView, setCurrentView] = useState<ViewMode>(initialUrlState.view);
+
+  // Sync with browser URL / popstate events
+  useEffect(() => {
+    const handlePopState = () => {
+      const state = getInitialViewState();
+      setCurrentView(state.view);
+      if (state.category) {
+        setCategoryFilter(state.category);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
+
+  // Dynamic Products state initialized from localStorage
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const saved = localStorage.getItem('maison_products');
+      return saved ? JSON.parse(saved) : PRODUCTS;
+    } catch {
+      return PRODUCTS;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('maison_products', safeJsonStringify(products));
+    } catch (err) {
+      console.error('Failed to store products:', err);
+    }
+  }, [products]);
+
+  // Dynamic Categories state
+  const [categories, setCategories] = useState<Category[]>(() => {
+    try {
+      const saved = localStorage.getItem('maison_categories');
+      return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
+    } catch {
+      return DEFAULT_CATEGORIES;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('maison_categories', safeJsonStringify(categories));
+    } catch (err) {
+      console.error('Failed to store categories:', err);
+    }
+  }, [categories]);
+
+  const handleAddCategory = async (catData: Omit<Category, 'id'>) => {
+    const updated = await saveCategoryAdmin(catData, categories);
+    setCategories(updated);
+  };
+
+  const handleUpdateCategory = async (catId: string, updatedData: Partial<Category>) => {
+    const updated = await updateCategoryAdmin(catId, updatedData, categories);
+    setCategories(updated);
+  };
+
+  const handleDeleteCategory = async (catId: string) => {
+    const updated = await deleteCategoryAdmin(catId, categories);
+    setCategories(updated);
+  };
+
+  const handleResetCategories = async () => {
+    const updated = await resetDefaultCategoriesAdmin();
+    setCategories(updated);
+  };
+
+  // Dynamic Promo Codes state
+  const defaultPromos: PromoCode[] = [
+    {
+      id: 'promo-1',
+      code: 'ELEGAN10',
+      discountPercent: 10,
+      isActive: true,
+      expiryNote: 'خصم 10% للطلب الأول',
+    },
+    {
+      id: 'promo-2',
+      code: 'MAISON15',
+      discountPercent: 15,
+      isActive: true,
+      expiryNote: 'عرض خاص للأعضاء الجدد',
+    },
+  ];
+
+  const [promoCodes, setPromoCodes] = useState<PromoCode[]>(() => {
+    try {
+      const saved = localStorage.getItem('maison_promos');
+      return saved ? JSON.parse(saved) : defaultPromos;
+    } catch {
+      return defaultPromos;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('maison_promos', safeJsonStringify(promoCodes));
+    } catch (err) {
+      console.error('Failed to store promos:', err);
+    }
+  }, [promoCodes]);
+
+  // Dynamic Store Banner & Appearance Settings
+  const defaultSettings: StoreSettings = {
+    storeNameAr: 'توزا TOUZA',
+    storeNameEn: 'TOUZA CASUAL',
+    taglineAr: 'ملابس كاجوال رجالي فاخرة - بورسعيد | مصر',
+    taglineEn: 'Luxury Men Casual Wear - Portsaid | Egypt',
+    announcementAr: 'شحن مجاني لجميع المحافظات | خصم 10% عند استخدام كود TOUZA10',
+    announcementEn: 'Complimentary Express Shipping Nationwide | Use Code TOUZA10',
+    heroTitleAr: 'أزياء كاجوال أنيقة تعكس شخصيتك',
+    heroTitleEn: 'Premium Casual Menswear & Streetwear',
+    heroSubtitleAr: 'تصاميم كاجوال عصرية مصنعة من أفضل خامات القطن المصري والكتان الفاخر.',
+    heroSubtitleEn: 'Handcrafted from 100% heavyweight Egyptian cotton, fine linen, and premium fabrics.',
+    heroBadgeAr: 'تشكيلة أزياء رجالية فاخرة • بورسعيد',
+    heroBadgeEn: "TOUZA MEN'S WEAR COLLECTION",
+    heroImageUrl: '/hero-video.mp4',
+    newsletterBadgeAr: 'توزا',
+    newsletterBadgeEn: 'TOUZA',
+    newsletterTitleAr: 'انضم إلى عائلة توزا',
+    newsletterTitleEn: 'Join TOUZA Club',
+    newsletterSubtitleAr: 'اشترك للحصول على خصومات حصرية ومعاينة أحدث الكولكشنز الكاجوال قبل أي حد مع خصم 10% أول طلب.',
+    newsletterSubtitleEn: 'Subscribe for exclusive drop alerts, private sales, and 10% off your first order.',
+    philosophyBadgeAr: 'فلسفة البراند',
+    philosophyBadgeEn: 'BRAND PHILOSOPHY',
+    philosophyTitle1Ar: 'خامات ممتازة..',
+    philosophyTitle1En: 'Premium Fabrics.',
+    philosophyTitle2Ar: 'وراحة تدوم طول اليوم',
+    philosophyTitle2En: 'Uncompromised Comfort.',
+    philosophyParagraph1Ar: 'في توزا، نركز على تقديم أفضل أزياء كاجوال رجالي تجمع بين العصرية والراحة المطلقة في جميع الأوقات.',
+    philosophyParagraph1En: 'At TOUZA, we craft high-end casual menswear built with 280GSM Egyptian cotton, pure flax linen, and custom relaxed tailoring.',
+    philosophyParagraph2Ar: 'تصاميم تعبر عن الثقة والأناقة الكاجوال مع توصيل سريع لجميع محافظات مصر.',
+    philosophyParagraph2En: 'Designed for everyday confidence with fast express shipping across all Egyptian governorates.',
+    philosophyImageUrl: '/images/philosophy_model.jpg',
+    socialInstagramUrl: 'https://instagram.com',
+    socialFacebookUrl: 'https://facebook.com',
+    socialTiktokUrl: 'https://tiktok.com',
+    socialTwitterUrl: 'https://x.com',
+    socialWhatsappUrl: 'https://wa.me/201012345678',
+    socialYoutubeUrl: '',
+    socialSnapchatUrl: '',
+    branchesAr: 'الفرع الرئيسي: القاهرة - الزمالك / التجمع الخامس\nفرع الإسكندرية: شارع إسكندر إبراهيم - ميامي',
+    branchesEn: 'Main Boutique: Zamalek & New Cairo, Cairo\nAlexandria Boutique: Iskander Ibrahim St, Miami',
+    contactAr: 'الهاتف المباشر: 01012345678\nواتساب: 01012345678\nالبريد الإلكتروني: support@touza.eg\nمواعيد العمل: يومياً من 10 صباحاً حتى 10 مساءً',
+    contactEn: 'Direct Call: +20 101 234 5678\nWhatsApp: +20 101 234 5678\nEmail: support@touza.eg\nHours: Daily from 10 AM to 10 PM',
+    whatsappNumber: '01012345678',
+    phoneNumber: '01012345678',
+    privacyAr: 'تلتزم توزا بحماية كافة بيانات العملاء بخصوصية تامة وعدم مشاركتها مع أي جهة خارجية إلا لغرض الشحن.',
+    privacyEn: 'TOUZA values your privacy. All customer data is fully protected and used strictly for order fulfillment.',
+    returnsAr: 'يمكنكم طلب استبدال أو استرجاع المنتجات خلال 14 يوماً من الاستلام بشرط الحفاظ على الحالة الأصلية للقطع.',
+    returnsEn: 'Returns and exchanges are accepted within 14 days of delivery in original condition.',
+    shippingAr: 'نوفر خدمة التوصيل السريع لجميع محافظات مصر (القاهرة والجيزة خلال 24-48 ساعة، وباقي المحافظات خلال 2-4 أيام عمل).',
+    shippingEn: 'Express delivery nationwide across Egypt (Cairo & Giza within 24-48 hrs, other governorates within 2-4 business days).',
+    defaultLanguage: 'ar',
+    instaPayAddress: 'touza@instapay',
+    instaPayPhone: '01012345678',
+    vodafoneCashNumber: '01012345678',
+  };
+
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => {
+    try {
+      const saved = localStorage.getItem('maison_settings');
+      return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+    } catch {
+      return defaultSettings;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('maison_settings', safeJsonStringify(storeSettings));
+    } catch (err) {
+      console.error('Failed to store settings:', err);
+    }
+    if (storeSettings.defaultLanguage) {
+      const manualLang = localStorage.getItem('touza_user_lang_manual');
+      if (!manualLang) {
+        setLanguage(storeSettings.defaultLanguage);
+      }
+    }
+  }, [storeSettings]);
+
+  // Initial Sync Network-First Strategy to prevent Stale Data Flash
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const loadData = async () => {
+      try {
+        const [remoteProducts, remoteCats, remotePromos, remoteSettings] = await Promise.all([
+          getAllProductsAdmin().catch(() => null),
+          getAllCategories().catch(() => null),
+          getAllPromoCodesAdmin(defaultPromos).catch(() => null),
+          getStoreSettingsAdmin(defaultSettings).catch(() => null),
+        ]);
+
+        if (isSubscribed) {
+          if (remoteProducts && remoteProducts.length > 0) {
+            setProducts(remoteProducts);
+          }
+          if (remoteCats && remoteCats.length > 0) {
+            setCategories(remoteCats);
+          }
+          if (remotePromos && remotePromos.length > 0) {
+            setPromoCodes(remotePromos);
+          }
+          if (remoteSettings) {
+            setStoreSettings(remoteSettings);
+          }
+        }
+      } catch (err) {
+        console.warn('Initial data load error:', err);
+      } finally {
+        if (isSubscribed) {
+          setIsDataLoaded(true);
+        }
+      }
+    };
+
+    loadData();
+
+    // Subscribe to live Firestore updates for real-time synchronization
+    const unsubscribeProducts = subscribeToProducts((liveProducts) => {
+      if (isSubscribed && liveProducts && liveProducts.length > 0) {
+        setProducts(liveProducts);
+      }
+    });
+
+    const unsubscribeSettings = subscribeToStoreSettings(defaultSettings, (liveSettings) => {
+      if (isSubscribed && liveSettings) {
+        setStoreSettings(liveSettings);
+      }
+    });
+
+    return () => {
+      isSubscribed = false;
+      unsubscribeProducts();
+      unsubscribeSettings();
+    };
+  }, []);
+
+  // Dismiss loading screen when data is loaded AND video is ready
+  useEffect(() => {
+    if (isDataLoaded && isVideoReady) {
+      const timer = setTimeout(() => {
+        setIsInitialLoading(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isDataLoaded, isVideoReady]);
+
+  // Maximum safety fallback timeout (4.5s) in case of extreme network latency or browser media policy
+  useEffect(() => {
+    const maxTimer = setTimeout(() => {
+      setIsInitialLoading(false);
+      setIsDataLoaded(true);
+      setIsVideoReady(true);
+    }, 4500);
+
+    return () => clearTimeout(maxTimer);
+  }, []);
+
+  const [selectedProduct, setSelectedProduct] = useState<Product>(products[0] || PRODUCTS[0]);
+  const [categoryFilter, setCategoryFilter] = useState<string>(initialUrlState.category || 'All');
+
+  // Load product from URL parameter if present
+  useEffect(() => {
+    if (initialUrlState.productId && products.length > 0) {
+      const found = products.find((p) => p.id === initialUrlState.productId);
+      if (found) {
+        setSelectedProduct(found);
+        setCurrentView('product');
+      }
+    }
+  }, [products]);
+
+  // Firebase User state
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToAuth((currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleSignInGoogle = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      console.error('Sign-in error:', err);
+    }
+  };
+
+  // Admin Handlers
+  const handleAddProduct = async (newProduct: Product) => {
+    setProducts((prev) => {
+      const newList = [newProduct, ...prev.filter((p) => p.id !== newProduct.id)];
+      saveProductAdmin(newProduct, newList);
+      return newList;
+    });
+  };
+
+  const handleUpdateProduct = async (updatedProduct: Product) => {
+    setProducts((prev) => {
+      const newList = prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
+      saveProductAdmin(updatedProduct, newList);
+      return newList;
+    });
+    if (selectedProduct && selectedProduct.id === updatedProduct.id) {
+      setSelectedProduct(updatedProduct);
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    setProducts((prev) => {
+      const newList = prev.filter((p) => p.id !== productId);
+      localStorage.setItem('maison_products', safeJsonStringify(newList));
+      deleteProductAdmin(productId);
+      return newList;
+    });
+  };
+
+  const handleAddPromoCode = async (promo: PromoCode) => {
+    setPromoCodes((prev) => [promo, ...prev]);
+    try {
+      await savePromoCodeAdmin(promo);
+    } catch (err) {
+      console.error('Failed to save promo code in Firestore:', err);
+    }
+  };
+
+  const handleDeletePromoCode = async (promoId: string) => {
+    setPromoCodes((prev) => prev.filter((p) => p.id !== promoId));
+    try {
+      await deletePromoCodeAdmin(promoId);
+    } catch (err) {
+      console.error('Failed to delete promo code in Firestore:', err);
+    }
+  };
+
+  const handleTogglePromoStatus = async (promoId: string) => {
+    let targetPromo: PromoCode | undefined;
+    setPromoCodes((prev) =>
+      prev.map((p) => {
+        if (p.id === promoId) {
+          targetPromo = { ...p, isActive: !p.isActive };
+          return targetPromo;
+        }
+        return p;
+      })
+    );
+    if (targetPromo) {
+      try {
+        await savePromoCodeAdmin(targetPromo);
+      } catch (err) {
+        console.error('Failed to update promo code status in Firestore:', err);
+      }
+    }
+  };
+
+  const handleUpdateStoreSettings = async (newSettings: StoreSettings) => {
+    setStoreSettings(newSettings);
+    try {
+      await saveStoreSettingsAdmin(newSettings);
+    } catch (err) {
+      console.error('Failed to save store settings in Firestore:', err);
+    }
+  };
+
+  // Cart state persisted to localStorage
+  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('maison_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('maison_cart', safeJsonStringify(cartItems));
+    } catch {
+      // fallback
+    }
+  }, [cartItems]);
+
+  const [wishlistIds, setWishlistIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('maison_wishlist');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('maison_wishlist', safeJsonStringify(wishlistIds));
+    } catch {
+      // fallback
+    }
+  }, [wishlistIds]);
+
+  // Modals / Overlays state
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [policyModal, setPolicyModal] = useState<{ title: string; content: string } | null>(null);
+  const [toastNotification, setToastNotification] = useState<{ show: boolean; productName: string }>({
+    show: false,
+    productName: '',
+  });
+
+  // Newsletter state
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
+
+  // Handlers
+  const handleNavigate = (view: ViewMode, category?: string) => {
+    setCurrentView(view);
+    if (category) {
+      setCategoryFilter(category);
+    }
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams();
+      if (view === 'admin') {
+        params.set('view', 'admin');
+      } else if (view === 'shop') {
+        params.set('view', 'shop');
+        if (category && category !== 'All') {
+          params.set('category', category);
+        }
+      } else if (view === 'checkout') {
+        params.set('view', 'checkout');
+      }
+
+      const newUrl = params.toString() ? `?${params.toString()}` : '/';
+      window.history.pushState({}, '', newUrl);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSelectProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setCurrentView('product');
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams();
+      params.set('view', 'product');
+      params.set('id', product.id);
+      window.history.pushState({}, '', `?${params.toString()}`);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleAddToCart = (product: Product, color: string, size: string, openCart = false) => {
+    const itemId = `${product.id}-${color}-${size}`;
+    setCartItems((prev) => {
+      const existingIndex = prev.findIndex((i) => i.id === itemId);
+      if (existingIndex > -1) {
+        const updated = [...prev];
+        updated[existingIndex].quantity += 1;
+        return updated;
+      }
+      return [
+        ...prev,
+        {
+          id: itemId,
+          product,
+          selectedColor: color,
+          selectedSize: size,
+          quantity: 1,
+        },
+      ];
+    });
+
+    if (openCart) {
+      setIsCartOpen(true);
+    } else {
+      const pName = language === 'ar' ? (product.nameAr || product.name) : product.name;
+      setToastNotification({ show: true, productName: pName });
+      setTimeout(() => {
+        setToastNotification((prev) => ({ ...prev, show: false }));
+      }, 3500);
+    }
+  };
+
+  const handleBuyNow = (product: Product, color: string, size: string) => {
+    handleAddToCart(product, color, size, false);
+    setIsCartOpen(false);
+    setCurrentView('checkout');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleToggleWishlist = (product: Product) => {
+    setWishlistIds((prev) =>
+      prev.includes(product.id)
+        ? prev.filter((id) => id !== product.id)
+        : [...prev, product.id]
+    );
+  };
+
+  const handleUpdateCartQuantity = (cartItemId: string, newQty: number) => {
+    setCartItems((prev) =>
+      prev.map((item) => (item.id === cartItemId ? { ...item, quantity: newQty } : item))
+    );
+  };
+
+  // Ensure light mode strictly
+  useEffect(() => {
+    try {
+      localStorage.removeItem('maison_dark_mode');
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark-mode-active');
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  const handleRemoveCartItem = (cartItemId: string) => {
+    setCartItems((prev) => prev.filter((item) => item.id !== cartItemId));
+  };
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newsletterEmail && newsletterEmail.trim()) {
+      try {
+        await addNewsletterSubscriber(newsletterEmail.trim(), 'الموقع الإلكتروني');
+      } catch (err) {
+        console.error('Newsletter save error:', err);
+      }
+      setNewsletterSubscribed(true);
+      setNewsletterEmail('');
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-[#ffffff] text-[#1a1c1c] relative">
+      {/* Initial Luxury Loading Screen Overlay */}
+      <div
+        className={`fixed inset-0 z-50 bg-[#0a0a0a] flex flex-col items-center justify-center text-white px-4 select-none transition-opacity duration-700 ease-out ${
+          isInitialLoading ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="relative flex flex-col items-center text-center animate-fade-in">
+          {/* Animated Gold Ring */}
+          <div className="w-16 h-16 rounded-full border-2 border-[#c5a059]/30 border-t-[#c5a059] animate-spin mb-6" />
+
+          {/* Brand Identity */}
+          <h1 className="font-display text-2xl md:text-3xl font-bold tracking-[0.25em] text-[#c5a059] mb-2 uppercase">
+            {storeSettings?.storeNameEn || 'TOUZA'}
+          </h1>
+          <p className="font-label-caps text-[11px] md:text-xs tracking-[0.2em] text-neutral-400 uppercase mb-2">
+            {language === 'ar' ? 'أزياء كاجوال فاخرة • بورسعيد' : 'CASUAL MENSWEAR • PORTSAID'}
+          </p>
+          <div className="flex items-center gap-2 text-[12px] font-mono tracking-[0.3em] text-[#c5a059] mt-2 animate-pulse">
+            <span>LOADING ...</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Top Navigation */}
+      <Navbar
+        currentView={currentView}
+        onNavigate={handleNavigate}
+        cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+        wishlistCount={wishlistIds.length}
+        onOpenCart={() => setIsCartOpen(true)}
+        onOpenWishlist={() => setIsWishlistOpen(true)}
+        onOpenSearch={() => setIsSearchOpen(true)}
+        onOpenAccount={() => setIsAccountOpen(true)}
+        onOpenAdmin={() => handleNavigate('admin')}
+        storeSettings={storeSettings}
+        user={user}
+      />
+
+      {/* Main View Switcher */}
+      <main className="flex-1">
+        {currentView === 'admin' && (
+          <AdminDashboard
+            products={products}
+            onAddProduct={handleAddProduct}
+            onUpdateProduct={handleUpdateProduct}
+            onDeleteProduct={handleDeleteProduct}
+            promoCodes={promoCodes}
+            onAddPromoCode={handleAddPromoCode}
+            onDeletePromoCode={handleDeletePromoCode}
+            onTogglePromoStatus={handleTogglePromoStatus}
+            storeSettings={storeSettings}
+            onUpdateStoreSettings={handleUpdateStoreSettings}
+            categories={categories}
+            onAddCategory={handleAddCategory}
+            onUpdateCategory={handleUpdateCategory}
+            onDeleteCategory={handleDeleteCategory}
+            onResetCategories={handleResetCategories}
+            onCloseAdmin={() => handleNavigate('home')}
+          />
+        )}
+
+        {currentView === 'home' && (
+          <div>
+            {/* Screen 1: Hero Banner */}
+            <HeroBanner
+              onShopNow={() => handleNavigate('shop', 'All')}
+              storeSettings={storeSettings}
+              onVideoReady={() => setIsVideoReady(true)}
+            />
+
+            {/* Featured Collection Grid */}
+            <ScrollReveal>
+              <section className="py-16 md:py-20 px-5 md:px-16 max-w-[1440px] mx-auto w-full">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10">
+                  <div>
+                    <span className="font-label-caps text-[#747878] mb-1.5 block text-[13px]">
+                      {language === 'ar' ? 'مختارات البوتيك الحصرية' : 'ATELIER SELECTIONS'}
+                    </span>
+                    <h2 className="font-display text-[28px] md:text-[40px] text-[#000000] font-bold">
+                      {language === 'ar' ? 'معروضات الصفحة الرئيسية' : 'Homepage Selection'}
+                    </h2>
+                  </div>
+                  <button
+                    onClick={() => handleNavigate('shop', 'All')}
+                    className="font-label-caps text-[#000000] underline underline-offset-8 hover:text-[#747878] transition-colors mt-3 md:mt-0 cursor-pointer text-[14px]"
+                  >
+                    {language === 'ar' ? `عرض كل القطع (${products.length})` : `View All Pieces (${products.length})`}
+                  </button>
+                </div>
+
+                {(() => {
+                  const homeSelected = products.filter((p) => p.showOnHome || p.isFeatured);
+                  const listToDisplay = homeSelected.length > 0 ? homeSelected : products.slice(0, 8);
+
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {listToDisplay.map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          onSelectProduct={handleSelectProduct}
+                          isWishlisted={wishlistIds.includes(product.id)}
+                          onToggleWishlist={(p, e) => {
+                            e.stopPropagation();
+                            handleToggleWishlist(p);
+                          }}
+                          onQuickAdd={(p, color, size) => {
+                            handleAddToCart(p, color, size);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  );
+                })()}
+              </section>
+            </ScrollReveal>
+
+            {/* Seamless Full-Width Perks Marquee Bar */}
+            <PerksMarqueeBar storeSettings={storeSettings} />
+
+            {/* Editorial Brand Highlight Section (Atelier Philosophy) */}
+            <PhilosophySection
+              storeSettings={storeSettings}
+              onExplore={() => handleNavigate('shop', 'All')}
+            />
+
+            {/* Customer Reviews Section */}
+            <ScrollReveal>
+              <CustomerReviewsSection
+                user={user}
+                onSignInGoogle={handleSignInGoogle}
+                onOpenAccount={() => setIsAccountOpen(true)}
+              />
+            </ScrollReveal>
+
+            {/* Press & Partner Logo Marquee */}
+            <LogoMarqueeSection />
+
+            {/* Newsletter Section */}
+            <ScrollReveal>
+              <section className="py-20 md:py-28 px-5 md:px-16 bg-[#ffffff] border-t border-[#c5a059]/20">
+                <div className="max-w-[850px] mx-auto text-center">
+                  <span className="font-label-caps text-[#8c734b] mb-2 block text-[12px] tracking-[0.25em] uppercase font-semibold">
+                    {language === 'ar'
+                      ? storeSettings?.newsletterBadgeAr || 'توزا'
+                      : storeSettings?.newsletterBadgeEn || 'TOUZA'}
+                  </span>
+                  <h2 className="font-display text-[30px] md:text-[42px] text-[#1a1a1a] mb-3 font-normal tracking-tight">
+                    {language === 'ar'
+                      ? storeSettings?.newsletterTitleAr || 'انضم إلى مجتمع توزا'
+                      : storeSettings?.newsletterTitleEn || 'Join TOUZA Sanctuary'}
+                  </h2>
+                  <p className="font-body text-[15px] sm:text-[16px] text-[#555555] mb-8 leading-relaxed max-w-xl mx-auto font-light">
+                    {language === 'ar'
+                      ? storeSettings?.newsletterSubtitleAr || 'اشترك للحصول على دعوات حصرية لمعاينة التشكيلات الجديدة قبل الجميع وحصولك على خصم ١٠٪ عند أول طلب.'
+                      : storeSettings?.newsletterSubtitleEn || 'Subscribe to receive private client invitations, seasonal lookbook previews, and VIP privileges.'}
+                  </p>
+
+                  {newsletterSubscribed ? (
+                    <div className="p-5 bg-[#2e7d32]/10 border border-[#2e7d32]/30 text-[#2e7d32] font-body rounded-2xl max-w-md mx-auto font-bold text-[15px] shadow-2xs">
+                      {language === 'ar' ? '✓ تم الاشتراك بنجاح! تفقد بريدك للحصول على كود الخصم.' : '✓ Welcome to Maison Élégant. Check your inbox for your privilege code.'}
+                    </div>
+                  ) : (
+                    <form
+                      onSubmit={handleNewsletterSubmit}
+                      className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+                    >
+                      <input
+                        type="email"
+                        placeholder={language === 'ar' ? 'أدخل بريدك الإلكتروني' : 'Enter your email address'}
+                        value={newsletterEmail}
+                        onChange={(e) => setNewsletterEmail(e.target.value)}
+                        required
+                        className="flex-1 input-minimal text-[15px] py-3.5 px-5 border border-[#c5a059]/40 rounded-xl bg-white/70 focus:bg-white focus:border-[#000000]"
+                      />
+                      <button
+                        type="submit"
+                        className="bg-[#1a1a1a] text-white py-3.5 px-8 font-label-caps rounded-xl hover:bg-[#c5a059] transition-all duration-300 cursor-pointer shrink-0 text-[13px] font-semibold tracking-wider shadow-xs"
+                      >
+                        {language === 'ar' ? 'اشتراك' : 'Subscribe'}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </section>
+            </ScrollReveal>
+          </div>
+        )}
+
+        {currentView === 'shop' && (
+          <CollectionsView
+            onSelectProduct={handleSelectProduct}
+            wishlistIds={wishlistIds}
+            onToggleWishlist={handleToggleWishlist}
+            onAddToCart={handleAddToCart}
+            onNavigateHome={() => handleNavigate('home')}
+            initialCategory={categoryFilter}
+            products={products}
+            categories={categories}
+          />
+        )}
+
+        {currentView === 'product' && (
+          <ProductDetail
+            product={selectedProduct}
+            onAddToCart={handleAddToCart}
+            onBuyNow={handleBuyNow}
+            onSelectProduct={handleSelectProduct}
+            isWishlisted={wishlistIds.includes(selectedProduct.id)}
+            onToggleWishlist={handleToggleWishlist}
+            onOpenImageModal={(img) => setZoomedImage(img)}
+            onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
+            user={user}
+            onSignInGoogle={handleSignInGoogle}
+            onNavigate={(view, category) => handleNavigate(view, category)}
+          />
+        )}
+
+        {currentView === 'checkout' && (
+          <CheckoutView
+            cartItems={cartItems}
+            onBackToShop={() => handleNavigate('shop', 'All')}
+            onClearCart={() => setCartItems([])}
+            user={user}
+            onSignInGoogle={handleSignInGoogle}
+          />
+        )}
+      </main>
+
+      {/* Footer */}
+      <Footer
+        onNavigate={(view, cat) => handleNavigate(view, cat)}
+        onOpenPolicyModal={(title, content) => setPolicyModal({ title, content })}
+        storeSettings={storeSettings}
+      />
+
+      {/* Drawers & Modals */}
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        cartItems={cartItems}
+        onUpdateQuantity={handleUpdateCartQuantity}
+        onRemoveItem={handleRemoveCartItem}
+        onProceedToCheckout={() => handleNavigate('checkout')}
+      />
+
+      <WishlistModal
+        isOpen={isWishlistOpen}
+        onClose={() => setIsWishlistOpen(false)}
+        wishlistIds={wishlistIds}
+        onSelectProduct={handleSelectProduct}
+        onRemoveWishlist={handleToggleWishlist}
+        onAddToCart={handleAddToCart}
+      />
+
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onSelectProduct={handleSelectProduct}
+        products={products}
+      />
+
+      <AccountModal
+        isOpen={isAccountOpen}
+        onClose={() => setIsAccountOpen(false)}
+        user={user}
+        onSignInGoogle={handleSignInGoogle}
+      />
+
+      <SizeGuideModal
+        isOpen={isSizeGuideOpen}
+        onClose={() => setIsSizeGuideOpen(false)}
+      />
+
+      <ImageModal
+        imageSrc={zoomedImage}
+        onClose={() => setZoomedImage(null)}
+      />
+
+      <PolicyModal
+        title={policyModal?.title || null}
+        content={policyModal?.content || null}
+        onClose={() => setPolicyModal(null)}
+      />
+
+      {/* Floating Toast Notification for Add to Cart */}
+      {toastNotification.show && (
+        <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 bg-[#000000] text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/20 animate-fade-in font-body text-[14px]">
+          <span className="material-symbols-outlined text-[#25D366] text-[22px]">
+            check_circle
+          </span>
+          <span>
+            {language === 'ar'
+              ? `تمت إضافة "${toastNotification.productName}" إلى السلة`
+              : `Added "${toastNotification.productName}" to cart`}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setToastNotification({ show: false, productName: '' });
+              setIsCartOpen(true);
+            }}
+            className="bg-white/20 hover:bg-white/30 text-white text-[12px] font-bold px-3 py-1 rounded-lg transition-colors cursor-pointer mr-2"
+          >
+            {language === 'ar' ? 'عرض السلة 🛍️' : 'View Cart 🛍️'}
+          </button>
+        </div>
+      )}
+
+      {/* Floating Animated Contact Buttons (WhatsApp & Call) */}
+      <FloatingContactButtons storeSettings={storeSettings} />
+    </div>
+  );
+};
+
+export const App: React.FC = () => {
+  return <AppContent />;
+};
+
+export default App;

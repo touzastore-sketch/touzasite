@@ -1,0 +1,6 @@
+{
+  "name": "TOUZA Casual Menswear",
+  "description": "Premium menswear boutique featuring casual collections, interactive product gallery, shopping bag, and seamless checkout experience.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cairo", "EB Garamond", Georgia, serif;
+  --font-sans: "Cairo", "Hanken Grotesk", sans-serif;
+  
+  --color-background: #ffffff;
+  --color-surface-container-low: #f3f3f4;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-high: #e8e8e8;
+  --color-surface-container: #eeeeee;
+  --color-primary: #000000;
+  --color-on-primary: #ffffff;
+  --color-secondary: #5e5e5c;
+  --color-on-surface-variant: #444748;
+  --color-outline: #747878;
+  --color-outline-variant: #c4c7c7;
+}
+
+html, body {
+  font-family: "Cairo", sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* Safari WebKit Hardware Acceleration and Backdrop Fixes */
+video, img {
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.hero-video {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  object-fit: cover;
+}
+
+/* Force -webkit-backdrop-filter for Safari */
+[class*="backdrop-blur"] {
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.font-display {
+  font-family: "Cairo", "EB Garamond", Georgia, serif;
+}
+
+.font-body {
+  font-family: "Cairo", "Hanken Grotesk", sans-serif;
+}
+
+.font-label-caps {
+  font-family: "Cairo", "Hanken Grotesk", sans-serif;
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom fade-in and zoom effects */
+.fade-in-up {
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+
+/* Minimalist form field styling */
+.input-minimal {
+  border: none;
+  border-bottom: 1px solid #c4c7c7;
+  background-color: transparent;
+  border-radius: 0;
+  padding: 12px 0;
+  font-family: "Hanken Grotesk", sans-serif;
+  font-size: 16px;
+  color: #1a1c1c;
+  transition: border-color 0.3s ease;
+  -webkit-appearance: none;
+}
+.input-minimal:focus {
+  outline: none;
+  border-bottom-color: #000000;
+  box-shadow: none;
+}
+.input-minimal::placeholder {
+  color: #747878;
+}
+
+/* ==========================================
+   INFINITE MARQUEE ANIMATIONS
+   ========================================== */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes marquee-rtl {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 38s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-rtl {
+  display: flex;
+  width: max-content;
+  animation: marquee-rtl 38s linear infinite;
+  will-change: transform;
+}
+
+.marquee-container:hover .animate-marquee,
+.marquee-container:hover .animate-marquee-rtl {
+  animation-play-state: paused;
+}
+
+
+
