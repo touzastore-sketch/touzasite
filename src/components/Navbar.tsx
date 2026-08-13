@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
+import { Search, Heart, User as UserIcon, ShoppingBag, X } from 'lucide-react';
 import { ViewMode, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { SocialLinks } from './SocialLinks';
@@ -187,15 +188,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               />
             </div>
-            <span className="hidden sm:inline-block font-label-caps text-[11px] sm:text-[12px] font-light tracking-[0.28em] uppercase transition-colors">
+            <span className="font-label-caps text-[11px] sm:text-[12px] font-light tracking-[0.28em] uppercase transition-colors">
               {language === 'ar' ? 'القائمة' : 'MENU'}
             </span>
           </button>
 
-          {/* Brand Logo - Absolutely Centered & Responsive to fit full text on iPhone 16 */}
+          {/* Brand Logo - Original Elegant Styling */}
           <button
             onClick={() => onNavigate('home')}
-            className={`absolute left-1/2 -translate-x-1/2 font-display text-[19px] xs:text-[22px] sm:text-[28px] md:text-[36px] tracking-tight whitespace-nowrap cursor-pointer transition-all z-10 max-w-[55%] sm:max-w-[65%] text-center truncate ${
+            className={`font-display text-[22px] sm:text-[28px] md:text-[36px] tracking-tighter truncate mx-auto cursor-pointer transition-all ${
               isTransparent
                 ? 'text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] hover:text-white/90'
                 : 'text-[#000000] hover:opacity-90'
@@ -268,9 +269,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
               title={t('nav.search', 'Search')}
             >
-              <span className="material-symbols-outlined text-[22px] md:text-[24px]">
-                search
-              </span>
+              <Search className="w-5 h-5 md:w-6 md:h-6" />
             </button>
 
             {/* Wishlist */}
@@ -283,19 +282,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
               title={t('nav.wishlist', 'Saved Items')}
             >
-              <span
-                className={`material-symbols-outlined text-[22px] md:text-[24px] ${
+              <Heart
+                className={`w-5 h-5 md:w-6 md:h-6 transition-colors ${
                   wishlistCount > 0
                     ? isTransparent
-                      ? 'text-red-400'
-                      : 'text-[#ba1a1a]'
+                      ? 'text-red-400 fill-red-400'
+                      : 'text-[#ba1a1a] fill-[#ba1a1a]'
                     : isTransparent
                     ? 'text-white'
                     : 'text-[#000000]'
                 }`}
-              >
-                favorite
-              </span>
+              />
               {wishlistCount > 0 && (
                 <span className="absolute top-0 right-0 bg-[#ba1a1a] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-xs">
                   {wishlistCount}
@@ -323,9 +320,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 />
               ) : (
                 <div className="relative flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[22px] md:text-[24px]">
-                    person
-                  </span>
+                  <UserIcon className="w-5 h-5 md:w-6 md:h-6" />
                   {user && (
                     <span className="absolute bottom-0 right-0 w-2 h-2 bg-[#2e7d32] rounded-full ring-1 ring-white" />
                   )}
@@ -343,9 +338,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
               title={t('nav.cart', 'Shopping Bag')}
             >
-              <span className="material-symbols-outlined text-[22px] md:text-[24px]">
-                shopping_bag
-              </span>
+              <ShoppingBag className="w-5 h-5 md:w-6 md:h-6" />
               {cartCount > 0 && (
                 <span
                   className={`absolute top-0 right-0 text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold ${
