@@ -1,4 +1,39 @@
 import React, { useState, useEffect } from 'react';
+import {
+  ShieldCheck,
+  LayoutDashboard,
+  KeyRound,
+  LogOut,
+  Store,
+  BarChart3,
+  Shirt,
+  Truck,
+  Users,
+  Tag,
+  MessageSquare,
+  Mail,
+  Settings,
+  CreditCard,
+  Banknote,
+  ShoppingBag,
+  Search,
+  RefreshCw,
+  Plus,
+  Trash2,
+  Edit,
+  Copy,
+  Eye,
+  Check,
+  X,
+  AlertTriangle,
+  Upload,
+  ArrowRight,
+  Filter,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  TrendingUp,
+} from 'lucide-react';
 import { Category, Product, ProductColor, ProductSize, PromoCode, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { DEFAULT_CATEGORIES } from '../data/defaultCategories';
@@ -1072,7 +1107,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div className="fixed inset-0 z-50 bg-[#000000] text-white flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-[#111111] border border-[#333333] rounded-2xl p-8 space-y-6 shadow-2xl text-center">
           <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto text-[#ffffff]">
-            <span className="material-symbols-outlined text-[36px]">admin_panel_settings</span>
+            <ShieldCheck className="w-9 h-9 text-[#c5a059]" />
           </div>
 
           <div>
@@ -1245,7 +1280,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="max-w-[1500px] mx-auto px-3 sm:px-8 py-2.5 sm:py-3.5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[20px] sm:text-[24px] text-[#c5a059]">dashboard</span>
+              <LayoutDashboard className="w-5 h-5 sm:w-6 sm:h-6 text-[#c5a059]" />
             </div>
             <div>
               <h1 className="font-display text-[14px] sm:text-[20px] font-bold tracking-wide leading-tight text-white">
@@ -1263,7 +1298,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               className="flex items-center gap-1 bg-white/10 hover:bg-white/20 text-white px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-[12px] font-label-caps transition-colors cursor-pointer"
               title={language === 'ar' ? 'تغيير الرمز' : 'Change PIN'}
             >
-              <span className="material-symbols-outlined text-[15px] sm:text-[16px]">lock_reset</span>
+              <KeyRound className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden xs:inline sm:inline">{language === 'ar' ? 'تغيير الرمز' : 'Change PIN'}</span>
             </button>
 
@@ -1271,7 +1306,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onClick={handleLogoutAdmin}
               className="flex items-center gap-1 bg-[#ba1a1a]/90 hover:bg-[#ba1a1a] text-white px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-[12px] font-label-caps transition-colors cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[15px] sm:text-[16px]">logout</span>
+              <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>{language === 'ar' ? 'قفل' : 'Lock'}</span>
             </button>
 
@@ -1279,7 +1314,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onClick={onCloseAdmin}
               className="bg-white text-black hover:bg-[#e0e0e0] px-2.5 py-1.5 sm:px-4 sm:py-1.5 rounded-lg text-[11px] sm:text-[12px] font-label-caps font-bold transition-colors cursor-pointer flex items-center gap-1 shrink-0"
             >
-              <span className="material-symbols-outlined text-[15px] sm:text-[16px]">storefront</span>
+              <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>{language === 'ar' ? 'عرض المتجر' : 'Store Preview'}</span>
             </button>
           </div>
@@ -1288,29 +1323,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Tab Navigation Bar */}
         <div className="max-w-[1500px] mx-auto px-2 sm:px-8 flex overflow-x-auto border-t border-[#222222] scrollbar-none">
           {[
-            { id: 'overview', icon: 'analytics', labelAr: 'الإحصائيات', labelEn: 'Overview' },
-            { id: 'products', icon: 'apparel', labelAr: `المنتجات (${products.length})`, labelEn: `Products (${products.length})` },
-            { id: 'orders', icon: 'local_shipping', labelAr: `الطلبات (${orders.length})`, labelEn: `Orders (${orders.length})` },
-            { id: 'users', icon: 'group', labelAr: `المستخدمين (${users.length})`, labelEn: `Users (${users.length})` },
-            { id: 'promos', icon: 'sell', labelAr: `أكواد الخصم (${promoCodes.length})`, labelEn: `Promo Codes (${promoCodes.length})` },
-            { id: 'reviews', icon: 'rate_review', labelAr: `التقييمات (${reviews.length})`, labelEn: `Reviews (${reviews.length})` },
-            { id: 'newsletter', icon: 'mark_email_unread', labelAr: `النشرة البريدية (${subscribers.length})`, labelEn: `Newsletter (${subscribers.length})` },
-            { id: 'settings', icon: 'settings', labelAr: 'إعدادات البنرات', labelEn: 'Store Settings' },
-            { id: 'payment_settings', icon: 'payments', labelAr: 'إعدادات طرق الدفع', labelEn: 'Payment Settings' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 border-b-2 font-label-caps text-[12px] sm:text-[13px] whitespace-nowrap shrink-0 transition-all cursor-pointer ${
-                activeTab === tab.id
-                  ? 'border-white text-white font-bold bg-white/10'
-                  : 'border-transparent text-white/65 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[17px] sm:text-[18px]">{tab.icon}</span>
-              <span>{language === 'ar' ? tab.labelAr : tab.labelEn}</span>
-            </button>
-          ))}
+            { id: 'overview', Icon: BarChart3, labelAr: 'الإحصائيات', labelEn: 'Overview' },
+            { id: 'products', Icon: Shirt, labelAr: `المنتجات (${products.length})`, labelEn: `Products (${products.length})` },
+            { id: 'orders', Icon: Truck, labelAr: `الطلبات (${orders.length})`, labelEn: `Orders (${orders.length})` },
+            { id: 'users', Icon: Users, labelAr: `المستخدمين (${users.length})`, labelEn: `Users (${users.length})` },
+            { id: 'promos', Icon: Tag, labelAr: `أكواد الخصم (${promoCodes.length})`, labelEn: `Promo Codes (${promoCodes.length})` },
+            { id: 'reviews', Icon: MessageSquare, labelAr: `التقييمات (${reviews.length})`, labelEn: `Reviews (${reviews.length})` },
+            { id: 'newsletter', Icon: Mail, labelAr: `النشرة البريدية (${subscribers.length})`, labelEn: `Newsletter (${subscribers.length})` },
+            { id: 'settings', Icon: Settings, labelAr: 'إعدادات البنرات', labelEn: 'Store Settings' },
+            { id: 'payment_settings', Icon: CreditCard, labelAr: 'إعدادات طرق الدفع', labelEn: 'Payment Settings' },
+          ].map((tab) => {
+            const TabIcon = tab.Icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 border-b-2 font-label-caps text-[12px] sm:text-[13px] whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                  activeTab === tab.id
+                    ? 'border-white text-white font-bold bg-white/10'
+                    : 'border-transparent text-white/65 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <TabIcon className="w-4 h-4" />
+                <span>{language === 'ar' ? tab.labelAr : tab.labelEn}</span>
+              </button>
+            );
+          })}
         </div>
       </header>
 
@@ -1372,7 +1410,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </h3>
                 </div>
                 <div className="w-12 h-12 bg-[#2e7d32]/10 text-[#2e7d32] rounded-xl flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[28px]">payments</span>
+                  <Banknote className="w-7 h-7" />
                 </div>
               </div>
 
@@ -1386,7 +1424,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </h3>
                 </div>
                 <div className="w-12 h-12 bg-[#000000]/10 text-[#000000] rounded-xl flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[28px]">shopping_bag</span>
+                  <ShoppingBag className="w-7 h-7" />
                 </div>
               </div>
 
@@ -1400,7 +1438,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </h3>
                 </div>
                 <div className="w-12 h-12 bg-[#1976d2]/10 text-[#1976d2] rounded-xl flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[28px]">apparel</span>
+                  <Shirt className="w-7 h-7" />
                 </div>
               </div>
 
@@ -1414,7 +1452,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </h3>
                 </div>
                 <div className="w-12 h-12 bg-[#ed6c02]/10 text-[#ed6c02] rounded-xl flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[28px]">sell</span>
+                  <Tag className="w-7 h-7" />
                 </div>
               </div>
             </div>
