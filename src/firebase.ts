@@ -648,9 +648,9 @@ export const addReviewAdmin = async (
     rating: reviewData.rating || 5,
     comment: reviewData.comment || '',
     userId: reviewData.userId || 'admin-added',
-    userName: reviewData.userName || 'عميل ميزون',
-    userPhoto: reviewData.userPhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600',
-    orderNumber: reviewData.orderNumber || 'ME-ADMIN',
+    userName: reviewData.userName || 'عميل توزا',
+    userPhoto: reviewData.userPhoto || 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg',
+    orderNumber: reviewData.orderNumber || 'TOUZA-VIP',
     createdAt: serverTimestamp(),
   };
 

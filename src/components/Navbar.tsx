@@ -49,7 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const displayBrandName =
     (language === 'ar' ? storeSettings?.storeNameAr : storeSettings?.storeNameEn) ||
-    t('brand.name', language === 'ar' ? 'ميزون إيليجانت' : 'MAISON ÉLÉGANT');
+    (language === 'ar' ? 'توزا TOUZA' : 'TOUZA CASUAL');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -150,13 +150,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         )}
 
-        <div className={`max-w-[1440px] mx-auto px-4 sm:px-6 md:px-16 flex justify-between items-center ${
+        <div className={`max-w-[1440px] mx-auto px-3 sm:px-6 md:px-16 flex justify-between items-center relative ${
           isTransparent ? 'py-3 md:py-4 border-b border-white/15' : 'py-2.5 md:py-3.5'
         }`}>
           {/* Menu Button (Frameless, Minimalist & Luxury) */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`group flex items-center gap-3 transition-colors duration-300 focus:outline-none cursor-pointer py-1.5 px-0.5 ${
+            className={`z-20 group flex items-center gap-2.5 sm:gap-3 transition-colors duration-300 focus:outline-none cursor-pointer py-1.5 px-0.5 ${
               isTransparent
                 ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)] hover:text-[#e2c792]'
                 : 'text-[#000000] hover:text-[#8c734b]'
@@ -164,38 +164,38 @@ export const Navbar: React.FC<NavbarProps> = ({
             aria-label="Toggle menu"
           >
             {/* Custom Ultra-Thin 3-Line Animated Hamburger Icon (~26px wide) */}
-            <div className="relative w-[26px] h-3.5 flex flex-col justify-between items-start py-[1px]">
+            <div className="relative w-[24px] sm:w-[26px] h-3.5 flex flex-col justify-between items-start py-[1px]">
               <span
                 className={`block h-[1px] bg-current transition-all duration-300 ease-out origin-center ${
                   mobileMenuOpen
-                    ? 'w-[26px] translate-y-[5.5px] rotate-45'
-                    : 'w-[26px]'
+                    ? 'w-[24px] sm:w-[26px] translate-y-[5.5px] rotate-45'
+                    : 'w-[24px] sm:w-[26px]'
                 }`}
               />
               <span
                 className={`block h-[1px] bg-current transition-all duration-300 ease-out ${
                   mobileMenuOpen
                     ? 'w-0 opacity-0'
-                    : 'w-[18px] group-hover:w-[26px]'
+                    : 'w-[16px] sm:w-[18px] group-hover:w-[24px] sm:group-hover:w-[26px]'
                 }`}
               />
               <span
                 className={`block h-[1px] bg-current transition-all duration-300 ease-out origin-center ${
                   mobileMenuOpen
-                    ? 'w-[26px] -translate-y-[5.5px] -rotate-45'
-                    : 'w-[22px] group-hover:w-[26px]'
+                    ? 'w-[24px] sm:w-[26px] -translate-y-[5.5px] -rotate-45'
+                    : 'w-[20px] sm:w-[22px] group-hover:w-[24px] sm:group-hover:w-[26px]'
                 }`}
               />
             </div>
-            <span className="font-label-caps text-[11px] sm:text-[12px] font-light tracking-[0.28em] uppercase transition-colors">
+            <span className="hidden sm:inline-block font-label-caps text-[11px] sm:text-[12px] font-light tracking-[0.28em] uppercase transition-colors">
               {language === 'ar' ? 'القائمة' : 'MENU'}
             </span>
           </button>
 
-          {/* Brand Logo */}
+          {/* Brand Logo - Absolutely Centered & Responsive to fit full text on iPhone 16 */}
           <button
             onClick={() => onNavigate('home')}
-            className={`font-display text-[24px] sm:text-[28px] md:text-[36px] tracking-tighter truncate mx-auto cursor-pointer transition-all ${
+            className={`absolute left-1/2 -translate-x-1/2 font-display text-[19px] xs:text-[22px] sm:text-[28px] md:text-[36px] tracking-tight whitespace-nowrap cursor-pointer transition-all z-10 max-w-[55%] sm:max-w-[65%] text-center truncate ${
               isTransparent
                 ? 'text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] hover:text-white/90'
                 : 'text-[#000000] hover:opacity-90'
@@ -206,7 +206,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Trailing Icons & Language Switcher */}
           <div
-            className={`flex items-center gap-1 sm:gap-2 md:gap-3 transition-colors ${
+            className={`z-20 flex items-center gap-1 sm:gap-2 md:gap-3 transition-colors ${
               isTransparent ? 'text-white' : 'text-[#000000]'
             }`}
           >

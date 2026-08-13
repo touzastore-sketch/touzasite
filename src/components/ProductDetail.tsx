@@ -106,7 +106,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         rating: newRating,
         comment: newComment.trim(),
         userId: user.uid,
-        userName: user.displayName || user.email || 'عميل ميزون',
+        userName: user.displayName || user.email || (language === 'ar' ? 'عميل توزا' : 'TOUZA Client'),
         userPhoto,
       });
 
@@ -630,7 +630,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                       </div>
                       <div>
                         <h4 className="font-body text-[14px] font-bold text-[#000000] leading-tight">
-                          {rev.userName || (language === 'ar' ? 'عميل ميزون' : 'Maison Client')}
+                          {rev.userName || (language === 'ar' ? 'عميل توزا' : 'TOUZA Client')}
                         </h4>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-[#2e7d32] text-[11px] font-bold flex items-center gap-0.5">

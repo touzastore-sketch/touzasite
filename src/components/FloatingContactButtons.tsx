@@ -12,7 +12,7 @@ export const FloatingContactButtons: React.FC<FloatingContactButtonsProps> = ({ 
   // Extract phone numbers from settings or fallback to parsing contactAr/default
   const rawContact = storeSettings?.contactAr || '';
   const phoneMatch = rawContact.match(/01\d{9}|\+?\d{10,12}/);
-  const fallbackPhone = phoneMatch ? phoneMatch[0] : '01012345678';
+  const fallbackPhone = phoneMatch ? phoneMatch[0] : '01070606272';
 
   const phoneNumber = storeSettings?.phoneNumber?.trim() || fallbackPhone;
   const rawWhatsapp = storeSettings?.whatsappNumber?.trim() || phoneNumber;
@@ -26,7 +26,7 @@ export const FloatingContactButtons: React.FC<FloatingContactButtonsProps> = ({ 
       {/* WhatsApp Floating Button */}
       <a
         href={`https://wa.me/${whatsappNum}?text=${encodeURIComponent(
-          language === 'ar' ? 'مرحباً ميزون إيليجانت، أود الاستفسار عن المنتجات' : 'Hello Maison Élégant, I would like to inquire about your products'
+          language === 'ar' ? 'مرحباً توزا، أود الاستفسار عن المنتجات' : 'Hello TOUZA, I would like to inquire about your products'
         )}`}
         target="_blank"
         rel="noopener noreferrer"

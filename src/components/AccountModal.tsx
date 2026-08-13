@@ -212,7 +212,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         rating,
         comment: comment.trim(),
         userId: user.uid,
-        userName: user.displayName || user.email || (language === 'ar' ? 'عميل ميزون' : 'Maison Client'),
+        userName: user.displayName || user.email || (language === 'ar' ? 'عميل توزا' : 'TOUZA Client'),
         userPhoto: currentDisplayPhoto,
       };
 
@@ -636,7 +636,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   workspace_premium
                 </span>
                 <h3 className="font-display text-[22px] font-bold">
-                  {language === 'ar' ? 'عضوية نخبة ميزون إيليجانت' : "L'Élite Privilege Status"}
+                  {language === 'ar' ? 'عضوية عائلة توزا' : 'TOUZA VIP Club Status'}
                 </h3>
                 <p className="font-body text-[13px] text-white/80 leading-relaxed">
                   {language === 'ar'

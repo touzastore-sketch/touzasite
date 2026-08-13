@@ -144,9 +144,9 @@ export const PhilosophySection: React.FC<PhilosophySectionProps> = ({
             <p className="font-body text-[14px] sm:text-[15px] text-[#2c2c2c] leading-[1.8] font-light">
               {language === 'ar'
                 ? storeSettings?.philosophyParagraph1Ar ||
-                  'في ميزون إيليجانت، نؤمن أن الفخامة الحقيقية تكمن في البساطة والتفاصيل الدقيقة. يتم تصميم كل قطعة بعناية فائقة باستخدام الحرير الخالص والأقمشة الفاخرة لتعكس أسلوب حياة استثنائي.'
+                  'في توزا، نركز على تقديم أفضل أزياء كاجوال رجالي تجمع بين العصرية والراحة المطلقة في جميع الأوقات.'
                 : storeSettings?.philosophyParagraph1En ||
-                  'At Maison Élégant, we believe luxury lives in restraint. Every piece in our collection is meticulously tailored using pure silk georgette, virgin wools, and fine European leathers.'}
+                  'At TOUZA, we craft high-end casual menswear built with 280GSM Egyptian cotton, pure flax linen, and custom relaxed tailoring.'}
             </p>
             <p className="font-body text-[13px] sm:text-[14px] text-[#555555] leading-[1.75] font-light">
               {language === 'ar'

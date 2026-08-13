@@ -13,9 +13,9 @@ interface LanguageContextType {
 const translations: Record<Language, Record<string, string>> = {
   ar: {
     // Brand & Header
-    'brand.name': 'ميزون إيليجانت',
+    'brand.name': 'توزا TOUZA',
     'nav.home': 'الرئيسية',
-    'nav.about': 'عن الدار',
+    'nav.about': 'عن توزا',
     'nav.collections': 'المجموعات',
     'nav.shop': 'المتجر',
     'nav.contact': 'تواصل معنا',
@@ -146,7 +146,7 @@ const translations: Record<Language, Record<string, string>> = {
   },
   en: {
     // Brand & Header
-    'brand.name': 'MAISON ÉLÉGANT',
+    'brand.name': 'TOUZA CASUAL',
     'nav.home': 'Home',
     'nav.about': 'About',
     'nav.collections': 'Collections',

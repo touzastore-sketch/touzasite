@@ -190,15 +190,15 @@ export const AppContent: React.FC = () => {
     storeNameEn: 'TOUZA CASUAL',
     taglineAr: 'ملابس كاجوال رجالي فاخرة - بورسعيد | مصر',
     taglineEn: 'Luxury Men Casual Wear - Portsaid | Egypt',
-    announcementAr: 'شحن مجاني لجميع المحافظات | خصم 10% عند استخدام كود TOUZA10',
-    announcementEn: 'Complimentary Express Shipping Nationwide | Use Code TOUZA10',
+    announcementAr: "TOUZA MEN'S WEAR - TOUZA MEN'S WEAR - TOUZA MEN'S WEAR - TOUZA MEN'S WEAR - TOUZA MEN'S WEAR - TOUZA MEN'S WEAR ",
+    announcementEn: "TOUZA MEN'S WEAR - TOUZA MEN'S WEAR - TOUZA MEN'S WEAR - TOUZA MEN'S WEAR - TOUZA MEN'S WEAR - TOUZA MEN'S WEAR ",
     heroTitleAr: 'أزياء كاجوال أنيقة تعكس شخصيتك',
     heroTitleEn: 'Premium Casual Menswear & Streetwear',
     heroSubtitleAr: 'تصاميم كاجوال عصرية مصنعة من أفضل خامات القطن المصري والكتان الفاخر.',
     heroSubtitleEn: 'Handcrafted from 100% heavyweight Egyptian cotton, fine linen, and premium fabrics.',
     heroBadgeAr: 'تشكيلة أزياء رجالية فاخرة • بورسعيد',
     heroBadgeEn: "TOUZA MEN'S WEAR COLLECTION",
-    heroImageUrl: '/hero-video.mp4',
+    heroImageUrl: 'https://res.cloudinary.com/qazdrpcx/video/upload/q_auto,f_mp4/v1786595529/touza_header_videos/pb3glshlcqx6jhuapcpq.mp4',
     newsletterBadgeAr: 'توزا',
     newsletterBadgeEn: 'TOUZA',
     newsletterTitleAr: 'انضم إلى عائلة توزا',
@@ -215,20 +215,20 @@ export const AppContent: React.FC = () => {
     philosophyParagraph1En: 'At TOUZA, we craft high-end casual menswear built with 280GSM Egyptian cotton, pure flax linen, and custom relaxed tailoring.',
     philosophyParagraph2Ar: 'تصاميم تعبر عن الثقة والأناقة الكاجوال مع توصيل سريع لجميع محافظات مصر.',
     philosophyParagraph2En: 'Designed for everyday confidence with fast express shipping across all Egyptian governorates.',
-    philosophyImageUrl: '/images/philosophy_model.jpg',
-    socialInstagramUrl: 'https://instagram.com',
-    socialFacebookUrl: 'https://facebook.com',
-    socialTiktokUrl: 'https://tiktok.com',
-    socialTwitterUrl: 'https://x.com',
-    socialWhatsappUrl: 'https://wa.me/201012345678',
+    philosophyImageUrl: 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595579/touza_settings/mf5eckkcwerbrntmvvbs.png',
+    socialInstagramUrl: 'https://www.instagram.com/touzamenswear?igsh=MWlibDh0OThsOGY4dg%3D%3D&utm_source=qr',
+    socialFacebookUrl: '',
+    socialTiktokUrl: 'https://www.tiktok.com/@eltouza95?_r=1&_t=ZS-98m1NvL2Yo3',
+    socialTwitterUrl: '',
+    socialWhatsappUrl: 'https://wa.me/+201070606272',
     socialYoutubeUrl: '',
     socialSnapchatUrl: '',
-    branchesAr: 'الفرع الرئيسي: القاهرة - الزمالك / التجمع الخامس\nفرع الإسكندرية: شارع إسكندر إبراهيم - ميامي',
-    branchesEn: 'Main Boutique: Zamalek & New Cairo, Cairo\nAlexandria Boutique: Iskander Ibrahim St, Miami',
-    contactAr: 'الهاتف المباشر: 01012345678\nواتساب: 01012345678\nالبريد الإلكتروني: support@touza.eg\nمواعيد العمل: يومياً من 10 صباحاً حتى 10 مساءً',
-    contactEn: 'Direct Call: +20 101 234 5678\nWhatsApp: +20 101 234 5678\nEmail: support@touza.eg\nHours: Daily from 10 AM to 10 PM',
-    whatsappNumber: '01012345678',
-    phoneNumber: '01012345678',
+    branchesAr: 'للطلب والاستفسار : 01070606272  📲\nالعنوان : بورسعيد شارع ٢٣ يوليو امام قاعة البوريفاج \nيوجد شحن لجميع المحافظات 🚚',
+    branchesEn: 'For orders and inquiries: 01070606272 📲\nAddress: Port Said, 23 July Street, opposite Al Bourivage Hall.\nShipping is available to all governorates 🚚\n',
+    contactAr: 'للطلب والاستفسار : 01070606272  📲\nالعنوان : بورسعيد شارع ٢٣ يوليو امام قاعة البوريفاج \nيوجد شحن لجميع المحافظات 🚚',
+    contactEn: 'For orders and inquiries: 01070606272 📲\nAddress: Port Said, 23 July Street, opposite Al Bourivage Hall.\nShipping is available to all governorates 🚚',
+    whatsappNumber: '01070606272',
+    phoneNumber: '01200031140',
     privacyAr: 'تلتزم توزا بحماية كافة بيانات العملاء بخصوصية تامة وعدم مشاركتها مع أي جهة خارجية إلا لغرض الشحن.',
     privacyEn: 'TOUZA values your privacy. All customer data is fully protected and used strictly for order fulfillment.',
     returnsAr: 'يمكنكم طلب استبدال أو استرجاع المنتجات خلال 14 يوماً من الاستلام بشرط الحفاظ على الحالة الأصلية للقطع.',
@@ -244,7 +244,18 @@ export const AppContent: React.FC = () => {
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => {
     try {
       const saved = localStorage.getItem('maison_settings');
-      return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Clean out legacy announcement text if present in cached settings
+        if (parsed.announcementAr && parsed.announcementAr.includes('شحن مجاني لجميع المحافظات | خصم 10%')) {
+          delete parsed.announcementAr;
+        }
+        if (parsed.announcementEn && parsed.announcementEn.includes('Complimentary Express Shipping')) {
+          delete parsed.announcementEn;
+        }
+        return { ...defaultSettings, ...parsed };
+      }
+      return defaultSettings;
     } catch {
       return defaultSettings;
     }
