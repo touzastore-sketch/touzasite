@@ -5,6 +5,10 @@ import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
   User,
 } from 'firebase/auth';
 import {
@@ -29,7 +33,7 @@ import firebaseConfig from '../firebase-applet-config.json';
 import { DEFAULT_REVIEWS } from './data/defaultReviews';
 import { DEFAULT_CATEGORIES } from './data/defaultCategories';
 import { PRODUCTS } from './data/products';
-import { Category, Product, StoreSettings, PromoCode } from './types';
+import { Category, Product, StoreSettings, PromoCode, TouzaUser } from './types';
 
 // Initialize Firebase
 const resolvedFirebaseConfig = {
@@ -145,30 +149,211 @@ export const signInWithGoogle = async () => {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
     
-    // Create/update user document in Firestore under 'users/{uid}'
+    // Create or update user document in Firestore under 'users/{uid}'
     if (user) {
       try {
-        await setDoc(
-          doc(db, 'users', user.uid),
-          {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userDocRef);
+
+        if (!userSnap.exists()) {
+          const newUserData = {
             uid: user.uid,
-            name: user.displayName || '',
+            name: user.displayName || 'عميل توزا',
+            username: user.email ? user.email.split('@')[0] : 'user_' + user.uid.substring(0, 5),
             email: user.email || '',
-            photo: user.photoURL || '',
-            displayName: user.displayName || '',
+            phone: user.phoneNumber || 'غير مسجل',
+            createdAt: serverTimestamp(),
+            provider: 'google',
             photoURL: user.photoURL || '',
             lastLoginAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
+          };
+          await setDoc(userDocRef, newUserData);
+        } else {
+          await setDoc(
+            userDocRef,
+            {
+              lastLoginAt: serverTimestamp(),
+              photoURL: user.photoURL || userSnap.data().photoURL || '',
+            },
+            { merge: true }
+          );
+        }
       } catch (docError) {
-        console.warn('User logged in, but updating user profile doc had non-fatal error:', docError);
+        console.warn('User logged in with Google, but updating user profile doc had non-fatal notice:', docError);
       }
     }
     return user;
   } catch (error) {
     console.error('Google Sign-In Error:', error);
     throw error;
+  }
+};
+
+// Sign Up with Email & Password
+export const signUpWithEmail = async (
+  fullName: string,
+  username: string,
+  email: string,
+  phone: string,
+  password: string
+) => {
+  const cleanEmail = email.trim().toLowerCase();
+  const result = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+  const user = result.user;
+
+  if (user) {
+    try {
+      await updateProfile(user, { displayName: fullName.trim() });
+    } catch (pErr) {
+      console.warn('Update profile display name error:', pErr);
+    }
+
+    try {
+      const userData = {
+        uid: user.uid,
+        name: fullName.trim(),
+        username: username.trim(),
+        email: cleanEmail,
+        phone: phone.trim(),
+        createdAt: serverTimestamp(),
+        provider: 'email',
+        photoURL: '',
+        lastLoginAt: serverTimestamp(),
+      };
+
+      await setDoc(doc(db, 'users', user.uid), userData);
+    } catch (docErr) {
+      console.warn('Firestore user doc creation error (non-fatal):', docErr);
+    }
+  }
+
+  return user;
+};
+
+// Sign In with Email & Password
+export const signInWithEmail = async (email: string, password: string) => {
+  const cleanEmail = email.trim().toLowerCase();
+  const result = await signInWithEmailAndPassword(auth, cleanEmail, password);
+  const user = result.user;
+
+  if (user) {
+    try {
+      await setDoc(
+        doc(db, 'users', user.uid),
+        { lastLoginAt: serverTimestamp() },
+        { merge: true }
+      );
+    } catch {}
+  }
+
+  return user;
+};
+
+// Reset Password via Firebase
+export const resetPassword = async (email: string) => {
+  const cleanEmail = email.trim().toLowerCase();
+  await sendPasswordResetEmail(auth, cleanEmail);
+};
+
+// Get User Profile details from 'users' collection
+export const getUserProfile = async (uid: string): Promise<TouzaUser | null> => {
+  try {
+    const userDocSnap = await getDoc(doc(db, 'users', uid));
+    if (userDocSnap.exists()) {
+      const data = userDocSnap.data();
+      return {
+        uid: userDocSnap.id,
+        name: data.name || data.displayName || '',
+        username: data.username || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        createdAt: data.createdAt,
+        provider: data.provider || 'email',
+        photoURL: data.photoURL || data.photo || '',
+      };
+    }
+    return null;
+  } catch (e) {
+    console.error('Failed to fetch user profile:', e);
+    return null;
+  }
+};
+
+// Subscribe to Users list in real-time (Admin Dashboard)
+export const subscribeToUsersAdmin = (
+  callback: (users: TouzaUser[]) => void
+): (() => void) => {
+  try {
+    const usersRef = collection(db, 'users');
+    const unsubscribe = onSnapshot(
+      usersRef,
+      (snapshot) => {
+        const usersList: TouzaUser[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          let createdAt = data.createdAt;
+          if (createdAt && typeof createdAt.toDate === 'function') {
+            try { createdAt = createdAt.toDate().toISOString(); } catch { createdAt = new Date().toISOString(); }
+          } else if (createdAt && typeof createdAt.seconds === 'number') {
+            createdAt = new Date(createdAt.seconds * 1000).toISOString();
+          } else if (!createdAt || typeof createdAt === 'object') {
+            createdAt = new Date().toISOString();
+          }
+          usersList.push({
+            uid: docSnap.id,
+            name: data.name || data.displayName || 'عميل توزا',
+            username: data.username || (data.email ? data.email.split('@')[0] : 'user'),
+            email: data.email || '',
+            phone: data.phone || 'غير مسجل',
+            createdAt,
+            provider: data.provider || 'email',
+            photoURL: data.photoURL || data.photo || '',
+            lastLoginAt: data.lastLoginAt,
+          });
+        });
+        usersList.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        callback(usersList);
+      },
+      (error) => {
+        console.warn('Realtime users listener error:', error);
+      }
+    );
+    return unsubscribe;
+  } catch (err) {
+    console.error('Could not start realtime users listener:', err);
+    return () => {};
+  }
+};
+
+// Real-time Orders Listener for Admin Dashboard
+export const subscribeToOrdersAdmin = (
+  callback: (orders: SavedOrder[]) => void
+): (() => void) => {
+  try {
+    const ordersRef = collection(db, 'orders');
+    const unsubscribe = onSnapshot(
+      ordersRef,
+      (snapshot) => {
+        const orders: SavedOrder[] = [];
+        snapshot.forEach((docSnap) => {
+          orders.push(cleanOrderObject(docSnap.data()));
+        });
+        orders.sort((a, b) => {
+          const timeA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : 0;
+          const timeB = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : 0;
+          return timeB - timeA;
+        });
+        localStorage.setItem('maison_orders_cache', safeJsonStringify(orders));
+        callback(orders);
+      },
+      (error) => {
+        console.warn('Realtime orders listener error:', error);
+      }
+    );
+    return unsubscribe;
+  } catch (err) {
+    console.error('Could not start realtime orders listener:', err);
+    return () => {};
   }
 };
 
@@ -1320,6 +1505,21 @@ function sanitizeSettings(settings: StoreSettings, defaultSettings: StoreSetting
   }
   if (!sanitized.defaultLanguage) {
     sanitized.defaultLanguage = defaultSettings.defaultLanguage || 'ar';
+  }
+  if (sanitized.enableMarqueeBar === undefined) {
+    sanitized.enableMarqueeBar = defaultSettings.enableMarqueeBar ?? true;
+  }
+  if (!sanitized.marqueeSpeed) {
+    sanitized.marqueeSpeed = defaultSettings.marqueeSpeed || 'normal';
+  }
+  if (!sanitized.marqueeBgColor) {
+    sanitized.marqueeBgColor = defaultSettings.marqueeBgColor || '#121212';
+  }
+  if (!sanitized.marqueeTextColor) {
+    sanitized.marqueeTextColor = defaultSettings.marqueeTextColor || '#f3f3f3';
+  }
+  if (!sanitized.marqueeSymbol) {
+    sanitized.marqueeSymbol = defaultSettings.marqueeSymbol || '✦';
   }
   if (sanitized.enableVodafoneCash === undefined) {
     sanitized.enableVodafoneCash = defaultSettings.enableVodafoneCash ?? true;

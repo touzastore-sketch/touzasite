@@ -10,7 +10,11 @@ export const PerksMarqueeBar: React.FC<PerksMarqueeBarProps> = ({ storeSettings 
   const { language } = useLanguage();
   const isRtl = language === 'ar';
 
-  const customAnnouncement = isRtl ? storeSettings?.announcementAr : storeSettings?.announcementEn;
+  if (storeSettings?.enableMarqueeBar === false) {
+    return null;
+  }
+
+  const rawText = isRtl ? storeSettings?.announcementAr : storeSettings?.announcementEn;
 
   const defaultPerks = isRtl
     ? [
@@ -28,29 +32,73 @@ export const PerksMarqueeBar: React.FC<PerksMarqueeBarProps> = ({ storeSettings 
         'SIGNATURE TOUZA LUXURY PACKAGING INCLUDED',
       ];
 
-  const perks = customAnnouncement ? [customAnnouncement, ...defaultPerks] : defaultPerks;
+  let parsedPerks: string[] = [];
+
+  if (rawText && rawText.trim()) {
+    if (rawText.includes('|')) {
+      parsedPerks = rawText.split('|').map((s) => s.trim()).filter(Boolean);
+    } else if (rawText.includes('\n')) {
+      parsedPerks = rawText.split('\n').map((s) => s.trim()).filter(Boolean);
+    } else {
+      parsedPerks = [rawText.trim()];
+    }
+  }
+
+  const perks = parsedPerks.length > 0 ? parsedPerks : defaultPerks;
 
   // Repeat items for seamless continuous loop
   const marqueeItems = [...perks, ...perks, ...perks, ...perks];
 
+  const bgColor = storeSettings?.marqueeBgColor || '#121212';
+  const textColor = storeSettings?.marqueeTextColor || '#f3f3f3';
+  const symbol = storeSettings?.marqueeSymbol || '✦';
+
+  const speedVal = storeSettings?.marqueeSpeed;
+  let duration = '22s';
+  if (speedVal === 'slow') duration = '36s';
+  else if (speedVal === 'fast') duration = '12s';
+  else if (typeof speedVal === 'string' && speedVal.endsWith('s')) duration = speedVal;
+
   return (
-    <div className="w-full bg-[#121212] border-y border-[#c5a059]/40 py-3 overflow-hidden relative shadow-sm marquee-container group">
+    <div
+      className="w-full border-y border-[#c5a059]/40 py-3 overflow-hidden relative shadow-sm marquee-container group transition-colors duration-300"
+      style={{ backgroundColor: bgColor }}
+    >
       {/* Subtle side gradient fade overlays */}
-      <div className="absolute top-0 bottom-0 left-0 w-12 sm:w-24 bg-gradient-to-r from-[#121212] to-transparent z-10 pointer-events-none" />
-      <div className="absolute top-0 bottom-0 right-0 w-12 sm:w-24 bg-gradient-to-l from-[#121212] to-transparent z-10 pointer-events-none" />
+      <div
+        className="absolute top-0 bottom-0 left-0 w-12 sm:w-24 z-10 pointer-events-none"
+        style={{
+          background: `linear-gradient(to right, ${bgColor}, transparent)`,
+        }}
+      />
+      <div
+        className="absolute top-0 bottom-0 right-0 w-12 sm:w-24 z-10 pointer-events-none"
+        style={{
+          background: `linear-gradient(to left, ${bgColor}, transparent)`,
+        }}
+      />
 
       {/* Marquee Track */}
-      <div className={isRtl ? 'animate-marquee-rtl' : 'animate-marquee'}>
+      <div
+        className={isRtl ? 'animate-marquee-rtl' : 'animate-marquee'}
+        style={{ animationDuration: duration }}
+      >
         {marqueeItems.map((perk, idx) => (
           <div
             key={`perk-${idx}`}
             className="flex items-center gap-6 sm:gap-10 px-4 sm:px-6 shrink-0"
           >
-            <span className="font-label-caps text-[12px] sm:text-[13px] font-medium tracking-[0.18em] text-[#f3f3f3] uppercase whitespace-nowrap group-hover:text-[#dfc38c] transition-colors duration-300">
+            <span
+              className="font-label-caps text-[12px] sm:text-[13px] font-medium tracking-[0.18em] uppercase whitespace-nowrap transition-colors duration-300"
+              style={{ color: textColor }}
+            >
               {perk}
             </span>
-            <span className="text-[#c5a059] text-[10px] sm:text-[11px] select-none font-serif opacity-80">
-              ✦
+            <span
+              className="text-[10px] sm:text-[11px] select-none font-serif opacity-80"
+              style={{ color: textColor === '#f3f3f3' || textColor === '#ffffff' ? '#c5a059' : textColor }}
+            >
+              {symbol}
             </span>
           </div>
         ))}

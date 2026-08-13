@@ -7,6 +7,9 @@ import { uploadToCloudinary, uploadVideoToCloudinary, getOptimizedVideoUrl } fro
 import {
   SavedOrder,
   getAllOrdersAdmin,
+  subscribeToOrdersAdmin,
+  subscribeToUsersAdmin,
+  TouzaUser,
   updateOrderStatusAdmin,
   deleteOrderAdmin,
   SavedReview,
@@ -75,7 +78,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newPin, setNewPin] = useState('');
 
   // Admin Navigation state
-  const [activeTab, setActiveTab] = useState<'overview' | 'categories' | 'products' | 'orders' | 'promos' | 'reviews' | 'newsletter' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'categories' | 'products' | 'orders' | 'users' | 'promos' | 'reviews' | 'newsletter' | 'settings' | 'payment_settings'>('overview');
+
+  // Firestore Live Users
+  const [users, setUsers] = useState<TouzaUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [userProviderFilter, setUserProviderFilter] = useState<'all' | 'email' | 'google'>('all');
 
   // Newsletter & Subscribers state
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>(() => {
@@ -436,10 +445,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   useEffect(() => {
     if (isAuthenticated) {
-      // Parallel background loading - UI renders instantly from cache
-      fetchOrders();
+      if (orders.length === 0) setLoadingOrders(true);
+      setLoadingUsers(true);
+
+      // Real-time listener for Orders
+      const unsubOrders = subscribeToOrdersAdmin((latestOrders) => {
+        setOrders(latestOrders);
+        setLoadingOrders(false);
+      });
+
+      // Real-time listener for Users
+      const unsubUsers = subscribeToUsersAdmin((latestUsers) => {
+        setUsers(latestUsers);
+        setLoadingUsers(false);
+      });
+
       fetchReviewsData();
       fetchNewsletterData();
+
+      return () => {
+        unsubOrders();
+        unsubUsers();
+      };
     }
   }, [isAuthenticated]);
 
@@ -979,6 +1006,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return matchesSearch && matchesStatus;
   });
 
+  // Filtered Users
+  const filteredUsers = users.filter((u) => {
+    const term = userSearchTerm.toLowerCase();
+    const matchesSearch =
+      (u.name && u.name.toLowerCase().includes(term)) ||
+      (u.email && u.email.toLowerCase().includes(term)) ||
+      (u.username && u.username.toLowerCase().includes(term)) ||
+      (u.phone && u.phone.toLowerCase().includes(term));
+    const matchesProvider = userProviderFilter === 'all' || u.provider === userProviderFilter;
+    return matchesSearch && matchesProvider;
+  });
+
   // Filtered Products
   const filteredProducts = products.filter((p) => {
     const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
@@ -1236,6 +1275,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             { id: 'overview', icon: 'analytics', labelAr: 'الإحصائيات والشاشة الرئيسية', labelEn: 'Overview' },
             { id: 'products', icon: 'apparel', labelAr: `إدارة المنتجات (${products.length})`, labelEn: `Products (${products.length})` },
             { id: 'orders', icon: 'local_shipping', labelAr: `إدارة الطلبات (${orders.length})`, labelEn: `Orders (${orders.length})` },
+            { id: 'users', icon: 'group', labelAr: `إدارة المستخدمين (${users.length})`, labelEn: `Users (${users.length})` },
             { id: 'promos', icon: 'sell', labelAr: `أكواد الخصم (${promoCodes.length})`, labelEn: `Promo Codes (${promoCodes.length})` },
             { id: 'reviews', icon: 'rate_review', labelAr: `التحكم في التقييمات (${reviews.length})`, labelEn: `Reviews (${reviews.length})` },
             { id: 'newsletter', icon: 'mark_email_unread', labelAr: `النشرة البريدية (${subscribers.length})`, labelEn: `Newsletter (${subscribers.length})` },
@@ -2008,7 +2048,145 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
 
-        {/* TAB 4: PROMO CODES */}
+        {/* TAB: REGISTERED USERS MANAGEMENT */}
+        {activeTab === 'users' && (
+          <div className="space-y-6 fade-in-up">
+            {/* Users Header & Filters */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-[#c4c7c7]/30 shadow-xs">
+              <div>
+                <h2 className="font-display text-[22px] font-bold text-[#000000]">
+                  {language === 'ar' ? 'إدارة المستخدمين المسجلين' : 'Registered Users Management'}
+                </h2>
+                <p className="font-body text-[13px] text-[#747878] mt-1">
+                  {language === 'ar'
+                    ? `إجمالي المستخدمين المسجلين في النظام: ${users.length} مستخدم (تحديث لحظي من Firestore)`
+                    : `Total Registered Users: ${users.length} (Real-time Firestore Sync)`}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                {/* Search */}
+                <div className="relative w-full sm:w-72">
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#747878] text-[20px]">
+                    search
+                  </span>
+                  <input
+                    type="text"
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                    placeholder={language === 'ar' ? 'البحث بالاسم، الإيميل، أو الهاتف...' : 'Search by name, email, or phone...'}
+                    className="w-full pr-10 pl-4 py-2 rounded-xl border border-[#c4c7c7] text-xs focus:outline-none focus:border-[#000000]"
+                  />
+                </div>
+
+                {/* Filter Provider */}
+                <select
+                  value={userProviderFilter}
+                  onChange={(e) => setUserProviderFilter(e.target.value as any)}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl border border-[#c4c7c7] text-xs font-bold text-[#1f1f1f] bg-white focus:outline-none focus:border-[#000000]"
+                >
+                  <option value="all">{language === 'ar' ? 'جميع الطرق' : 'All Providers'}</option>
+                  <option value="google">Google</option>
+                  <option value="email">Email & Password</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Users Table */}
+            <div className="bg-white rounded-2xl border border-[#c4c7c7]/30 shadow-xs overflow-hidden">
+              {loadingUsers && users.length === 0 ? (
+                <div className="p-12 text-center text-[#747878]">
+                  <div className="inline-block w-8 h-8 border-4 border-[#000000] border-t-transparent rounded-full animate-spin mb-3"></div>
+                  <p>{language === 'ar' ? 'جاري تحميل قائمة المستخدمين...' : 'Loading users...'}</p>
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="p-12 text-center space-y-3">
+                  <span className="material-symbols-outlined text-[48px] text-[#c4c7c7]">group_off</span>
+                  <h3 className="font-display text-[18px] font-bold text-[#000000]">
+                    {language === 'ar' ? 'لم يتم العثور على أي مستخدمين' : 'No users found'}
+                  </h3>
+                  <p className="font-body text-[13px] text-[#747878]">
+                    {language === 'ar' ? 'لا توجد نتائج تطابق بحثك الحالي' : 'No matching registered users'}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right border-collapse">
+                    <thead>
+                      <tr className="bg-[#f8f9fa] border-b border-[#c4c7c7]/30 text-xs text-[#747878] font-bold">
+                        <th className="p-4">{language === 'ar' ? 'المستخدم' : 'User'}</th>
+                        <th className="p-4">{language === 'ar' ? 'اسم المستخدم (Username)' : 'Username'}</th>
+                        <th className="p-4">{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</th>
+                        <th className="p-4">{language === 'ar' ? 'رقم الهاتف' : 'Phone'}</th>
+                        <th className="p-4">{language === 'ar' ? 'طريقة التسجيل' : 'Method'}</th>
+                        <th className="p-4">{language === 'ar' ? 'تاريخ التسجيل' : 'Registered At'}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#c4c7c7]/20 text-xs text-[#1f1f1f]">
+                      {filteredUsers.map((u) => (
+                        <tr key={u.uid} className="hover:bg-[#f8f9fa] transition-colors">
+                          <td className="p-4 flex items-center gap-3">
+                            <img
+                              src={u.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600'}
+                              alt={u.name}
+                              className="w-9 h-9 rounded-full object-cover border border-[#c4c7c7]"
+                            />
+                            <div>
+                              <div className="font-bold text-sm text-[#000000]">{u.name}</div>
+                              <div className="text-[10px] text-[#747878] font-mono">UID: {u.uid.substring(0, 8)}...</div>
+                            </div>
+                          </td>
+                          <td className="p-4 font-mono font-medium text-[#444748]">
+                            @{u.username || 'user'}
+                          </td>
+                          <td className="p-4 font-mono text-[#000000]">
+                            {u.email}
+                          </td>
+                          <td className="p-4 font-mono dir-ltr text-right text-[#000000]">
+                            {u.phone || (language === 'ar' ? 'غير مسجل' : 'Not Provided')}
+                          </td>
+                          <td className="p-4">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border ${
+                              u.provider === 'google'
+                                ? 'bg-blue-50 text-blue-800 border-blue-200'
+                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            }`}>
+                              {u.provider === 'google' ? (
+                                <>
+                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
+                                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.74-2.09-6.68-4.92H1.21v3.15C3.21 21.36 7.32 24 12 24z"/>
+                                    <path fill="#FBBC05" d="M5.32 14.28c-.24-.72-.38-1.49-.38-2.28s.14-1.56.38-2.28V6.57H1.21C.44 8.11 0 9.99 0 12s.44 3.89 1.21 5.43l4.11-3.15z"/>
+                                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.32 0 3.21 2.64 1.21 6.57l4.11 3.15c.94-2.83 3.58-4.92 6.68-4.92z"/>
+                                  </svg>
+                                  <span>Google</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="material-symbols-outlined text-[14px]">mail</span>
+                                  <span>Email & Password</span>
+                                </>
+                              )}
+                            </span>
+                          </td>
+                          <td className="p-4 text-[#747878] dir-ltr text-right">
+                            {u.createdAt ? new Date(u.createdAt).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {activeTab === 'promos' && (
           <div className="space-y-6 fade-in-up">
             {/* Create Promo Code */}
@@ -2203,37 +2381,196 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Announcement Bar */}
-              <div className="space-y-3 p-4 bg-[#f9f9f9] rounded-xl border border-[#c4c7c7]/20">
-                <h3 className="font-label-caps text-[13px] font-bold text-[#000000]">
-                  {language === 'ar' ? 'الشريط الإعلاني العلوي' : 'Top Announcement Bar'}
-                </h3>
+              {/* Announcement & Marquee Bar Control Section */}
+              <div className="space-y-5 p-5 bg-[#f8f9fa] rounded-2xl border border-[#000000]/15 shadow-2xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#c4c7c7]/30 pb-3">
+                  <div>
+                    <h3 className="font-label-caps text-[14px] font-bold text-[#000000] flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[20px] text-[#c5a059]">view_headline</span>
+                      <span>{language === 'ar' ? 'التحكم الكامل بالشريط الإعلاني المتحرك (Marquee Bar)' : 'Marquee Bar Full Control'}</span>
+                    </h3>
+                    <p className="font-body text-[12px] text-[#5e5e5c] mt-0.5">
+                      {language === 'ar' 
+                        ? 'تخصيص كامل للنصوص، الألوان، سرعة الحركة، وأيقونة الفاصل' 
+                        : 'Full customization for marquee messages, colors, scroll speed, and divider icon'}
+                    </p>
+                  </div>
+                  
+                  {/* Enable/Disable Toggle */}
+                  <label className="inline-flex items-center gap-2.5 cursor-pointer bg-white px-3.5 py-1.5 rounded-xl border border-[#c4c7c7]/50 shadow-2xs">
+                    <input
+                      type="checkbox"
+                      checked={settingsForm.enableMarqueeBar !== false}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, enableMarqueeBar: e.target.checked })}
+                      className="w-4 h-4 text-[#000000] rounded focus:ring-0 cursor-pointer"
+                    />
+                    <span className="font-label-caps text-[12px] font-semibold text-[#000000]">
+                      {language === 'ar' ? 'تفعيل الشريط' : 'Enable Marquee'}
+                    </span>
+                  </label>
+                </div>
+
+                {/* Messages Input */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
-                      النص بالعربية
+                    <label className="block text-[12px] font-label-caps text-[#000000] font-semibold mb-1">
+                      {language === 'ar' ? 'الرسائل بالعربية (افصل بين الرسائل بـ | أو في أسطر جديدة)' : 'Arabic Messages (Separate with | or new lines)'}
                     </label>
-                    <input
-                      type="text"
-                      value={settingsForm.announcementAr}
-                      onChange={(e) =>
-                        setSettingsForm({ ...settingsForm, announcementAr: e.target.value })
-                      }
-                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px]"
+                    <textarea
+                      rows={3}
+                      value={settingsForm.announcementAr || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, announcementAr: e.target.value })}
+                      placeholder="شحن مجاني لجميع المحافظات | إرجاع واستبدال مجاني خلال 14 يوم | قطن مصري 100%"
+                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[13px] font-body bg-white focus:outline-hidden focus:border-[#000000] resize-y"
                     />
                   </div>
                   <div>
-                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
-                      Text in English
+                    <label className="block text-[12px] font-label-caps text-[#000000] font-semibold mb-1">
+                      {language === 'ar' ? 'الرسائل بالإنجليزية (English Messages)' : 'English Messages (Separate with | or new lines)'}
                     </label>
-                    <input
-                      type="text"
-                      value={settingsForm.announcementEn}
-                      onChange={(e) =>
-                        setSettingsForm({ ...settingsForm, announcementEn: e.target.value })
-                      }
-                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px]"
+                    <textarea
+                      rows={3}
+                      value={settingsForm.announcementEn || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, announcementEn: e.target.value })}
+                      placeholder="COMPLIMENTARY EXPRESS SHIPPING NATIONWIDE | 14-DAY EASY RETURNS | 100% EGYPTIAN COTTON"
+                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[13px] font-body bg-white focus:outline-hidden focus:border-[#000000] resize-y"
                     />
+                  </div>
+                </div>
+
+                {/* Appearance & Color Controls */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-white p-4 rounded-xl border border-[#c4c7c7]/30">
+                  {/* Background Color */}
+                  <div>
+                    <label className="block text-[11px] font-label-caps text-[#747878] font-semibold mb-1">
+                      {language === 'ar' ? 'لون الخلفية' : 'Background Color'}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={settingsForm.marqueeBgColor || '#121212'}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, marqueeBgColor: e.target.value })}
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-[#c4c7c7] p-0 overflow-hidden"
+                      />
+                      <input
+                        type="text"
+                        value={settingsForm.marqueeBgColor || '#121212'}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, marqueeBgColor: e.target.value })}
+                        className="w-full border border-[#c4c7c7] rounded-lg py-1 px-2 text-[12px] font-mono"
+                      />
+                    </div>
+                    {/* Quick Color Presets */}
+                    <div className="flex gap-1.5 mt-2">
+                      {[
+                        { name: 'أسود', hex: '#121212' },
+                        { name: 'ذهبي', hex: '#c5a059' },
+                        { name: 'أحمر', hex: '#ba1a1a' },
+                        { name: 'كحلي', hex: '#111827' },
+                        { name: 'أبيض', hex: '#ffffff' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.hex}
+                          type="button"
+                          onClick={() => setSettingsForm({ ...settingsForm, marqueeBgColor: preset.hex })}
+                          className="w-5 h-5 rounded-full border border-gray-300 shadow-2xs text-[8px] flex items-center justify-center font-bold"
+                          style={{ backgroundColor: preset.hex }}
+                          title={preset.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Text Color */}
+                  <div>
+                    <label className="block text-[11px] font-label-caps text-[#747878] font-semibold mb-1">
+                      {language === 'ar' ? 'لون النص' : 'Text Color'}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={settingsForm.marqueeTextColor || '#f3f3f3'}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, marqueeTextColor: e.target.value })}
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-[#c4c7c7] p-0 overflow-hidden"
+                      />
+                      <input
+                        type="text"
+                        value={settingsForm.marqueeTextColor || '#f3f3f3'}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, marqueeTextColor: e.target.value })}
+                        className="w-full border border-[#c4c7c7] rounded-lg py-1 px-2 text-[12px] font-mono"
+                      />
+                    </div>
+                    {/* Quick Text Color Presets */}
+                    <div className="flex gap-1.5 mt-2">
+                      {[
+                        { name: 'أبيض', hex: '#f3f3f3' },
+                        { name: 'ذهبي', hex: '#e2c792' },
+                        { name: 'أسود', hex: '#000000' },
+                        { name: 'أحمر', hex: '#ef4444' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.hex}
+                          type="button"
+                          onClick={() => setSettingsForm({ ...settingsForm, marqueeTextColor: preset.hex })}
+                          className="w-5 h-5 rounded-full border border-gray-300 shadow-2xs text-[8px] flex items-center justify-center font-bold"
+                          style={{ backgroundColor: preset.hex }}
+                          title={preset.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Marquee Speed */}
+                  <div>
+                    <label className="block text-[11px] font-label-caps text-[#747878] font-semibold mb-1">
+                      {language === 'ar' ? 'سرعة الحركة' : 'Scroll Speed'}
+                    </label>
+                    <select
+                      value={settingsForm.marqueeSpeed || 'normal'}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, marqueeSpeed: e.target.value as any })}
+                      className="w-full border border-[#c4c7c7] rounded-lg py-1.5 px-2 text-[13px] bg-white"
+                    >
+                      <option value="slow">{language === 'ar' ? 'بطيء هادئ (36 ثانية)' : 'Slow (36s)'}</option>
+                      <option value="normal">{language === 'ar' ? 'طبيعي معتدل (22 ثانية)' : 'Normal (22s)'}</option>
+                      <option value="fast">{language === 'ar' ? 'سريع ديناميكي (12 ثانية)' : 'Fast (12s)'}</option>
+                    </select>
+                  </div>
+
+                  {/* Separator Symbol */}
+                  <div>
+                    <label className="block text-[11px] font-label-caps text-[#747878] font-semibold mb-1">
+                      {language === 'ar' ? 'أيقونة الفاصل' : 'Divider Icon'}
+                    </label>
+                    <select
+                      value={settingsForm.marqueeSymbol || '✦'}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, marqueeSymbol: e.target.value })}
+                      className="w-full border border-[#c4c7c7] rounded-lg py-1.5 px-2 text-[13px] bg-white font-serif"
+                    >
+                      <option value="✦">✦ نجمة ألماسية</option>
+                      <option value="★">★ نجمة خماسية</option>
+                      <option value="⚡">⚡ برامج سريعة</option>
+                      <option value="🛍️">🛍️ حقيبة تسوق</option>
+                      <option value="•">• نقطة فاصلة</option>
+                      <option value="—">— خط أفق</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Live Preview Box */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-label-caps text-[#747878] font-semibold block">
+                    {language === 'ar' ? 'معاينة مباشرة للشريط (Live Preview):' : 'Live Preview:'}
+                  </span>
+                  <div
+                    className="w-full py-2.5 px-4 rounded-xl border border-gray-300 overflow-hidden relative shadow-inner flex items-center justify-between"
+                    style={{ backgroundColor: settingsForm.marqueeBgColor || '#121212' }}
+                  >
+                    <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-wider overflow-x-auto whitespace-nowrap scrollbar-none py-0.5" style={{ color: settingsForm.marqueeTextColor || '#f3f3f3' }}>
+                      <span>{language === 'ar' ? (settingsForm.announcementAr?.split('|')[0] || 'شحن مجاني لجميع المحافظات') : (settingsForm.announcementEn?.split('|')[0] || 'COMPLIMENTARY SHIPPING')}</span>
+                      <span style={{ color: (settingsForm.marqueeTextColor === '#f3f3f3' || settingsForm.marqueeTextColor === '#ffffff') ? '#c5a059' : settingsForm.marqueeTextColor }}>{settingsForm.marqueeSymbol || '✦'}</span>
+                      <span>{language === 'ar' ? (settingsForm.announcementAr?.split('|')[1] || 'إرجاع خلال 14 يوم') : (settingsForm.announcementEn?.split('|')[1] || 'EASY 14-DAY RETURNS')}</span>
+                      <span style={{ color: (settingsForm.marqueeTextColor === '#f3f3f3' || settingsForm.marqueeTextColor === '#ffffff') ? '#c5a059' : settingsForm.marqueeTextColor }}>{settingsForm.marqueeSymbol || '✦'}</span>
+                      <span>{language === 'ar' ? (settingsForm.announcementAr?.split('|')[2] || 'خامات قطن مصري 100%') : (settingsForm.announcementEn?.split('|')[2] || '100% EGYPTIAN COTTON')}</span>
+                    </div>
                   </div>
                 </div>
               </div>

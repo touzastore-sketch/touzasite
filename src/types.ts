@@ -67,6 +67,12 @@ export interface StoreSettings {
   taglineEn?: string;
   announcementAr: string;
   announcementEn: string;
+  // Marquee Customization Settings
+  enableMarqueeBar?: boolean;
+  marqueeSpeed?: 'slow' | 'normal' | 'fast' | string;
+  marqueeBgColor?: string;
+  marqueeTextColor?: string;
+  marqueeSymbol?: string;
   heroTitleAr: string;
   heroTitleEn: string;
   heroSubtitleAr: string;
@@ -152,4 +158,16 @@ export interface PaymentDetails {
   expDate: string;
   cvc: string;
   billingMatchesShipping: boolean;
+}
+
+export interface TouzaUser {
+  uid: string;
+  name: string;
+  username: string;
+  email: string;
+  phone: string;
+  createdAt: any;
+  provider: 'email' | 'google';
+  photoURL?: string;
+  lastLoginAt?: any;
 }

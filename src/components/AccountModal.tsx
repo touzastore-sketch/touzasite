@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { useLanguage } from '../context/LanguageContext';
-import { getUserOrders, SavedOrder, logOut, saveProductReview, FirestoreReviewData, safeJsonStringify } from '../firebase';
+import {
+  getUserOrders,
+  SavedOrder,
+  logOut,
+  saveProductReview,
+  FirestoreReviewData,
+  safeJsonStringify,
+  signUpWithEmail,
+  signInWithEmail,
+  resetPassword,
+  getUserProfile,
+  TouzaUser,
+} from '../firebase';
 import { uploadToCloudinary } from '../utils/cloudinary';
 
 interface AccountModalProps {
@@ -23,6 +35,19 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
 
+  // Email / Password Auth Form State
+  const [authTab, setAuthTab] = useState<'signin' | 'signup' | 'forgot'>('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
+  const [phone, setPhone] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
+  const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
+  const [userProfileData, setUserProfileData] = useState<TouzaUser | null>(null);
+
   // Custom User Profile Photo state
   const [customPhoto, setCustomPhoto] = useState<string>('');
 
@@ -37,10 +62,120 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       } else {
         setCustomPhoto(user.photoURL || '');
       }
+
+      getUserProfile(user.uid).then((prof) => {
+        if (prof) setUserProfileData(prof);
+      });
     } else {
       setCustomPhoto('');
+      setUserProfileData(null);
     }
   }, [user]);
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthSuccess(null);
+    if (!email || !password) {
+      setAuthError(language === 'ar' ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور' : 'Please enter email and password');
+      return;
+    }
+    setIsSubmittingAuth(true);
+    try {
+      await signInWithEmail(email, password);
+    } catch (err: any) {
+      console.error(err);
+      let msg = language === 'ar' ? 'حدث خطأ أثناء تسجيل الدخول' : 'Error signing in';
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        msg = language === 'ar' ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة' : 'Invalid email or password';
+      } else if (err.code === 'auth/invalid-email') {
+        msg = language === 'ar' ? 'البريد الإلكتروني غير صحيح' : 'Invalid email format';
+      } else if (err.code === 'auth/too-many-requests') {
+        msg = language === 'ar' ? 'تم حظر المحاولات مؤقتاً بسبب كثرة المحاولات خاطئة. يرجى المحاولة لاحقاً' : 'Too many failed attempts. Try again later';
+      }
+      setAuthError(msg);
+    } finally {
+      setIsSubmittingAuth(false);
+    }
+  };
+
+  const handleEmailSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthSuccess(null);
+
+    if (!fullName.trim() || !username.trim() || !email.trim() || !phone.trim() || !password || !confirmPassword) {
+      setAuthError(language === 'ar' ? 'يرجى ملء كافة الحقول المطلوبة' : 'Please fill all required fields');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setAuthError(language === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Please enter a valid email address');
+      return;
+    }
+
+    if (password.length < 6) {
+      setAuthError(language === 'ar' ? 'كلمة المرور يجب أن لا تقل عن 6 أحرف' : 'Password must be at least 6 characters');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setAuthError(language === 'ar' ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match');
+      return;
+    }
+
+    setIsSubmittingAuth(true);
+    try {
+      await signUpWithEmail(fullName, username, email, phone, password);
+      setAuthSuccess(language === 'ar' ? 'تم إنشاء الحساب بنجاح!' : 'Account created successfully!');
+    } catch (err: any) {
+      console.error('Sign up error:', err);
+      let msg = language === 'ar' ? 'فشل إنشاء الحساب' : 'Failed to create account';
+      if (err.code === 'auth/email-already-in-use') {
+        msg = language === 'ar' ? 'البريد الإلكتروني مستخدم بالفعل. يمكنك تسجيل الدخول بدلاً من ذلك' : 'Email is already registered. Please sign in instead.';
+      } else if (err.code === 'auth/weak-password') {
+        msg = language === 'ar' ? 'كلمة المرور ضعيفة جداً (يجب أن تكون 6 أحرف على الأقل)' : 'Password is too weak (must be at least 6 characters)';
+      } else if (err.code === 'auth/invalid-email') {
+        msg = language === 'ar' ? 'صيغة البريد الإلكتروني غير صحيحة' : 'Invalid email format';
+      } else if (err.code === 'auth/operation-not-allowed') {
+        msg = language === 'ar' ? 'تسجيل الدخول بالبريد الإلكتروني غير مفعّل في معلمات Firebase. يرجى استخدام تسجيل الدخول بـ Google' : 'Email/Password authentication is disabled in Firebase setup. Please use Google Sign In.';
+      } else if (err.message) {
+        msg += `: ${err.message}`;
+      }
+      setAuthError(msg);
+    } finally {
+      setIsSubmittingAuth(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthSuccess(null);
+
+    if (!email.trim()) {
+      setAuthError(language === 'ar' ? 'يرجى إدخال البريد الإلكتروني' : 'Please enter your email');
+      return;
+    }
+
+    setIsSubmittingAuth(true);
+    try {
+      await resetPassword(email);
+      setAuthSuccess(language === 'ar' ? 'تم إرسال رابط إعادة ضبط كلمة المرور إلى بريدك الإلكتروني بنجاح' : 'Reset link sent to your email');
+    } catch (err: any) {
+      console.error(err);
+      let msg = language === 'ar' ? 'فشل إرسال رابط الضبط' : 'Failed to send reset link';
+      if (err.code === 'auth/user-not-found') {
+        msg = language === 'ar' ? 'البريد الإلكتروني غير مسجل لدينا' : 'Email not found';
+      } else if (err.code === 'auth/invalid-email') {
+        msg = language === 'ar' ? 'البريد الإلكتروني غير صحيح' : 'Invalid email format';
+      }
+      setAuthError(msg);
+    } finally {
+      setIsSubmittingAuth(false);
+    }
+  };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -256,52 +391,283 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         {/* Content depending on login state */}
         {!user ? (
           /* Not Logged In View */
-          <div className="py-8 px-4 text-center space-y-6">
-            <div className="w-20 h-20 bg-[#f3f3f4] rounded-full flex items-center justify-center mx-auto shadow-inner">
-              <span className="material-symbols-outlined text-[42px] text-[#000000]">account_circle</span>
+          <div className="space-y-5 py-2">
+            {/* Auth Subtabs Header */}
+            <div className="flex border-b border-[#c4c7c7]/30">
+              <button
+                type="button"
+                onClick={() => { setAuthTab('signin'); setAuthError(null); setAuthSuccess(null); }}
+                className={`flex-1 py-3 font-body text-sm font-bold text-center border-b-2 transition-all cursor-pointer ${
+                  authTab === 'signin' ? 'border-[#000000] text-[#000000]' : 'border-transparent text-[#747878] hover:text-[#000000]'
+                }`}
+              >
+                {language === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthTab('signup'); setAuthError(null); setAuthSuccess(null); }}
+                className={`flex-1 py-3 font-body text-sm font-bold text-center border-b-2 transition-all cursor-pointer ${
+                  authTab === 'signup' ? 'border-[#000000] text-[#000000]' : 'border-transparent text-[#747878] hover:text-[#000000]'
+                }`}
+              >
+                {language === 'ar' ? 'إنشاء حساب جديد' : 'Create Account'}
+              </button>
             </div>
 
-            <div className="space-y-2 max-w-md mx-auto">
-              <h3 className="font-display text-[22px] text-[#000000] font-bold">
-                {language === 'ar' ? 'سجّل الدخول لمتابعة طلباتك' : 'Sign in to access your orders'}
-              </h3>
-              <p className="font-body text-[14px] text-[#444748] leading-relaxed">
-                {language === 'ar'
-                  ? 'قم بتسجيل الدخول بواسطة حساب Google الخاص بك لعرض جميع طلباتك السابقة وسجل مشترياتك بأمان تام ومحفوظة لحسابك فقط.'
-                  : 'Sign in with your Google account to view order history, track deliveries, and keep your data safe.'}
-              </p>
-            </div>
+            {authError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl flex items-center gap-2">
+                <span className="material-symbols-outlined text-base shrink-0">error</span>
+                <span>{authError}</span>
+              </div>
+            )}
 
-            <button
-              onClick={handleGoogleAuth}
-              disabled={isSigningIn}
-              className="w-full max-w-sm mx-auto flex items-center justify-center gap-3 bg-[#ffffff] text-[#1f1f1f] border border-[#747878]/30 py-3.5 px-6 rounded-xl font-body text-[15px] font-bold hover:bg-[#f8f9fa] hover:border-[#000000] transition-all cursor-pointer shadow-sm"
-            >
-              {/* Google Colored Logo */}
-              <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.74-2.09-6.68-4.92H1.21v3.15C3.21 21.36 7.32 24 12 24z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.32 14.28c-.24-.72-.38-1.49-.38-2.28s.14-1.56.38-2.28V6.57H1.21C.44 8.11 0 9.99 0 12s.44 3.89 1.21 5.43l4.11-3.15z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.32 0 3.21 2.64 1.21 6.57l4.11 3.15c.94-2.83 3.58-4.92 6.68-4.92z"
-                />
-              </svg>
-              <span>
-                {isSigningIn
-                  ? language === 'ar' ? 'جاري الاتصال بـ Google...' : 'Connecting to Google...'
-                  : language === 'ar' ? 'متابعة باستخدام Google' : 'Continue with Google'}
-              </span>
-            </button>
+            {authSuccess && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl flex items-center gap-2">
+                <span className="material-symbols-outlined text-base shrink-0">check_circle</span>
+                <span>{authSuccess}</span>
+              </div>
+            )}
+
+            {/* Tab 1: Sign In */}
+            {authTab === 'signin' && (
+              <form onSubmit={handleEmailSignIn} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                    {language === 'ar' ? 'البريد الإلكتروني' : 'Email Address'}
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    placeholder="example@domain.com"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#c4c7c7] focus:outline-none focus:border-[#000000] text-sm"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-xs font-bold text-[#1f1f1f]">
+                      {language === 'ar' ? 'كلمة المرور' : 'Password'}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => { setAuthTab('forgot'); setAuthError(null); setAuthSuccess(null); }}
+                      className="text-xs text-[#000000] underline font-medium cursor-pointer"
+                    >
+                      {language === 'ar' ? 'نسيت كلمة المرور؟' : 'Forgot Password?'}
+                    </button>
+                  </div>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#c4c7c7] focus:outline-none focus:border-[#000000] text-sm"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingAuth}
+                  className="w-full bg-[#000000] text-white py-3 rounded-xl font-body text-sm font-bold hover:bg-[#2e5a44] transition-all cursor-pointer shadow-sm"
+                >
+                  {isSubmittingAuth
+                    ? (language === 'ar' ? 'جاري تسجيل الدخول...' : 'Signing in...')
+                    : (language === 'ar' ? 'تسجيل الدخول' : 'Sign In')}
+                </button>
+
+                <div className="relative my-4 flex items-center justify-center">
+                  <div className="border-t border-[#c4c7c7]/40 w-full"></div>
+                  <span className="bg-white px-3 text-xs text-[#747878] shrink-0 font-medium">
+                    {language === 'ar' ? 'أو' : 'OR'}
+                  </span>
+                  <div className="border-t border-[#c4c7c7]/40 w-full"></div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGoogleAuth}
+                  disabled={isSigningIn}
+                  className="w-full flex items-center justify-center gap-3 bg-[#ffffff] text-[#1f1f1f] border border-[#747878]/30 py-3 rounded-xl font-body text-sm font-bold hover:bg-[#f8f9fa] hover:border-[#000000] transition-all cursor-pointer shadow-xs"
+                >
+                  <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.74-2.09-6.68-4.92H1.21v3.15C3.21 21.36 7.32 24 12 24z"/>
+                    <path fill="#FBBC05" d="M5.32 14.28c-.24-.72-.38-1.49-.38-2.28s.14-1.56.38-2.28V6.57H1.21C.44 8.11 0 9.99 0 12s.44 3.89 1.21 5.43l4.11-3.15z"/>
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.32 0 3.21 2.64 1.21 6.57l4.11 3.15c.94-2.83 3.58-4.92 6.68-4.92z"/>
+                  </svg>
+                  <span>{isSigningIn ? (language === 'ar' ? 'جاري الاتصال...' : 'Connecting...') : (language === 'ar' ? 'متابعة باستخدام Google' : 'Continue with Google')}</span>
+                </button>
+              </form>
+            )}
+
+            {/* Tab 2: Sign Up */}
+            {authTab === 'signup' && (
+              <form onSubmit={handleEmailSignUp} className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                      {language === 'ar' ? 'الاسم الكامل' : 'Full Name'}
+                    </label>
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      placeholder={language === 'ar' ? 'أحمد محمد' : 'Ahmed Mohamed'}
+                      className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] focus:outline-none focus:border-[#000000] text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                      {language === 'ar' ? 'اسم المستخدم (Username)' : 'Username'}
+                    </label>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                      placeholder="ahmed_touza"
+                      className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] focus:outline-none focus:border-[#000000] text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                      {language === 'ar' ? 'البريد الإلكتروني' : 'Email Address'}
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      placeholder="example@domain.com"
+                      className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] focus:outline-none focus:border-[#000000] text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                      {language === 'ar' ? 'رقم الهاتف' : 'Phone Number'}
+                    </label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                      placeholder="01012345678"
+                      className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] focus:outline-none focus:border-[#000000] text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                      {language === 'ar' ? 'كلمة المرور' : 'Password'}
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      placeholder="••••••••"
+                      className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] focus:outline-none focus:border-[#000000] text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                      {language === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'}
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      placeholder="••••••••"
+                      className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] focus:outline-none focus:border-[#000000] text-sm"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingAuth}
+                  className="w-full bg-[#000000] text-white py-3 rounded-xl font-body text-sm font-bold hover:bg-[#2e5a44] transition-all cursor-pointer shadow-sm mt-2"
+                >
+                  {isSubmittingAuth
+                    ? (language === 'ar' ? 'جاري إنشاء الحساب...' : 'Creating Account...')
+                    : (language === 'ar' ? 'إنشاء حساب جديد' : 'Create Account')}
+                </button>
+
+                <div className="relative my-3 flex items-center justify-center">
+                  <div className="border-t border-[#c4c7c7]/40 w-full"></div>
+                  <span className="bg-white px-3 text-xs text-[#747878] shrink-0 font-medium">
+                    {language === 'ar' ? 'أو' : 'OR'}
+                  </span>
+                  <div className="border-t border-[#c4c7c7]/40 w-full"></div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGoogleAuth}
+                  disabled={isSigningIn}
+                  className="w-full flex items-center justify-center gap-3 bg-[#ffffff] text-[#1f1f1f] border border-[#747878]/30 py-2.5 rounded-xl font-body text-sm font-bold hover:bg-[#f8f9fa] hover:border-[#000000] transition-all cursor-pointer shadow-xs"
+                >
+                  <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.74-2.09-6.68-4.92H1.21v3.15C3.21 21.36 7.32 24 12 24z"/>
+                    <path fill="#FBBC05" d="M5.32 14.28c-.24-.72-.38-1.49-.38-2.28s.14-1.56.38-2.28V6.57H1.21C.44 8.11 0 9.99 0 12s.44 3.89 1.21 5.43l4.11-3.15z"/>
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.32 0 3.21 2.64 1.21 6.57l4.11 3.15c.94-2.83 3.58-4.92 6.68-4.92z"/>
+                  </svg>
+                  <span>{isSigningIn ? (language === 'ar' ? 'جاري التسجيل...' : 'Signing Up...') : (language === 'ar' ? 'التسجيل بواسطة Google' : 'Sign Up with Google')}</span>
+                </button>
+              </form>
+            )}
+
+            {/* Tab 3: Forgot Password */}
+            {authTab === 'forgot' && (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <p className="text-sm text-[#444748] leading-relaxed">
+                  {language === 'ar'
+                    ? 'أدخل بريدك الإلكتروني المسجل وسنقوم بإرسال رابط مخصص لإعادة ضبط كلمة المرور بشكل آمن.'
+                    : 'Enter your registered email address and we will send you a link to reset your password.'}
+                </p>
+                <div>
+                  <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                    {language === 'ar' ? 'البريد الإلكتروني' : 'Email Address'}
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    placeholder="example@domain.com"
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#c4c7c7] focus:outline-none focus:border-[#000000] text-sm"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingAuth}
+                  className="w-full bg-[#000000] text-white py-3 rounded-xl font-body text-sm font-bold hover:bg-[#2e5a44] transition-all cursor-pointer shadow-sm"
+                >
+                  {isSubmittingAuth
+                    ? (language === 'ar' ? 'جاري الإرسال...' : 'Sending Link...')
+                    : (language === 'ar' ? 'إرسال رابط إعادة الضبط' : 'Send Reset Link')}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setAuthTab('signin'); setAuthError(null); setAuthSuccess(null); }}
+                  className="w-full text-center text-sm font-bold text-[#000000] underline py-1 cursor-pointer block"
+                >
+                  {language === 'ar' ? 'العودة لتسجيل الدخول' : 'Back to Sign In'}
+                </button>
+              </form>
+            )}
           </div>
         ) : (
           /* Logged In View */

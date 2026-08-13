@@ -3,7 +3,7 @@ import { User } from 'firebase/auth';
 import { CartItem, ShippingAddress, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getLocalizedProductName } from '../data/products';
-import { saveUserOrder, safeJsonStringify } from '../firebase';
+import { saveUserOrder, safeJsonStringify, signInWithEmail, signUpWithEmail } from '../firebase';
 
 interface CheckoutViewProps {
   cartItems: CartItem[];
@@ -11,6 +11,7 @@ interface CheckoutViewProps {
   onClearCart: () => void;
   user: User | null;
   onSignInGoogle: () => Promise<void>;
+  onOpenAccountModal?: () => void;
   storeSettings?: StoreSettings;
 }
 
@@ -20,6 +21,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   onClearCart,
   user,
   onSignInGoogle,
+  onOpenAccountModal,
   storeSettings,
 }) => {
   const { language, formatPrice, t } = useLanguage();
@@ -30,6 +32,17 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   const [promoSuccess, setPromoSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+
+  // Inline Checkout Auth State
+  const [checkoutAuthMode, setCheckoutAuthMode] = useState<'google' | 'signin' | 'signup'>('google');
+  const [checkoutEmail, setCheckoutEmail] = useState('');
+  const [checkoutPassword, setCheckoutPassword] = useState('');
+  const [checkoutConfirmPassword, setCheckoutConfirmPassword] = useState('');
+  const [checkoutFullName, setCheckoutFullName] = useState('');
+  const [checkoutUsername, setCheckoutUsername] = useState('');
+  const [checkoutPhone, setCheckoutPhone] = useState('');
+  const [checkoutAuthError, setCheckoutAuthError] = useState<string | null>(null);
+  const [isSubmittingCheckoutAuth, setIsSubmittingCheckoutAuth] = useState(false);
 
   // Address defaults cleared out (no hardcoded static mock addresses)
   const [address, setAddress] = useState<ShippingAddress>({
@@ -93,6 +106,67 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     }
   };
 
+  const handleCheckoutEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCheckoutAuthError(null);
+    if (!checkoutEmail.trim() || !checkoutPassword) {
+      setCheckoutAuthError(language === 'ar' ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور' : 'Please enter email and password');
+      return;
+    }
+    setIsSubmittingCheckoutAuth(true);
+    try {
+      await signInWithEmail(checkoutEmail, checkoutPassword);
+    } catch (err: any) {
+      console.error('Checkout sign in error:', err);
+      let msg = language === 'ar' ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة' : 'Invalid email or password';
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        msg = language === 'ar' ? 'بيانات الدخول غير صحيحة. يرجى التأكد وإعادة المحاولة' : 'Invalid credentials. Please check and try again.';
+      } else if (err.message) {
+        msg += `: ${err.message}`;
+      }
+      setCheckoutAuthError(msg);
+    } finally {
+      setIsSubmittingCheckoutAuth(false);
+    }
+  };
+
+  const handleCheckoutEmailSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCheckoutAuthError(null);
+    if (!checkoutFullName.trim() || !checkoutUsername.trim() || !checkoutEmail.trim() || !checkoutPhone.trim() || !checkoutPassword || !checkoutConfirmPassword) {
+      setCheckoutAuthError(language === 'ar' ? 'يرجى ملء كافة حقول التسجيل' : 'Please fill all registration fields');
+      return;
+    }
+    if (checkoutPassword.length < 6) {
+      setCheckoutAuthError(language === 'ar' ? 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' : 'Password must be at least 6 characters');
+      return;
+    }
+    if (checkoutPassword !== checkoutConfirmPassword) {
+      setCheckoutAuthError(language === 'ar' ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match');
+      return;
+    }
+
+    setIsSubmittingCheckoutAuth(true);
+    try {
+      await signUpWithEmail(checkoutFullName, checkoutUsername, checkoutEmail, checkoutPhone, checkoutPassword);
+    } catch (err: any) {
+      console.error('Checkout sign up error:', err);
+      let msg = language === 'ar' ? 'فشل إنشاء الحساب' : 'Failed to create account';
+      if (err.code === 'auth/email-already-in-use') {
+        msg = language === 'ar' ? 'البريد الإلكتروني مستخدم بالفعل. يمكنك تسجيل الدخول به مباشرة' : 'Email already in use. Please sign in instead.';
+      } else if (err.code === 'auth/weak-password') {
+        msg = language === 'ar' ? 'كلمة المرور ضعيفة جداً' : 'Password is too weak';
+      } else if (err.code === 'auth/operation-not-allowed') {
+        msg = language === 'ar' ? 'تسجيل الدخول بالبريد غير مفعّل في معلمات Firebase. استخدم تسجيل الدخول بـ Google' : 'Email/password sign-in is disabled in Firebase.';
+      } else if (err.message) {
+        msg += `: ${err.message}`;
+      }
+      setCheckoutAuthError(msg);
+    } finally {
+      setIsSubmittingCheckoutAuth(false);
+    }
+  };
+
   const handleProceedToPayment = () => {
     setSubmitError('');
     if (!address.fullName.trim() || !address.street.trim() || !address.city.trim() || !address.phone.trim()) {
@@ -106,7 +180,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     setSubmitError('');
 
     if (!user) {
-      setSubmitError(language === 'ar' ? 'يجب تسجيل الدخول باستخدام حساب Google أولاً لإتمام الطلب' : 'You must sign in with Google to place an order');
+      setSubmitError(language === 'ar' ? 'يجب تسجيل الدخول (عن طريق Google أو البريد الإلكتروني) أولاً لإتمام الطلب' : 'You must sign in (via Google or Email) to place an order');
       return;
     }
 
@@ -248,44 +322,259 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
               </div>
             </div>
           ) : (
-            <div className="p-6 bg-[#f9f9f9] border-2 border-amber-300 rounded-2xl space-y-4 shadow-sm text-center md:text-start flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="space-y-1">
-                <div className="flex items-center justify-center md:justify-start gap-2 text-amber-900 font-bold font-display text-[17px]">
-                  <span className="material-symbols-outlined text-[24px] text-amber-600">lock_clock</span>
-                  <span>{language === 'ar' ? 'يلزم تسجيل الدخول بحساب Google أولاً' : 'Google Sign-In Required'}</span>
+            <div className="p-6 md:p-8 bg-white border border-[#c4c7c7]/60 rounded-3xl space-y-6 shadow-sm">
+              {/* Header */}
+              <div className="space-y-1.5 text-center sm:text-start border-b border-[#c4c7c7]/20 pb-5">
+                <div className="flex items-center justify-center sm:justify-start gap-2.5 text-[#000000] font-bold font-display text-xl">
+                  <span className="material-symbols-outlined text-[26px] text-[#000000]">account_circle</span>
+                  <span>{language === 'ar' ? 'سجّل الدخول لإتمام الطلب' : 'Sign In or Create Account to Continue'}</span>
                 </div>
-                <p className="text-[13px] text-[#5e5e5c]">
+                <p className="text-xs text-[#5e5e5c] leading-relaxed">
                   {language === 'ar'
-                    ? 'لحفظ وتأكيد الطلب وتتبعه لاحقاً، يتوجب عليك تسجيل الدخول بحساب Google الخاص بك.'
-                    : 'To record and confirm your order securely, you must sign in with your Google account.'}
+                    ? 'قم بتسجيل الدخول بحساب Google بضغطة زر واحدة، أو استخدم بريدك الإلكتروني لتتبع طلبك وحفظ بيانات الشحن بكل أمان.'
+                    : 'Sign in instantly with Google or use your email address to save shipping info and track your order.'}
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={onSignInGoogle}
-                className="shrink-0 flex items-center gap-3 bg-[#000000] text-white px-6 py-3 rounded-xl font-body font-bold text-[14px] hover:bg-[#2f3131] transition-all cursor-pointer shadow-md"
-              >
-                <svg className="w-5 h-5 bg-white rounded-full p-0.5" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.74-2.09-6.68-4.92H1.21v3.15C3.21 21.36 7.32 24 12 24z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.32 14.28c-.24-.72-.38-1.49-.38-2.28s.14-1.56.38-2.28V6.57H1.21C.44 8.11 0 9.99 0 12s.44 3.89 1.21 5.43l4.11-3.15z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.32 0 3.21 2.64 1.21 6.57l4.11 3.15c.94-2.83 3.58-4.92 6.68-4.92z"
-                  />
-                </svg>
-                <span>{language === 'ar' ? 'تسجيل الدخول بـ Google' : 'Sign in with Google'}</span>
-              </button>
+              {/* Step 1: Quick Google Button */}
+              <div className="bg-[#f8f9fa] border border-[#c4c7c7]/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white border border-[#c4c7c7]/40 flex items-center justify-center shrink-0 shadow-2xs">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.74-2.09-6.68-4.92H1.21v3.15C3.21 21.36 7.32 24 12 24z"/>
+                      <path fill="#FBBC05" d="M5.32 14.28c-.24-.72-.38-1.49-.38-2.28s.14-1.56.38-2.28V6.57H1.21C.44 8.11 0 9.99 0 12s.44 3.89 1.21 5.43l4.11-3.15z"/>
+                      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.32 0 3.21 2.64 1.21 6.57l4.11 3.15c.94-2.83 3.58-4.92 6.68-4.92z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-[#000000]">
+                      {language === 'ar' ? 'الدخول السريع بضغطة زر' : 'Quick 1-Click Sign In'}
+                    </h4>
+                    <p className="text-xs text-[#747878]">
+                      {language === 'ar' ? 'الأسهل والأسرع لإصدار الفاتورة بدون كتابة كلمة مرور' : 'Fastest option, no password required'}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={onSignInGoogle}
+                  className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2.5 bg-[#000000] text-white px-5 py-2.5 rounded-xl font-body font-bold text-xs hover:bg-[#2f3131] transition-all cursor-pointer shadow-sm active:scale-98"
+                >
+                  <span>{language === 'ar' ? 'متابعة باستخدام Google' : 'Continue with Google'}</span>
+                  <span className="material-symbols-outlined text-base">arrow_forward</span>
+                </button>
+              </div>
+
+              {/* Divider */}
+              <div className="relative my-2 flex items-center justify-center">
+                <div className="border-t border-[#c4c7c7]/30 w-full"></div>
+                <span className="bg-white px-4 text-xs font-bold text-[#747878] shrink-0 uppercase tracking-wider">
+                  {language === 'ar' ? 'أو بالبريد الإلكتروني' : 'OR WITH EMAIL'}
+                </span>
+                <div className="border-t border-[#c4c7c7]/30 w-full"></div>
+              </div>
+
+              {/* Step 2: Email Sign In vs Sign Up Tabs */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 bg-[#f3f3f4] p-1 rounded-xl border border-[#c4c7c7]/20">
+                  <button
+                    type="button"
+                    onClick={() => { setCheckoutAuthMode('signin'); setCheckoutAuthError(null); }}
+                    className={`py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      checkoutAuthMode === 'signin' || checkoutAuthMode === 'google'
+                        ? 'bg-white text-black shadow-xs font-black'
+                        : 'text-[#747878] hover:text-black'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-base">login</span>
+                    <span>{language === 'ar' ? 'تسجيل الدخول' : 'Sign In'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setCheckoutAuthMode('signup'); setCheckoutAuthError(null); }}
+                    className={`py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      checkoutAuthMode === 'signup'
+                        ? 'bg-white text-black shadow-xs font-black'
+                        : 'text-[#747878] hover:text-black'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-base">person_add</span>
+                    <span>{language === 'ar' ? 'إنشاء حساب جديد' : 'Create Account'}</span>
+                  </button>
+                </div>
+
+                {checkoutAuthError && (
+                  <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2.5 animate-fadeIn">
+                    <span className="material-symbols-outlined text-lg shrink-0">error</span>
+                    <span>{checkoutAuthError}</span>
+                  </div>
+                )}
+
+                {/* Sub-Form: Sign In */}
+                {(checkoutAuthMode === 'signin' || checkoutAuthMode === 'google') && (
+                  <form onSubmit={handleCheckoutEmailSignIn} className="space-y-3 bg-[#fdfdfd] p-4 rounded-2xl border border-[#c4c7c7]/20">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                          {language === 'ar' ? 'البريد الإلكتروني' : 'Email Address'}
+                        </label>
+                        <input
+                          type="email"
+                          value={checkoutEmail}
+                          onChange={(e) => setCheckoutEmail(e.target.value)}
+                          required
+                          placeholder="example@domain.com"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                          {language === 'ar' ? 'كلمة المرور' : 'Password'}
+                        </label>
+                        <input
+                          type="password"
+                          value={checkoutPassword}
+                          onChange={(e) => setCheckoutPassword(e.target.value)}
+                          required
+                          placeholder="••••••••"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingCheckoutAuth}
+                      className="w-full bg-[#000000] text-white py-3 rounded-xl font-bold text-xs hover:bg-[#2f3131] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2"
+                    >
+                      {isSubmittingCheckoutAuth ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>{language === 'ar' ? 'جاري الدخول...' : 'Signing in...'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-base">login</span>
+                          <span>{language === 'ar' ? 'تسجيل الدخول ومتابعة الشراء' : 'Sign In & Continue'}</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                )}
+
+                {/* Sub-Form: Sign Up */}
+                {checkoutAuthMode === 'signup' && (
+                  <form onSubmit={handleCheckoutEmailSignUp} className="space-y-3 bg-[#fdfdfd] p-4 rounded-2xl border border-[#c4c7c7]/20">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                          {language === 'ar' ? 'الاسم الكامل' : 'Full Name'}
+                        </label>
+                        <input
+                          type="text"
+                          value={checkoutFullName}
+                          onChange={(e) => setCheckoutFullName(e.target.value)}
+                          required
+                          placeholder={language === 'ar' ? 'أحمد محمد' : 'Ahmed Mohamed'}
+                          className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                          {language === 'ar' ? 'اسم المستخدم' : 'Username'}
+                        </label>
+                        <input
+                          type="text"
+                          value={checkoutUsername}
+                          onChange={(e) => setCheckoutUsername(e.target.value)}
+                          required
+                          placeholder="ahmed_touza"
+                          className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                          {language === 'ar' ? 'البريد الإلكتروني' : 'Email Address'}
+                        </label>
+                        <input
+                          type="email"
+                          value={checkoutEmail}
+                          onChange={(e) => setCheckoutEmail(e.target.value)}
+                          required
+                          placeholder="example@domain.com"
+                          className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                          {language === 'ar' ? 'رقم الهاتف' : 'Phone Number'}
+                        </label>
+                        <input
+                          type="tel"
+                          value={checkoutPhone}
+                          onChange={(e) => setCheckoutPhone(e.target.value)}
+                          required
+                          placeholder="01012345678"
+                          className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                          {language === 'ar' ? 'كلمة المرور' : 'Password'}
+                        </label>
+                        <input
+                          type="password"
+                          value={checkoutPassword}
+                          onChange={(e) => setCheckoutPassword(e.target.value)}
+                          required
+                          placeholder="••••••••"
+                          className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
+                          {language === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'}
+                        </label>
+                        <input
+                          type="password"
+                          value={checkoutConfirmPassword}
+                          onChange={(e) => setCheckoutConfirmPassword(e.target.value)}
+                          required
+                          placeholder="••••••••"
+                          className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingCheckoutAuth}
+                      className="w-full bg-[#000000] text-white py-3 rounded-xl font-bold text-xs hover:bg-[#2f3131] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 mt-1"
+                    >
+                      {isSubmittingCheckoutAuth ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>{language === 'ar' ? 'جاري إنشاء الحساب...' : 'Creating Account...'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-base">person_add</span>
+                          <span>{language === 'ar' ? 'إنشاء حساب جديد وتأكيد الدخول' : 'Create Account & Continue'}</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -151,63 +151,67 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         )}
 
-        <div className={`max-w-[1440px] mx-auto px-3 sm:px-6 md:px-16 flex justify-between items-center relative ${
+        <div className={`max-w-[1440px] mx-auto px-2.5 sm:px-6 md:px-16 flex items-center justify-between gap-1 sm:gap-4 relative ${
           isTransparent ? 'py-3 md:py-4 border-b border-white/15' : 'py-2.5 md:py-3.5'
         }`}>
           {/* Menu Button (Frameless, Minimalist & Luxury) */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`z-20 group flex items-center gap-2.5 sm:gap-3 transition-colors duration-300 focus:outline-none cursor-pointer py-1.5 px-0.5 ${
-              isTransparent
-                ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)] hover:text-[#e2c792]'
-                : 'text-[#000000] hover:text-[#8c734b]'
-            }`}
-            aria-label="Toggle menu"
-          >
-            {/* Custom Ultra-Thin 3-Line Animated Hamburger Icon (~26px wide) */}
-            <div className="relative w-[24px] sm:w-[26px] h-3.5 flex flex-col justify-between items-start py-[1px]">
-              <span
-                className={`block h-[1px] bg-current transition-all duration-300 ease-out origin-center ${
-                  mobileMenuOpen
-                    ? 'w-[24px] sm:w-[26px] translate-y-[5.5px] rotate-45'
-                    : 'w-[24px] sm:w-[26px]'
-                }`}
-              />
-              <span
-                className={`block h-[1px] bg-current transition-all duration-300 ease-out ${
-                  mobileMenuOpen
-                    ? 'w-0 opacity-0'
-                    : 'w-[16px] sm:w-[18px] group-hover:w-[24px] sm:group-hover:w-[26px]'
-                }`}
-              />
-              <span
-                className={`block h-[1px] bg-current transition-all duration-300 ease-out origin-center ${
-                  mobileMenuOpen
-                    ? 'w-[24px] sm:w-[26px] -translate-y-[5.5px] -rotate-45'
-                    : 'w-[20px] sm:w-[22px] group-hover:w-[24px] sm:group-hover:w-[26px]'
-                }`}
-              />
-            </div>
-            <span className="font-label-caps text-[11px] sm:text-[12px] font-light tracking-[0.28em] uppercase transition-colors">
-              {language === 'ar' ? 'القائمة' : 'MENU'}
-            </span>
-          </button>
+          <div className="shrink-0 z-20 flex items-center">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className={`group flex items-center gap-1.5 sm:gap-3 transition-colors duration-300 focus:outline-none cursor-pointer py-1 px-0.5 ${
+                isTransparent
+                  ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)] hover:text-[#e2c792]'
+                  : 'text-[#000000] hover:text-[#8c734b]'
+              }`}
+              aria-label="Toggle menu"
+            >
+              {/* Custom Ultra-Thin 3-Line Animated Hamburger Icon (~24px wide) */}
+              <div className="relative w-[22px] sm:w-[26px] h-3.5 flex flex-col justify-between items-start py-[1px]">
+                <span
+                  className={`block h-[1px] bg-current transition-all duration-300 ease-out origin-center ${
+                    mobileMenuOpen
+                      ? 'w-[22px] sm:w-[26px] translate-y-[5.5px] rotate-45'
+                      : 'w-[22px] sm:w-[26px]'
+                  }`}
+                />
+                <span
+                  className={`block h-[1px] bg-current transition-all duration-300 ease-out ${
+                    mobileMenuOpen
+                      ? 'w-0 opacity-0'
+                      : 'w-[14px] sm:w-[18px] group-hover:w-[22px] sm:group-hover:w-[26px]'
+                  }`}
+                />
+                <span
+                  className={`block h-[1px] bg-current transition-all duration-300 ease-out origin-center ${
+                    mobileMenuOpen
+                      ? 'w-[22px] sm:w-[26px] -translate-y-[5.5px] -rotate-45'
+                      : 'w-[18px] sm:w-[22px] group-hover:w-[22px] sm:group-hover:w-[26px]'
+                  }`}
+                />
+              </div>
+              <span className="font-label-caps text-[11px] sm:text-[12px] font-light tracking-[0.18em] sm:tracking-[0.28em] uppercase transition-colors">
+                {language === 'ar' ? 'القائمة' : 'MENU'}
+              </span>
+            </button>
+          </div>
 
-          {/* Brand Logo - Original Elegant Styling */}
-          <button
-            onClick={() => onNavigate('home')}
-            className={`font-display text-[22px] sm:text-[28px] md:text-[36px] tracking-tighter truncate mx-auto cursor-pointer transition-all ${
-              isTransparent
-                ? 'text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] hover:text-white/90'
-                : 'text-[#000000] hover:opacity-90'
-            }`}
-          >
-            {displayBrandName}
-          </button>
+          {/* Brand Logo - Centered with flex-1 & min-w-0 to prevent overlap */}
+          <div className="flex-1 min-w-0 flex items-center justify-center px-1 sm:px-2 z-10 text-center">
+            <button
+              onClick={() => onNavigate('home')}
+              className={`font-display text-[17px] xs:text-[20px] sm:text-[28px] md:text-[36px] tracking-tighter truncate text-center transition-all cursor-pointer max-w-full ${
+                isTransparent
+                  ? 'text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] hover:text-white/90'
+                  : 'text-[#000000] hover:opacity-90'
+              }`}
+            >
+              {displayBrandName}
+            </button>
+          </div>
 
           {/* Trailing Icons & Language Switcher */}
           <div
-            className={`z-20 flex items-center gap-1 sm:gap-2 md:gap-3 transition-colors ${
+            className={`shrink-0 z-20 flex items-center gap-0.5 sm:gap-2 md:gap-3 transition-colors ${
               isTransparent ? 'text-white' : 'text-[#000000]'
             }`}
           >
@@ -220,9 +224,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               <SocialLinks variant="horizontal" theme={isTransparent ? 'dark' : 'light'} storeSettings={storeSettings} />
             </div>
 
-            {/* Language Switcher */}
+            {/* Language Switcher - Compact on mobile, expanded on tablet/desktop */}
             <div
-              className={`flex items-center rounded-full px-1.5 py-0.5 text-[11px] sm:text-[12px] font-medium transition-all h-8 sm:h-9 ${
+              className={`flex items-center rounded-full px-1 sm:px-1.5 py-0.5 text-[10px] sm:text-[12px] font-medium transition-all h-7 sm:h-9 ${
                 isTransparent
                   ? 'border border-white/30 bg-black/35 backdrop-blur-md text-white drop-shadow-sm'
                   : 'border border-[#747878]/30 bg-white/80 text-[#000000] shadow-2xs'
@@ -230,7 +234,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <button
                 onClick={() => setLanguage('ar')}
-                className={`px-1.5 sm:px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                className={`px-1 sm:px-2 py-0.5 rounded-full transition-all cursor-pointer ${
                   language === 'ar'
                     ? isTransparent
                       ? 'bg-white text-black font-bold'
@@ -242,10 +246,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 عربي
               </button>
-              <span className={`mx-0.5 ${isTransparent ? 'text-white/40' : 'text-[#c4c7c7]'}`}>|</span>
+              <span className={`mx-0.5 text-[9px] sm:text-[11px] ${isTransparent ? 'text-white/40' : 'text-[#c4c7c7]'}`}>|</span>
               <button
                 onClick={() => setLanguage('en')}
-                className={`px-1.5 sm:px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                className={`px-1 sm:px-2 py-0.5 rounded-full transition-all cursor-pointer ${
                   language === 'en'
                     ? isTransparent
                       ? 'bg-white text-black font-bold'
@@ -262,20 +266,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Search */}
             <button
               onClick={onOpenSearch}
-              className={`w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer ${
+              className={`w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer ${
                 isTransparent
                   ? 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
                   : 'text-[#000000] hover:bg-[#000000]/5'
               }`}
               title={t('nav.search', 'Search')}
             >
-              <Search className="w-5 h-5 md:w-6 md:h-6" />
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
             </button>
 
             {/* Wishlist */}
             <button
               onClick={onOpenWishlist}
-              className={`w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
+              className={`w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
                 isTransparent
                   ? 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
                   : 'text-[#000000] hover:bg-[#000000]/5'
@@ -283,7 +287,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               title={t('nav.wishlist', 'Saved Items')}
             >
               <Heart
-                className={`w-5 h-5 md:w-6 md:h-6 transition-colors ${
+                className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 transition-colors ${
                   wishlistCount > 0
                     ? isTransparent
                       ? 'text-red-400 fill-red-400'
@@ -294,16 +298,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               />
               {wishlistCount > 0 && (
-                <span className="absolute top-0 right-0 bg-[#ba1a1a] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold shadow-xs">
+                <span className="absolute -top-0.5 -right-0.5 bg-[#ba1a1a] text-white text-[8px] sm:text-[9px] w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center font-bold shadow-xs">
                   {wishlistCount}
                 </span>
               )}
             </button>
 
-            {/* Account */}
+            {/* Account (Hidden on ultra-small mobile, available in 1-click side drawer) */}
             <button
               onClick={onOpenAccount}
-              className={`w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
+              className={`hidden sm:flex w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 items-center justify-center rounded-full transition-all cursor-pointer relative ${
                 isTransparent
                   ? 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
                   : 'text-[#000000] hover:bg-[#000000]/5'
@@ -314,13 +318,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <img
                   src={user.photoURL}
                   alt={user.displayName || 'Account'}
-                  className={`w-6 h-6 md:w-7 md:h-7 rounded-full object-cover border ${
+                  className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 rounded-full object-cover border ${
                     isTransparent ? 'border-white/40' : 'border-[#000000]/20'
                   }`}
                 />
               ) : (
                 <div className="relative flex items-center justify-center">
-                  <UserIcon className="w-5 h-5 md:w-6 md:h-6" />
+                  <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                   {user && (
                     <span className="absolute bottom-0 right-0 w-2 h-2 bg-[#2e7d32] rounded-full ring-1 ring-white" />
                   )}
@@ -331,17 +335,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Cart */}
             <button
               onClick={onOpenCart}
-              className={`w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
+              className={`w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
                 isTransparent
                   ? 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
                   : 'text-[#000000] hover:bg-[#000000]/5'
               }`}
               title={t('nav.cart', 'Shopping Bag')}
             >
-              <ShoppingBag className="w-5 h-5 md:w-6 md:h-6" />
+              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
               {cartCount > 0 && (
                 <span
-                  className={`absolute top-0 right-0 text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold ${
+                  className={`absolute -top-0.5 -right-0.5 text-[8px] sm:text-[9px] w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center font-bold ${
                     isTransparent
                       ? 'bg-white text-black shadow-sm'
                       : 'bg-[#000000] text-white'

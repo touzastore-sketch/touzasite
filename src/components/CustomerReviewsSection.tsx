@@ -83,29 +83,31 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
   }));
 
   const scrollLeft = () => {
-    if (scrollContainerRef.current && canScrollLeft) {
-      const step = scrollContainerRef.current.clientWidth < 640 ? 280 : 320;
+    if (scrollContainerRef.current) {
+      const card = scrollContainerRef.current.querySelector('div');
+      const step = card ? card.clientWidth + 24 : 280;
       scrollContainerRef.current.scrollBy({ left: -step, behavior: 'smooth' });
     }
   };
 
   const scrollRight = () => {
-    if (scrollContainerRef.current && canScrollRight) {
-      const step = scrollContainerRef.current.clientWidth < 640 ? 280 : 320;
+    if (scrollContainerRef.current) {
+      const card = scrollContainerRef.current.querySelector('div');
+      const step = card ? card.clientWidth + 24 : 280;
       scrollContainerRef.current.scrollBy({ left: step, behavior: 'smooth' });
     }
   };
 
   return (
-    <section className="py-20 px-6 md:px-16 bg-[#ffffff] border-t border-[#c5a059]/20 overflow-hidden">
-      <div className="max-w-[1340px] mx-auto flex flex-col lg:flex-row items-start lg:items-center gap-10 lg:gap-16">
+    <section className="py-16 md:py-20 px-4 sm:px-8 md:px-16 bg-[#ffffff] border-t border-[#c5a059]/20 overflow-hidden">
+      <div className="max-w-[1340px] mx-auto flex flex-col lg:flex-row items-start lg:items-center gap-8 lg:gap-16">
         
         {/* Left Headline Section */}
-        <div className="lg:w-1/3 shrink-0 space-y-4">
-          <h2 className="font-display text-[38px] md:text-[52px] text-[#000000] font-bold leading-[1.15] tracking-tight">
+        <div className="lg:w-1/3 shrink-0 space-y-3.5 text-center sm:text-start mx-auto sm:mx-0">
+          <h2 className="font-display text-[32px] sm:text-[38px] md:text-[52px] text-[#000000] font-bold leading-[1.15] tracking-tight">
             {language === 'ar' ? 'ماذا يقول عملاؤنا' : 'What Our Customers Say'}
           </h2>
-          <p className="font-body text-[15px] md:text-[16px] text-[#555555] leading-relaxed max-w-md">
+          <p className="font-body text-[14px] sm:text-[15px] md:text-[16px] text-[#555555] leading-relaxed max-w-md mx-auto sm:mx-0">
             {language === 'ar'
               ? 'آراؤكم هي مصدر إلهامنا اليومي. إليك كيف يتألق ويستمتع عملاؤنا بقطع توزا (Touza) الرجالية الكاجوال.'
               : 'Your feedback inspires us. Here’s how men are styling and enjoying Touza casual menswear.'}
@@ -126,22 +128,22 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
         </div>
 
         {/* Right Carousel Section with Slider Navigation */}
-        <div className="lg:w-2/3 w-full relative group">
+        <div className="lg:w-2/3 w-full relative group min-w-0">
           
           {/* Scroll Container */}
           <div
             ref={scrollContainerRef}
             onScroll={updateScrollButtons}
-            className="flex gap-8 overflow-x-auto scrollbar-none scroll-smooth py-6 px-2 snap-x snap-mandatory"
+            className="flex gap-5 sm:gap-8 overflow-x-auto scrollbar-none scroll-smooth py-6 px-4 sm:px-6 snap-x snap-mandatory"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {displayList.map((item) => (
               <div
                 key={item.id}
-                className="w-[260px] sm:w-[290px] shrink-0 snap-start flex flex-col space-y-4"
+                className="w-[82vw] sm:w-[280px] md:w-[300px] shrink-0 snap-center sm:snap-start flex flex-col space-y-4"
               >
                 {/* Image Container with Quote Badge */}
-                <div className="relative w-[210px] h-[230px] sm:w-[230px] sm:h-[250px] mx-auto rounded-[50%] overflow-hidden bg-[#eaeaea] shadow-xs">
+                <div className="relative w-[190px] h-[210px] sm:w-[220px] sm:h-[240px] mx-auto rounded-[50%] overflow-hidden bg-[#eaeaea] shadow-xs">
                   <img
                     src={item.image}
                     alt={item.userName}
@@ -149,23 +151,23 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
                     className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-500"
                   />
                   {/* Circular Quote Icon Badge */}
-                  <div className="absolute bottom-3 left-3 w-10 h-10 rounded-full bg-[#000000] text-white flex items-center justify-center shadow-lg border-2 border-white">
-                    <span className="font-serif text-[22px] leading-none font-bold">”</span>
+                  <div className="absolute bottom-2.5 left-2.5 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#000000] text-white flex items-center justify-center shadow-lg border-2 border-white">
+                    <span className="font-serif text-[20px] sm:text-[22px] leading-none font-bold">”</span>
                   </div>
                 </div>
 
                 {/* Name & City */}
-                <div className="text-left space-y-0.5 pt-1">
-                  <h3 className="font-display text-[22px] font-bold text-[#000000]">
+                <div className="text-center sm:text-start space-y-0.5 pt-1">
+                  <h3 className="font-display text-[20px] sm:text-[22px] font-bold text-[#000000]">
                     {item.userName}
                   </h3>
-                  <p className="font-body text-[13px] text-[#747878]">
+                  <p className="font-body text-[12px] sm:text-[13px] text-[#747878]">
                     {item.city}
                   </p>
                 </div>
 
                 {/* Review Comment text */}
-                <p className="font-body text-[14px] text-[#222222] leading-relaxed text-left">
+                <p className="font-body text-[13px] sm:text-[14px] text-[#222222] leading-relaxed text-center sm:text-start">
                   "{item.comment}"
                 </p>
               </div>
@@ -173,31 +175,35 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
           </div>
 
           {/* Slider Left & Right Arrow Buttons */}
-          <div className="flex items-center gap-3 mt-4 lg:mt-0 lg:absolute lg:top-1/2 lg:-translate-y-1/2 lg:w-full lg:left-0 lg:justify-between pointer-events-none px-2">
+          <div className="flex items-center justify-center lg:justify-between gap-4 mt-2 lg:mt-0 lg:absolute lg:top-1/2 lg:-translate-y-1/2 lg:w-full lg:left-0 pointer-events-none px-2">
             <button
               onClick={scrollLeft}
               disabled={!canScrollLeft}
-              className={`w-11 h-11 rounded-full bg-[#000000] text-white flex items-center justify-center shadow-md transition-all ${
+              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#000000] text-white flex items-center justify-center shadow-md transition-all ${
                 canScrollLeft
                   ? 'pointer-events-auto opacity-100 hover:bg-[#333333] cursor-pointer hover:scale-110 active:scale-95'
-                  : 'opacity-25 cursor-not-allowed pointer-events-none'
+                  : 'opacity-20 cursor-not-allowed pointer-events-none'
               }`}
               aria-label="Previous review"
             >
-              <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+              <span className="material-symbols-outlined text-[20px]">
+                {language === 'ar' ? 'chevron_right' : 'chevron_left'}
+              </span>
             </button>
 
             <button
               onClick={scrollRight}
               disabled={!canScrollRight}
-              className={`w-11 h-11 rounded-full bg-[#000000] text-white flex items-center justify-center shadow-md transition-all ${
+              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#000000] text-white flex items-center justify-center shadow-md transition-all ${
                 canScrollRight
                   ? 'pointer-events-auto opacity-100 hover:bg-[#333333] cursor-pointer hover:scale-110 active:scale-95'
-                  : 'opacity-25 cursor-not-allowed pointer-events-none'
+                  : 'opacity-20 cursor-not-allowed pointer-events-none'
               }`}
               aria-label="Next review"
             >
-              <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+              <span className="material-symbols-outlined text-[20px]">
+                {language === 'ar' ? 'chevron_left' : 'chevron_right'}
+              </span>
             </button>
           </div>
 
