@@ -211,7 +211,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Promo code form state
   const [newPromoCode, setNewPromoCode] = useState('');
-  const [newPromoDiscount, setNewPromoDiscount] = useState<number>(15);
+  const [newPromoDiscountType, setNewPromoDiscountType] = useState<'percentage' | 'fixed'>('percentage');
+  const [newPromoDiscountValue, setNewPromoDiscountValue] = useState<number>(15);
+  const [newPromoMaxUses, setNewPromoMaxUses] = useState<number | string>(1);
   const [newPromoNote, setNewPromoNote] = useState('');
 
   // Settings form state
@@ -971,16 +973,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleCreatePromo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPromoCode.trim()) return;
+
+    const val = Number(newPromoDiscountValue) || 0;
+    const maxUsesVal = Number(newPromoMaxUses) > 0 ? Number(newPromoMaxUses) : 0;
+
     const promo: PromoCode = {
       id: 'promo-' + Date.now(),
       code: newPromoCode.trim().toUpperCase(),
-      discountPercent: Number(newPromoDiscount),
+      discountType: newPromoDiscountType,
+      discountPercent: newPromoDiscountType === 'percentage' ? val : 0,
+      discountAmount: newPromoDiscountType === 'fixed' ? val : val,
+      maxUses: maxUsesVal,
+      usedCount: 0,
       isActive: true,
-      expiryNote: newPromoNote || (language === 'ar' ? 'عرض حصري' : 'Exclusive Privilege'),
+      expiryNote: newPromoNote.trim() || (
+        language === 'ar'
+          ? (newPromoDiscountType === 'percentage' ? `خصم ${val}%` : `خصم ${val} ج.م`)
+          : (newPromoDiscountType === 'percentage' ? `${val}% Off` : `${val} EGP Off`)
+      ),
     };
     onAddPromoCode(promo);
     setNewPromoCode('');
-    setNewPromoDiscount(15);
+    setNewPromoDiscountValue(15);
+    setNewPromoMaxUses(1);
     setNewPromoNote('');
   };
 
@@ -2194,102 +2209,205 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <h2 className="font-display text-[20px] font-bold text-[#000000]">
                 {language === 'ar' ? 'إنشاء كود خصم جديد' : 'Create Promo Code'}
               </h2>
-              <form onSubmit={handleCreatePromo} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
-                    {language === 'ar' ? 'الكود (مثال: SUMMER20)' : 'Coupon Code'}
-                  </label>
-                  <input
-                    type="text"
-                    value={newPromoCode}
-                    onChange={(e) => setNewPromoCode(e.target.value)}
-                    placeholder="ELEGAN10"
-                    className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px] font-mono font-bold uppercase"
-                    required
-                  />
+              <form onSubmit={handleCreatePromo} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Promo Code Input */}
+                  <div>
+                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
+                      {language === 'ar' ? 'رمز الكود (مثال: SUMMER2026)' : 'Coupon Code'}
+                    </label>
+                    <input
+                      type="text"
+                      value={newPromoCode}
+                      onChange={(e) => setNewPromoCode(e.target.value)}
+                      placeholder="TOUZA10"
+                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px] font-mono font-bold uppercase"
+                      required
+                    />
+                  </div>
+
+                  {/* Discount Type */}
+                  <div>
+                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
+                      {language === 'ar' ? 'نوع الخصم' : 'Discount Type'}
+                    </label>
+                    <select
+                      value={newPromoDiscountType}
+                      onChange={(e) => setNewPromoDiscountType(e.target.value as 'percentage' | 'fixed')}
+                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px] bg-white font-body"
+                    >
+                      <option value="percentage">{language === 'ar' ? 'نسبة مئوية (%)' : 'Percentage (%)'}</option>
+                      <option value="fixed">{language === 'ar' ? 'مبلغ ثابت (ج.م)' : 'Fixed Amount (EGP)'}</option>
+                    </select>
+                  </div>
+
+                  {/* Discount Value */}
+                  <div>
+                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
+                      {newPromoDiscountType === 'percentage'
+                        ? (language === 'ar' ? 'نسبة الخصم (%)' : 'Discount Percentage (%)')
+                        : (language === 'ar' ? 'مبلغ الخصم (ج.م)' : 'Discount Amount (EGP)')}
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={newPromoDiscountType === 'percentage' ? 100 : 10000}
+                      value={newPromoDiscountValue}
+                      onChange={(e) => setNewPromoDiscountValue(Number(e.target.value))}
+                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px]"
+                      required
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
-                    {language === 'ar' ? 'نسبة الخصم (%)' : 'Discount (%)'}
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={90}
-                    value={newPromoDiscount}
-                    onChange={(e) => setNewPromoDiscount(Number(e.target.value))}
-                    className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px]"
-                    required
-                  />
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Max Customers / Uses */}
+                  <div>
+                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
+                      {language === 'ar' ? 'عدد العملاء المسموح لهم بخصم الكود' : 'Usage Limit (Number of Customers)'}
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={newPromoMaxUses}
+                      onChange={(e) => setNewPromoMaxUses(e.target.value)}
+                      placeholder={language === 'ar' ? 'مثال: 1 لعميل واحد فقط (0 = غير محدود)' : 'e.g., 1 for 1 customer'}
+                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px]"
+                    />
+                    <p className="text-[11px] text-[#747878] mt-1">
+                      {language === 'ar'
+                        ? 'إذا حددت 1، سينتهي الكود فور استخدام عميل واحد له.'
+                        : 'If set to 1, the code expires immediately after 1 customer uses it.'}
+                    </p>
+                  </div>
 
-                <div>
-                  <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
-                    {language === 'ar' ? 'ملاحظة العرض' : 'Note / Description'}
-                  </label>
-                  <input
-                    type="text"
-                    value={newPromoNote}
-                    onChange={(e) => setNewPromoNote(e.target.value)}
-                    placeholder={language === 'ar' ? 'خصم الصيف' : 'Summer Promo'}
-                    className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px]"
-                  />
-                </div>
+                  {/* Note / Description */}
+                  <div>
+                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
+                      {language === 'ar' ? 'ملاحظة العرض / الوصف' : 'Note / Description'}
+                    </label>
+                    <input
+                      type="text"
+                      value={newPromoNote}
+                      onChange={(e) => setNewPromoNote(e.target.value)}
+                      placeholder={language === 'ar' ? 'خصم خاص لـ أول عميل' : 'Special promo for first customer'}
+                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px]"
+                    />
+                  </div>
 
-                <div className="flex items-end">
-                  <button
-                    type="submit"
-                    className="w-full bg-[#000000] text-white py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#2f3131] transition-all cursor-pointer text-[14px]"
-                  >
-                    {language === 'ar' ? 'إضافة الكود' : 'Add Promo'}
-                  </button>
+                  {/* Submit Button */}
+                  <div className="flex items-end">
+                    <button
+                      type="submit"
+                      className="w-full bg-[#000000] text-white py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#2f3131] transition-all cursor-pointer text-[14px] flex items-center justify-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                      {language === 'ar' ? 'إضافة الكود' : 'Add Promo'}
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
 
             {/* List Promos */}
             <div className="bg-white rounded-2xl border border-[#c4c7c7]/30 shadow-xs overflow-hidden">
-              <table className="w-full text-start text-[14px]">
-                <thead className="bg-[#f9f9f9] border-b border-[#c4c7c7]/30 font-label-caps text-[11px] text-[#747878]">
-                  <tr>
-                    <th className="p-4 text-start">{language === 'ar' ? 'الكود' : 'Code'}</th>
-                    <th className="p-4 text-start">{language === 'ar' ? 'الخصم' : 'Discount'}</th>
-                    <th className="p-4 text-start">{language === 'ar' ? 'الوصف' : 'Description'}</th>
-                    <th className="p-4 text-start">{language === 'ar' ? 'الحالة' : 'Status'}</th>
-                    <th className="p-4 text-center">{language === 'ar' ? 'إجراء' : 'Action'}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#c4c7c7]/20">
-                  {promoCodes.map((p) => (
-                    <tr key={p.id} className="hover:bg-[#f9f9f9]">
-                      <td className="p-4 font-mono font-bold text-[#000000] text-[16px]">{p.code}</td>
-                      <td className="p-4 font-bold text-[#2e7d32]">{p.discountPercent}%</td>
-                      <td className="p-4 text-[#747878]">{p.expiryNote}</td>
-                      <td className="p-4">
-                        <button
-                          onClick={() => onTogglePromoStatus(p.id)}
-                          className={`px-3 py-1 rounded-full text-[11px] font-label-caps font-bold cursor-pointer transition-colors ${
-                            p.isActive
-                              ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          {p.isActive ? 'مفعل (Active)' : 'معطل (Disabled)'}
-                        </button>
-                      </td>
-                      <td className="p-4 text-center">
-                        <button
-                          onClick={() => onDeletePromoCode(p.id)}
-                          className="text-[#ba1a1a] hover:bg-[#ba1a1a]/10 p-2 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">delete</span>
-                        </button>
-                      </td>
+              <div className="p-4 bg-[#f9f9f9] border-b border-[#c4c7c7]/30 flex items-center justify-between">
+                <h3 className="font-bold text-[15px] text-[#000000]">
+                  {language === 'ar' ? 'قائمة أكواد الخصم المتاحة' : 'Available Promo Codes'}
+                </h3>
+                <span className="text-[12px] text-[#747878]">
+                  {language === 'ar' ? `الإجمالي: ${promoCodes.length} كود` : `Total: ${promoCodes.length} promos`}
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-start text-[14px]">
+                  <thead className="bg-[#f9f9f9] border-b border-[#c4c7c7]/30 font-label-caps text-[11px] text-[#747878]">
+                    <tr>
+                      <th className="p-4 text-start">{language === 'ar' ? 'الكود' : 'Code'}</th>
+                      <th className="p-4 text-start">{language === 'ar' ? 'الخصم' : 'Discount'}</th>
+                      <th className="p-4 text-start">{language === 'ar' ? 'حد الاستخدام / العملاء' : 'Usage / Limit'}</th>
+                      <th className="p-4 text-start">{language === 'ar' ? 'الوصف' : 'Description'}</th>
+                      <th className="p-4 text-start">{language === 'ar' ? 'الحالة' : 'Status'}</th>
+                      <th className="p-4 text-center">{language === 'ar' ? 'إجراء' : 'Action'}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-[#c4c7c7]/20">
+                    {promoCodes.map((p) => {
+                      const used = p.usedCount || 0;
+                      const max = p.maxUses || 0;
+                      const isExhausted = max > 0 && used >= max;
+                      const isFixed = p.discountType === 'fixed' || (Boolean(p.discountAmount) && !p.discountPercent);
+
+                      return (
+                        <tr key={p.id} className={`hover:bg-[#f9f9f9] ${isExhausted ? 'bg-red-50/30' : ''}`}>
+                          <td className="p-4 font-mono font-bold text-[#000000] text-[16px]">
+                            {p.code}
+                          </td>
+                          <td className="p-4 font-bold text-[#2e7d32]">
+                            {isFixed ? (
+                              <span>
+                                {p.discountAmount || p.discountPercent} ج.م{' '}
+                                <span className="text-[10px] text-[#747878] font-normal">(مبلغ ثابت)</span>
+                              </span>
+                            ) : (
+                              <span>
+                                {p.discountPercent || p.discountAmount}%{' '}
+                                <span className="text-[10px] text-[#747878] font-normal">(نسبة مئوية)</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-4">
+                            {max > 0 ? (
+                              <div className="flex flex-col gap-1">
+                                <span className="text-[13px] font-bold text-[#000000]">
+                                  {used} / {max} {language === 'ar' ? 'عميل' : 'customer(s)'}
+                                </span>
+                                {isExhausted ? (
+                                  <span className="inline-block w-max bg-red-100 text-red-800 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                                    {language === 'ar' ? 'مستنفذ بالكامل' : 'Exhausted'}
+                                  </span>
+                                ) : (
+                                  <span className="inline-block w-max bg-emerald-50 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                                    {language === 'ar' ? `متبقي ${max - used} استخدام` : `${max - used} left`}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-[13px] text-[#747878]">
+                                {used} {language === 'ar' ? 'استخدام (غير محدود)' : 'uses (Unlimited)'}
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-4 text-[#747878]">{p.expiryNote || '-'}</td>
+                          <td className="p-4">
+                            <button
+                              onClick={() => onTogglePromoStatus(p.id)}
+                              className={`px-3 py-1 rounded-full text-[11px] font-label-caps font-bold cursor-pointer transition-colors ${
+                                p.isActive && !isExhausted
+                                  ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                  : isExhausted
+                                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              }`}
+                            >
+                              {p.isActive ? (isExhausted ? (language === 'ar' ? 'مستنفذ (Exhausted)' : 'Exhausted') : (language === 'ar' ? 'مفعل (Active)' : 'Active')) : (language === 'ar' ? 'معطل (Disabled)' : 'Disabled')}
+                            </button>
+                          </td>
+                          <td className="p-4 text-center">
+                            <button
+                              onClick={() => onDeletePromoCode(p.id)}
+                              className="text-[#ba1a1a] hover:bg-[#ba1a1a]/10 p-2 rounded-lg transition-colors cursor-pointer"
+                              title={language === 'ar' ? 'حذف الكود' : 'Delete Code'}
+                            >
+                              <span className="material-symbols-outlined text-[20px]">delete</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}

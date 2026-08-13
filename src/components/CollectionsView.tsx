@@ -32,7 +32,16 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
   const categoriesList = customCategories || DEFAULT_CATEGORIES;
   const { language, formatPrice, t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || 'All');
-  const [maxPrice, setMaxPrice] = useState<number>(5000);
+
+  // Calculate highest price in catalog dynamically
+  const maxCatalogPrice = useMemo(() => {
+    if (!allProducts || allProducts.length === 0) return 10000;
+    const maxP = Math.max(...allProducts.map((p) => p.price));
+    return Math.ceil(maxP / 500) * 500 || 10000;
+  }, [allProducts]);
+
+  // Default maxPrice set to highest catalog price so no products are hidden initially
+  const [maxPrice, setMaxPrice] = useState<number>(10000);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>('Featured');
@@ -206,22 +215,82 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
           <div className="sticky top-[100px] space-y-7">
             {/* Filter: Price */}
             <div className="border-b border-[#c4c7c7]/30 pb-5">
-              <h3 className="font-display text-[18px] text-[#000000] mb-3 font-bold">
-                {language === 'ar' ? 'السعر' : 'Price'}
-              </h3>
-              <div className="space-y-3">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-display text-[18px] text-[#000000] font-bold">
+                  {language === 'ar' ? 'السعر' : 'Price'}
+                </h3>
+                {maxPrice < maxCatalogPrice && (
+                  <button
+                    onClick={() => setMaxPrice(10000)}
+                    className="text-[11px] font-label-caps text-[#747878] hover:text-[#000000] underline"
+                  >
+                    {language === 'ar' ? 'عرض الكل' : 'Show All'}
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Preset Range Pills */}
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                <button
+                  onClick={() => setMaxPrice(10000)}
+                  className={`px-3 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
+                    maxPrice >= maxCatalogPrice
+                      ? 'bg-[#000000] text-white border-[#000000] font-bold shadow-2xs'
+                      : 'bg-white text-[#444748] border-[#c4c7c7] hover:border-[#000000]'
+                  }`}
+                >
+                  {language === 'ar' ? 'كل الأسعار' : 'All Prices'}
+                </button>
+                <button
+                  onClick={() => setMaxPrice(1000)}
+                  className={`px-2.5 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
+                    maxPrice === 1000
+                      ? 'bg-[#000000] text-white border-[#000000] font-bold shadow-2xs'
+                      : 'bg-white text-[#444748] border-[#c4c7c7] hover:border-[#000000]'
+                  }`}
+                >
+                  {language === 'ar' ? 'حتى 1,000 ج.م' : 'Under 1,000'}
+                </button>
+                <button
+                  onClick={() => setMaxPrice(2000)}
+                  className={`px-2.5 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
+                    maxPrice === 2000
+                      ? 'bg-[#000000] text-white border-[#000000] font-bold shadow-2xs'
+                      : 'bg-white text-[#444748] border-[#c4c7c7] hover:border-[#000000]'
+                  }`}
+                >
+                  {language === 'ar' ? 'حتى 2,000 ج.م' : 'Under 2,000'}
+                </button>
+                <button
+                  onClick={() => setMaxPrice(3000)}
+                  className={`px-2.5 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
+                    maxPrice === 3000
+                      ? 'bg-[#000000] text-white border-[#000000] font-bold shadow-2xs'
+                      : 'bg-white text-[#444748] border-[#c4c7c7] hover:border-[#000000]'
+                  }`}
+                >
+                  {language === 'ar' ? 'حتى 3,000 ج.م' : 'Under 3,000'}
+                </button>
+              </div>
+
+              {/* Range Slider */}
+              <div className="space-y-2">
                 <input
                   type="range"
-                  min="100"
-                  max="5000"
+                  min="500"
+                  max={maxCatalogPrice}
                   step="100"
-                  value={maxPrice}
+                  value={Math.min(maxPrice, maxCatalogPrice)}
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
                   className="w-full accent-[#000000] h-1.5 bg-[#eeeeee] rounded-full appearance-none cursor-pointer"
                 />
-                <div className="flex justify-between font-label-caps text-[#444748] text-[13px] dir-ltr">
-                  <span>{formatPrice(0)}</span>
-                  <span className="font-bold text-[#000000]">{formatPrice(maxPrice)}+</span>
+                <div className="flex justify-between font-label-caps text-[#444748] text-[12px] dir-ltr">
+                  <span>{formatPrice(500)}</span>
+                  <span className="font-bold text-[#000000]">
+                    {maxPrice >= maxCatalogPrice
+                      ? (language === 'ar' ? 'الكل (بلا حد)' : 'All Prices')
+                      : `${formatPrice(maxPrice)}`}
+                  </span>
                 </div>
               </div>
             </div>
@@ -322,32 +391,177 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
 
           {/* Mobile Filters Modal */}
           {mobileFilterOpen && (
-            <div className="lg:hidden mb-6 p-5 bg-[#ffffff] border border-[#c4c7c7]/40 rounded-xl space-y-4 shadow-sm">
-              <button
-                onClick={() => setMobileFilterOpen(false)}
-                className="w-full bg-[#000000] text-white py-2.5 font-label-caps rounded-lg text-[13px]"
-              >
-                {language === 'ar' ? 'تطبيق التصفية' : 'Apply Filters'}
-              </button>
+            <div className="lg:hidden mb-6 p-5 bg-[#ffffff] border border-[#c4c7c7]/40 rounded-2xl space-y-5 shadow-md">
+              <div className="flex items-center justify-between border-b border-[#c4c7c7]/30 pb-3">
+                <h3 className="font-display text-[18px] text-[#000000] font-bold">
+                  {language === 'ar' ? 'تصفية المنتجات' : 'Filter Products'}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setMobileFilterOpen(false)}
+                  className="p-1 text-[#747878] hover:text-[#000000]"
+                >
+                  <span className="material-symbols-outlined text-[20px]">close</span>
+                </button>
+              </div>
+
+              {/* Mobile Price Filter */}
+              <div>
+                <h4 className="font-label-caps text-[13px] font-bold text-[#000000] mb-2">
+                  {language === 'ar' ? 'السعر' : 'Price'}
+                </h4>
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  <button
+                    onClick={() => setMaxPrice(10000)}
+                    className={`px-3 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
+                      maxPrice >= maxCatalogPrice
+                        ? 'bg-[#000000] text-white border-[#000000] font-bold'
+                        : 'bg-white text-[#444748] border-[#c4c7c7]'
+                    }`}
+                  >
+                    {language === 'ar' ? 'كل الأسعار' : 'All Prices'}
+                  </button>
+                  <button
+                    onClick={() => setMaxPrice(1000)}
+                    className={`px-2.5 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
+                      maxPrice === 1000
+                        ? 'bg-[#000000] text-white border-[#000000] font-bold'
+                        : 'bg-white text-[#444748] border-[#c4c7c7]'
+                    }`}
+                  >
+                    {language === 'ar' ? 'حتى 1,000 ج.م' : 'Under 1,000'}
+                  </button>
+                  <button
+                    onClick={() => setMaxPrice(2000)}
+                    className={`px-2.5 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
+                      maxPrice === 2000
+                        ? 'bg-[#000000] text-white border-[#000000] font-bold'
+                        : 'bg-white text-[#444748] border-[#c4c7c7]'
+                    }`}
+                  >
+                    {language === 'ar' ? 'حتى 2,000 ج.م' : 'Under 2,000'}
+                  </button>
+                  <button
+                    onClick={() => setMaxPrice(3000)}
+                    className={`px-2.5 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
+                      maxPrice === 3000
+                        ? 'bg-[#000000] text-white border-[#000000] font-bold'
+                        : 'bg-white text-[#444748] border-[#c4c7c7]'
+                    }`}
+                  >
+                    {language === 'ar' ? 'حتى 3,000 ج.م' : 'Under 3,000'}
+                  </button>
+                </div>
+                <input
+                  type="range"
+                  min="500"
+                  max={maxCatalogPrice}
+                  step="100"
+                  value={Math.min(maxPrice, maxCatalogPrice)}
+                  onChange={(e) => setMaxPrice(Number(e.target.value))}
+                  className="w-full accent-[#000000] h-1.5 bg-[#eeeeee] rounded-full appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-[11px] font-label-caps text-[#444748] mt-1 dir-ltr">
+                  <span>{formatPrice(500)}</span>
+                  <span className="font-bold text-[#000000]">
+                    {maxPrice >= maxCatalogPrice
+                      ? (language === 'ar' ? 'الكل (بلا حد)' : 'All Prices')
+                      : `${formatPrice(maxPrice)}`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Mobile Color Filter */}
+              <div>
+                <h4 className="font-label-caps text-[13px] font-bold text-[#000000] mb-2">
+                  {language === 'ar' ? 'اللون' : 'Color'}
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {colors.map((c) => {
+                    const isSelected = selectedColor === c.name;
+                    return (
+                      <button
+                        key={c.name}
+                        onClick={() => setSelectedColor(isSelected ? null : c.name)}
+                        className={`w-7 h-7 rounded-full border transition-all ${
+                          isSelected ? 'ring-2 ring-black border-transparent' : 'border-[#c4c7c7]'
+                        }`}
+                        style={{ backgroundColor: c.hex }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Mobile Size Filter */}
+              <div>
+                <h4 className="font-label-caps text-[13px] font-bold text-[#000000] mb-2">
+                  {language === 'ar' ? 'المقاس' : 'Size'}
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {sizes.map((sz) => {
+                    const isSelected = selectedSize === sz;
+                    return (
+                      <button
+                        key={sz}
+                        onClick={() => setSelectedSize(isSelected ? null : sz)}
+                        className={`w-8 h-8 rounded border text-[12px] font-label-caps ${
+                          isSelected ? 'bg-black text-white font-bold' : 'border-[#c4c7c7] text-[#444748]'
+                        }`}
+                      >
+                        {sz}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory('All');
+                    setMaxPrice(10000);
+                    setSelectedColor(null);
+                    setSelectedSize(null);
+                  }}
+                  className="w-1/2 py-2.5 border border-[#c4c7c7] text-[#000000] font-label-caps rounded-xl text-[13px] font-bold"
+                >
+                  {language === 'ar' ? 'إعادة ضبط' : 'Reset All'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileFilterOpen(false)}
+                  className="w-1/2 bg-[#000000] text-white py-2.5 font-label-caps rounded-xl text-[13px] font-bold shadow-xs"
+                >
+                  {language === 'ar' ? 'تطبيق التصفية' : 'Apply Filters'}
+                </button>
+              </div>
             </div>
           )}
 
           {/* Grid Layout */}
           {displayedProducts.length === 0 ? (
-            <div className="py-16 text-center">
-              <p className="font-display text-[20px] text-[#747878] mb-4">
-                {language === 'ar' ? 'لا توجد منتجات تطابق اختياراتك حالياً.' : 'No products match your selected filters.'}
+            <div className="py-16 text-center bg-[#fafafa] rounded-2xl border border-dashed border-[#c4c7c7]/50 p-8 my-4">
+              <span className="material-symbols-outlined text-[48px] text-[#c4c7c7] mb-3">filter_alt_off</span>
+              <p className="font-display text-[20px] text-[#000000] font-bold mb-2">
+                {language === 'ar' ? 'لا توجد منتجات تطابق اختياراتك حالياً' : 'No products match your selected filters'}
+              </p>
+              <p className="font-body text-[14px] text-[#747878] mb-6 max-w-md mx-auto">
+                {language === 'ar'
+                  ? 'يرجى تغيير نطاق السعر أو إلغاء فلترة المقاسات والألوان للوصول إلى كافة المعروضات.'
+                  : 'Try adjusting the price range or clearing color and size filters to view all pieces.'}
               </p>
               <button
                 onClick={() => {
                   setSelectedCategory('All');
-                  setMaxPrice(5000);
+                  setMaxPrice(10000);
                   setSelectedColor(null);
                   setSelectedSize(null);
                 }}
-                className="underline font-label-caps text-[#000000]"
+                className="px-6 py-3 bg-[#000000] text-white font-label-caps text-[13px] font-bold rounded-xl shadow-xs hover:bg-[#222222] transition-all cursor-pointer"
               >
-                {language === 'ar' ? 'إعادة ضبط التصفية' : 'Reset All Filters'}
+                {language === 'ar' ? 'إعادة عرض جميع المنتجات' : 'Reset Filters & Show All'}
               </button>
             </div>
           ) : (

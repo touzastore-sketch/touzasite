@@ -55,7 +55,11 @@ export type ViewMode = 'home' | 'shop' | 'product' | 'checkout' | 'admin';
 export interface PromoCode {
   id: string;
   code: string;
-  discountPercent: number;
+  discountType?: 'percentage' | 'fixed'; // 'percentage' | 'fixed'
+  discountPercent?: number;              // Percentage value (e.g., 10%)
+  discountAmount?: number;               // Fixed EGP amount value (e.g., 100 EGP)
+  maxUses?: number;                      // Max customers / usage limit (e.g. 1, 5, 50). 0 or undefined = unlimited
+  usedCount?: number;                    // Times used so far
   isActive: boolean;
   expiryNote?: string;
 }

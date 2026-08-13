@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
-import { CartItem, ShippingAddress, StoreSettings } from '../types';
+import { CartItem, ShippingAddress, StoreSettings, PromoCode } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getLocalizedProductName } from '../data/products';
 import { saveUserOrder, safeJsonStringify, signInWithEmail, signUpWithEmail } from '../firebase';
@@ -13,6 +13,8 @@ interface CheckoutViewProps {
   onSignInGoogle: () => Promise<void>;
   onOpenAccountModal?: () => void;
   storeSettings?: StoreSettings;
+  promoCodes?: PromoCode[];
+  onUsePromoCode?: (promoId: string) => Promise<void>;
 }
 
 export const CheckoutView: React.FC<CheckoutViewProps> = ({
@@ -23,11 +25,15 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   onSignInGoogle,
   onOpenAccountModal,
   storeSettings,
+  promoCodes = [],
+  onUsePromoCode,
 }) => {
   const { language, formatPrice, t } = useLanguage();
   const [step, setStep] = useState<'shipping' | 'payment' | 'confirmation'>('shipping');
   const [promoCode, setPromoCode] = useState('');
+  const [appliedPromoCode, setAppliedPromoCode] = useState<PromoCode | null>(null);
   const [discountPercent, setDiscountPercent] = useState(0);
+  const [discountFixedAmount, setDiscountFixedAmount] = useState(0);
   const [promoError, setPromoError] = useState('');
   const [promoSuccess, setPromoSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,19 +96,85 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     (acc, item) => acc + item.product.price * item.quantity,
     0
   );
-  const discountAmount = (subtotal * discountPercent) / 100;
+  const discountAmount = discountFixedAmount > 0
+    ? Math.min(subtotal, discountFixedAmount)
+    : (subtotal * discountPercent) / 100;
   const shipping = 0; // Express complimentary
-  const total = subtotal - discountAmount + shipping;
+  const total = Math.max(0, subtotal - discountAmount + shipping);
 
   const handleApplyPromo = (e: React.FormEvent) => {
     e.preventDefault();
     setPromoError('');
     setPromoSuccess('');
-    if (promoCode.trim().toUpperCase() === 'ELEGAN10' || promoCode.trim().toUpperCase() === 'WELCOME') {
-      setDiscountPercent(10);
-      setPromoSuccess(language === 'ar' ? 'تم تطبيق خصم 10% بنجاح!' : '10% Privilege Discount Applied!');
-    } else if (promoCode.trim() !== '') {
-      setPromoError(language === 'ar' ? 'كود غير صحيح. جرب "ELEGAN10"' : 'Invalid code. Try "ELEGAN10"');
+
+    const query = promoCode.trim().toUpperCase();
+    if (!query) {
+      setPromoError(language === 'ar' ? 'يرجى إدخال رمز الخصم' : 'Please enter promo code');
+      return;
+    }
+
+    const found = promoCodes.find((p) => p.code.trim().toUpperCase() === query);
+
+    if (!found) {
+      if (query === 'ELEGAN10' || query === 'WELCOME10') {
+        setDiscountPercent(10);
+        setDiscountFixedAmount(0);
+        setAppliedPromoCode(null);
+        setPromoSuccess(language === 'ar' ? 'تم تطبيق خصم 10% بنجاح!' : '10% Discount Applied!');
+        return;
+      }
+      setDiscountPercent(0);
+      setDiscountFixedAmount(0);
+      setAppliedPromoCode(null);
+      setPromoError(language === 'ar' ? 'كود غير صحيح. يرجى التأكد وإعادة المحاولة' : 'Invalid promo code');
+      return;
+    }
+
+    if (!found.isActive) {
+      setDiscountPercent(0);
+      setDiscountFixedAmount(0);
+      setAppliedPromoCode(null);
+      setPromoError(language === 'ar' ? 'هذا الكود غير فعّال حالياً' : 'This promo code is currently inactive');
+      return;
+    }
+
+    const currentUses = found.usedCount || 0;
+    const limit = found.maxUses || 0;
+
+    if (limit > 0 && currentUses >= limit) {
+      setDiscountPercent(0);
+      setDiscountFixedAmount(0);
+      setAppliedPromoCode(null);
+      setPromoError(
+        language === 'ar'
+          ? `عذراً، هذا الكود استنفذ الحد الأقصى لعدد العملاء (${limit} عميل)`
+          : `Sorry, this promo code has reached its maximum usage limit (${limit} customer/s)`
+      );
+      return;
+    }
+
+    const isFixed = found.discountType === 'fixed' || (Boolean(found.discountAmount) && !found.discountPercent);
+
+    if (isFixed) {
+      const amountVal = found.discountAmount || found.discountPercent || 0;
+      setDiscountFixedAmount(amountVal);
+      setDiscountPercent(0);
+      setAppliedPromoCode(found);
+      setPromoSuccess(
+        language === 'ar'
+          ? `تم تطبيق خصم ${amountVal} ج.م بنجاح!`
+          : `${amountVal} EGP Discount Applied!`
+      );
+    } else {
+      const percentVal = found.discountPercent || found.discountAmount || 0;
+      setDiscountPercent(percentVal);
+      setDiscountFixedAmount(0);
+      setAppliedPromoCode(found);
+      setPromoSuccess(
+        language === 'ar'
+          ? `تم تطبيق خصم ${percentVal}% بنجاح!`
+          : `${percentVal}% Discount Applied!`
+      );
     }
   };
 
@@ -200,6 +272,14 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
         : `فودافون كاش (Vodafone Cash) - المحول: ${transferRef}`;
 
     try {
+      if (appliedPromoCode && onUsePromoCode) {
+        try {
+          await onUsePromoCode(appliedPromoCode.id);
+        } catch (pErr) {
+          console.warn('Failed to increment promo code usage count:', pErr);
+        }
+      }
+
       const savedOrder = await saveUserOrder(user.uid, user.email || '', {
         orderNumber: generatedOrderNum,
         items: cartItems.map((item) => ({

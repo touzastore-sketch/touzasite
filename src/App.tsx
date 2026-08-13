@@ -45,6 +45,7 @@ import {
   getAllPromoCodesAdmin,
   savePromoCodeAdmin,
   deletePromoCodeAdmin,
+  incrementPromoCodeUsageAdmin,
   safeJsonStringify,
 } from './firebase';
 
@@ -153,17 +154,25 @@ export const AppContent: React.FC = () => {
   const defaultPromos: PromoCode[] = [
     {
       id: 'promo-1',
-      code: 'ELEGAN10',
+      code: 'TOUZA10',
+      discountType: 'percentage',
       discountPercent: 10,
+      discountAmount: 0,
+      maxUses: 100,
+      usedCount: 0,
       isActive: true,
-      expiryNote: 'خصم 10% للطلب الأول',
+      expiryNote: 'خصم 10% للعملاء الجدد',
     },
     {
       id: 'promo-2',
-      code: 'MAISON15',
-      discountPercent: 15,
+      code: 'WELCOME50',
+      discountType: 'fixed',
+      discountPercent: 0,
+      discountAmount: 50,
+      maxUses: 50,
+      usedCount: 0,
       isActive: true,
-      expiryNote: 'عرض خاص للأعضاء الجدد',
+      expiryNote: 'خصم 50 ج.م على الطلب الأول',
     },
   ];
 
@@ -454,6 +463,30 @@ export const AppContent: React.FC = () => {
         await savePromoCodeAdmin(targetPromo);
       } catch (err) {
         console.error('Failed to update promo code status in Firestore:', err);
+      }
+    }
+  };
+
+  const handleUsePromoCode = async (promoId: string) => {
+    let updatedPromo: PromoCode | undefined;
+    setPromoCodes((prev) =>
+      prev.map((p) => {
+        if (p.id === promoId) {
+          const newCount = (p.usedCount || 0) + 1;
+          updatedPromo = {
+            ...p,
+            usedCount: newCount,
+          };
+          return updatedPromo;
+        }
+        return p;
+      })
+    );
+    if (updatedPromo) {
+      try {
+        await incrementPromoCodeUsageAdmin(promoId);
+      } catch (err) {
+        console.error('Failed to increment promo code usage in Firestore:', err);
       }
     }
   };
@@ -865,6 +898,8 @@ export const AppContent: React.FC = () => {
             onClearCart={() => setCartItems([])}
             user={user}
             onSignInGoogle={handleSignInGoogle}
+            promoCodes={promoCodes}
+            onUsePromoCode={handleUsePromoCode}
           />
         )}
       </main>

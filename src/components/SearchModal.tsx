@@ -60,8 +60,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         </div>
         <button
           onClick={onClose}
-          className="p-2 text-[#000000] hover:opacity-70 transition-opacity cursor-pointer shrink-0 rounded-full hover:bg-black/5"
+          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-[#000000] hover:opacity-70 transition-opacity cursor-pointer shrink-0 rounded-full hover:bg-black/5"
           title={language === 'ar' ? 'إغلاق البحث' : 'Close Search'}
+          aria-label={language === 'ar' ? 'إغلاق البحث' : 'Close Search'}
         >
           <X className="w-6 h-6 sm:w-7 sm:h-7" />
         </button>

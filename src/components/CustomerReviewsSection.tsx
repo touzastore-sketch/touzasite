@@ -134,8 +134,8 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
           <div
             ref={scrollContainerRef}
             onScroll={updateScrollButtons}
-            className="flex gap-5 sm:gap-8 overflow-x-auto scrollbar-none scroll-smooth py-6 px-4 sm:px-6 snap-x snap-mandatory"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            className="flex gap-5 sm:gap-8 overflow-x-auto hide-scrollbar scroll-smooth py-6 px-4 sm:px-6 snap-x snap-mandatory"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
           >
             {displayList.map((item) => (
               <div

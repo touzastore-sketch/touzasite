@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
-import { Search, Heart, User as UserIcon, ShoppingBag, X } from 'lucide-react';
+import { Heart, User as UserIcon, ShoppingBag, X } from 'lucide-react';
 import { ViewMode, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { SocialLinks } from './SocialLinks';
@@ -151,45 +151,45 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         )}
 
-        <div className={`max-w-[1440px] mx-auto px-2.5 sm:px-6 md:px-16 flex items-center justify-between gap-1 sm:gap-4 relative ${
-          isTransparent ? 'py-3 md:py-4 border-b border-white/15' : 'py-2.5 md:py-3.5'
+        <div className={`max-w-[1440px] mx-auto px-3 sm:px-6 md:px-16 flex items-center justify-between gap-2 sm:gap-4 relative ${
+          isTransparent ? 'py-2 md:py-3.5 border-b border-white/15' : 'py-2 md:py-3'
         }`}>
-          {/* Menu Button (Frameless, Minimalist & Luxury) */}
+          {/* Menu Button (Frameless, Minimalist & Luxury with 44x44px Touch Target) */}
           <div className="shrink-0 z-20 flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`group flex items-center gap-1.5 sm:gap-3 transition-colors duration-300 focus:outline-none cursor-pointer py-1 px-0.5 ${
+              className={`group flex items-center justify-center gap-2 sm:gap-3 transition-colors duration-300 focus:outline-none cursor-pointer min-h-[44px] min-w-[44px] px-2 rounded-xl ${
                 isTransparent
-                  ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)] hover:text-[#e2c792]'
-                  : 'text-[#000000] hover:text-[#8c734b]'
+                  ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)] hover:text-[#e2c792] hover:bg-white/10'
+                  : 'text-[#000000] hover:text-[#8c734b] hover:bg-black/5'
               }`}
               aria-label="Toggle menu"
             >
               {/* Custom Ultra-Thin 3-Line Animated Hamburger Icon (~24px wide) */}
               <div className="relative w-[22px] sm:w-[26px] h-3.5 flex flex-col justify-between items-start py-[1px]">
                 <span
-                  className={`block h-[1px] bg-current transition-all duration-300 ease-out origin-center ${
+                  className={`block h-[1.5px] bg-current transition-all duration-300 ease-out origin-center ${
                     mobileMenuOpen
                       ? 'w-[22px] sm:w-[26px] translate-y-[5.5px] rotate-45'
                       : 'w-[22px] sm:w-[26px]'
                   }`}
                 />
                 <span
-                  className={`block h-[1px] bg-current transition-all duration-300 ease-out ${
+                  className={`block h-[1.5px] bg-current transition-all duration-300 ease-out ${
                     mobileMenuOpen
                       ? 'w-0 opacity-0'
                       : 'w-[14px] sm:w-[18px] group-hover:w-[22px] sm:group-hover:w-[26px]'
                   }`}
                 />
                 <span
-                  className={`block h-[1px] bg-current transition-all duration-300 ease-out origin-center ${
+                  className={`block h-[1.5px] bg-current transition-all duration-300 ease-out origin-center ${
                     mobileMenuOpen
                       ? 'w-[22px] sm:w-[26px] -translate-y-[5.5px] -rotate-45'
                       : 'w-[18px] sm:w-[22px] group-hover:w-[22px] sm:group-hover:w-[26px]'
                   }`}
                 />
               </div>
-              <span className="font-label-caps text-[11px] sm:text-[12px] font-light tracking-[0.18em] sm:tracking-[0.28em] uppercase transition-colors">
+              <span className="hidden sm:inline font-label-caps text-[11px] sm:text-[12px] font-medium tracking-[0.18em] sm:tracking-[0.28em] uppercase transition-colors">
                 {language === 'ar' ? 'القائمة' : 'MENU'}
               </span>
             </button>
@@ -199,7 +199,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex-1 min-w-0 flex items-center justify-center px-1 sm:px-2 z-10 text-center">
             <button
               onClick={() => onNavigate('home')}
-              className={`font-display text-[17px] xs:text-[20px] sm:text-[28px] md:text-[36px] tracking-tighter truncate text-center transition-all cursor-pointer max-w-full ${
+              className={`font-display text-[18px] xs:text-[21px] sm:text-[28px] md:text-[36px] tracking-tighter truncate text-center transition-all cursor-pointer max-w-full min-h-[44px] flex items-center justify-center ${
                 isTransparent
                   ? 'text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] hover:text-white/90'
                   : 'text-[#000000] hover:opacity-90'
@@ -209,9 +209,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
-          {/* Trailing Icons & Language Switcher */}
+          {/* Trailing Icons & Language Switcher (Visible on both Mobile & Desktop) */}
           <div
-            className={`shrink-0 z-20 flex items-center gap-0.5 sm:gap-2 md:gap-3 transition-colors ${
+            className={`shrink-0 z-20 flex items-center gap-1 sm:gap-2.5 md:gap-4 transition-colors ${
               isTransparent ? 'text-white' : 'text-[#000000]'
             }`}
           >
@@ -224,17 +224,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               <SocialLinks variant="horizontal" theme={isTransparent ? 'dark' : 'light'} storeSettings={storeSettings} />
             </div>
 
-            {/* Language Switcher - Compact on mobile, expanded on tablet/desktop */}
+            {/* Language Switcher Pill */}
             <div
-              className={`flex items-center rounded-full px-1 sm:px-1.5 py-0.5 text-[10px] sm:text-[12px] font-medium transition-all h-7 sm:h-9 ${
+              className={`flex items-center rounded-full px-1 py-0.5 sm:px-1.5 sm:py-1 text-[10px] sm:text-[12px] font-medium transition-all h-8 sm:h-10 border ${
                 isTransparent
-                  ? 'border border-white/30 bg-black/35 backdrop-blur-md text-white drop-shadow-sm'
-                  : 'border border-[#747878]/30 bg-white/80 text-[#000000] shadow-2xs'
+                  ? 'border-white/30 bg-black/35 backdrop-blur-md text-white drop-shadow-sm'
+                  : 'border-[#747878]/30 bg-white/80 text-[#000000] shadow-2xs'
               }`}
             >
               <button
                 onClick={() => setLanguage('ar')}
-                className={`px-1 sm:px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                className={`min-h-[28px] sm:min-h-[36px] min-w-[34px] sm:min-w-[42px] px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full transition-all cursor-pointer flex items-center justify-center ${
                   language === 'ar'
                     ? isTransparent
                       ? 'bg-white text-black font-bold'
@@ -249,7 +249,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className={`mx-0.5 text-[9px] sm:text-[11px] ${isTransparent ? 'text-white/40' : 'text-[#c4c7c7]'}`}>|</span>
               <button
                 onClick={() => setLanguage('en')}
-                className={`px-1 sm:px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                className={`min-h-[28px] sm:min-h-[36px] min-w-[34px] sm:min-w-[42px] px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full transition-all cursor-pointer flex items-center justify-center ${
                   language === 'en'
                     ? isTransparent
                       ? 'bg-white text-black font-bold'
@@ -263,31 +263,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
 
-            {/* Search */}
-            <button
-              onClick={onOpenSearch}
-              className={`w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer ${
-                isTransparent
-                  ? 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
-                  : 'text-[#000000] hover:bg-[#000000]/5'
-              }`}
-              title={t('nav.search', 'Search')}
-            >
-              <Search className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-            </button>
-
             {/* Wishlist */}
             <button
               onClick={onOpenWishlist}
-              className={`w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
+              className={`w-9 h-9 sm:w-11 sm:h-11 min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
                 isTransparent
                   ? 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
                   : 'text-[#000000] hover:bg-[#000000]/5'
               }`}
               title={t('nav.wishlist', 'Saved Items')}
+              aria-label={t('nav.wishlist', 'Saved Items')}
             >
               <Heart
-                className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 transition-colors ${
+                className={`w-5 h-5 sm:w-5.5 sm:h-5.5 md:w-6 md:h-6 transition-colors ${
                   wishlistCount > 0
                     ? isTransparent
                       ? 'text-red-400 fill-red-400'
@@ -298,35 +286,36 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               />
               {wishlistCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-[#ba1a1a] text-white text-[8px] sm:text-[9px] w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center font-bold shadow-xs">
+                <span className="absolute top-0 sm:top-0.5 right-0 sm:right-0.5 bg-[#ba1a1a] text-white text-[9px] sm:text-[10px] w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full flex items-center justify-center font-bold shadow-xs">
                   {wishlistCount}
                 </span>
               )}
             </button>
 
-            {/* Account (Hidden on ultra-small mobile, available in 1-click side drawer) */}
+            {/* Account */}
             <button
               onClick={onOpenAccount}
-              className={`hidden sm:flex w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 items-center justify-center rounded-full transition-all cursor-pointer relative ${
+              className={`w-9 h-9 sm:w-11 sm:h-11 min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
                 isTransparent
                   ? 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
                   : 'text-[#000000] hover:bg-[#000000]/5'
               }`}
               title={user?.email || t('nav.account', 'Account')}
+              aria-label={user?.email || t('nav.account', 'Account')}
             >
               {user?.photoURL ? (
                 <img
                   src={user.photoURL}
                   alt={user.displayName || 'Account'}
-                  className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 rounded-full object-cover border ${
+                  className={`w-5.5 h-5.5 sm:w-6 sm:h-6 md:w-7 md:h-7 rounded-full object-cover border ${
                     isTransparent ? 'border-white/40' : 'border-[#000000]/20'
                   }`}
                 />
               ) : (
                 <div className="relative flex items-center justify-center">
-                  <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                  <UserIcon className="w-5 h-5 sm:w-5.5 sm:h-5.5 md:w-6 md:h-6" />
                   {user && (
-                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-[#2e7d32] rounded-full ring-1 ring-white" />
+                    <span className="absolute bottom-0 right-0 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-[#2e7d32] rounded-full ring-1 ring-white" />
                   )}
                 </div>
               )}
@@ -335,17 +324,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Cart */}
             <button
               onClick={onOpenCart}
-              className={`w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
+              className={`w-9 h-9 sm:w-11 sm:h-11 min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
                 isTransparent
                   ? 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
                   : 'text-[#000000] hover:bg-[#000000]/5'
               }`}
               title={t('nav.cart', 'Shopping Bag')}
+              aria-label={t('nav.cart', 'Shopping Bag')}
             >
-              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+              <ShoppingBag className="w-5 h-5 sm:w-5.5 sm:h-5.5 md:w-6 md:h-6" />
               {cartCount > 0 && (
                 <span
-                  className={`absolute -top-0.5 -right-0.5 text-[8px] sm:text-[9px] w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center font-bold ${
+                  className={`absolute top-0 sm:top-0.5 right-0 sm:right-0.5 text-[9px] sm:text-[10px] w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full flex items-center justify-center font-bold ${
                     isTransparent
                       ? 'bg-white text-black shadow-sm'
                       : 'bg-[#000000] text-white'
@@ -390,7 +380,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
                   <button
                     onClick={() => setMobileMenuOpen(false)}
-                    className="p-2 text-white/70 hover:text-[#c5a059] hover:bg-white/5 rounded-full transition-all duration-300 cursor-pointer"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/70 hover:text-[#c5a059] hover:bg-white/10 rounded-full transition-all duration-300 cursor-pointer"
                     aria-label="Close menu"
                   >
                     <span className="material-symbols-outlined text-[26px]">close</span>
@@ -411,7 +401,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         style={{
                           transitionDelay: `${index * 80 + 100}ms`,
                         }}
-                        className={`group relative py-4 sm:py-5 border-b border-white/10 flex items-baseline gap-4 text-start cursor-pointer transition-all duration-500 ease-out ${
+                        className={`group relative py-3.5 sm:py-5 border-b border-white/10 flex items-baseline gap-4 text-start cursor-pointer transition-all duration-500 ease-out min-h-[48px] ${
                           menuAnimated
                             ? 'translate-x-0 opacity-100'
                             : language === 'ar'
@@ -425,7 +415,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         </span>
 
                         {/* Editorial Typography & Hover Underline */}
-                        <span className="font-display text-[28px] sm:text-[34px] md:text-[38px] font-extralight tracking-wide text-[#f5f0eb] group-hover:text-[#c5a059] transition-colors duration-300 relative">
+                        <span className="font-display text-[26px] sm:text-[34px] md:text-[38px] font-extralight tracking-wide text-[#f5f0eb] group-hover:text-[#c5a059] transition-colors duration-300 relative">
                           {t(link.labelKey, link.defaultLabel)}
                           {/* Animated Underline */}
                           <span className="absolute bottom-[-2px] left-0 right-0 h-[1px] bg-[#c5a059] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-left rtl:origin-right" />
@@ -437,35 +427,34 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
 
               {/* Footer actions inside drawer */}
-              <div className="pt-6 border-t border-white/10 flex flex-col gap-5">
-                {/* Minimalist Language Switcher EN / عربي */}
+              <div className="pt-6 border-t border-white/10 flex flex-col gap-4">
+                {/* Minimalist Language Switcher EN / عربي with 44px min touch height */}
                 <div className="flex items-center justify-center gap-3 py-1">
                   <button
                     onClick={() => {
                       setLanguage('ar');
                       setMobileMenuOpen(false);
                     }}
-                    className={`font-label-caps text-[12px] sm:text-[13px] tracking-[0.2em] transition-all cursor-pointer ${
+                    className={`min-h-[44px] min-w-[100px] px-4 py-2 rounded-xl font-label-caps text-[12px] font-bold tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2 ${
                       language === 'ar'
-                        ? 'text-[#c5a059] font-medium'
-                        : 'text-white/40 hover:text-white'
+                        ? 'bg-[#c5a059] text-black shadow-md'
+                        : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
                     }`}
                   >
-                    العربية
+                    <span>العربية</span>
                   </button>
-                  <span className="text-white/20 text-[12px] font-light">/</span>
                   <button
                     onClick={() => {
                       setLanguage('en');
                       setMobileMenuOpen(false);
                     }}
-                    className={`font-label-caps text-[12px] sm:text-[13px] tracking-[0.2em] transition-all cursor-pointer ${
+                    className={`min-h-[44px] min-w-[100px] px-4 py-2 rounded-xl font-label-caps text-[12px] font-bold tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2 ${
                       language === 'en'
-                        ? 'text-[#c5a059] font-medium'
-                        : 'text-white/40 hover:text-white'
+                        ? 'bg-[#c5a059] text-black shadow-md'
+                        : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
                     }`}
                   >
-                    ENGLISH
+                    <span>ENGLISH</span>
                   </button>
                 </div>
 
@@ -476,9 +465,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                       setMobileMenuOpen(false);
                       onOpenWishlist();
                     }}
-                    className="flex items-center justify-center gap-2 py-3 px-3 border border-white/20 hover:border-[#c5a059] text-white/90 hover:text-[#c5a059] transition-all duration-300 font-label-caps text-[11px] sm:text-[12px] tracking-widest cursor-pointer bg-transparent rounded-none"
+                    className="flex items-center justify-center gap-2 min-h-[48px] py-2.5 px-3 border border-white/20 hover:border-[#c5a059] text-white hover:text-[#c5a059] transition-all duration-300 font-label-caps text-[12px] tracking-wider cursor-pointer bg-white/5 hover:bg-white/10 rounded-xl"
                   >
-                    <span className="material-symbols-outlined text-[18px] text-[#c5a059]">favorite</span>
+                    <Heart className={`w-5 h-5 ${wishlistCount > 0 ? 'text-red-400 fill-red-400' : 'text-[#c5a059]'}`} />
                     <span>{t('nav.wishlist', 'المفضلة')} ({wishlistCount})</span>
                   </button>
 
@@ -487,9 +476,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                       setMobileMenuOpen(false);
                       onOpenAccount();
                     }}
-                    className="flex items-center justify-center gap-2 py-3 px-3 border border-white/20 hover:border-[#c5a059] text-white/90 hover:text-[#c5a059] transition-all duration-300 font-label-caps text-[11px] sm:text-[12px] tracking-widest cursor-pointer bg-transparent rounded-none"
+                    className="flex items-center justify-center gap-2 min-h-[48px] py-2.5 px-3 border border-white/20 hover:border-[#c5a059] text-white hover:text-[#c5a059] transition-all duration-300 font-label-caps text-[12px] tracking-wider cursor-pointer bg-white/5 hover:bg-white/10 rounded-xl"
                   >
-                    <span className="material-symbols-outlined text-[18px] text-[#c5a059]">person</span>
+                    <UserIcon className="w-5 h-5 text-[#c5a059]" />
                     <span>{t('nav.account', 'الحساب')}</span>
                   </button>
                 </div>

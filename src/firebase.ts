@@ -34,6 +34,7 @@ import { DEFAULT_REVIEWS } from './data/defaultReviews';
 import { DEFAULT_CATEGORIES } from './data/defaultCategories';
 import { PRODUCTS } from './data/products';
 import { Category, Product, StoreSettings, PromoCode, TouzaUser } from './types';
+export type { TouzaUser };
 
 // Initialize Firebase
 const resolvedFirebaseConfig = {
@@ -1707,6 +1708,27 @@ export const deletePromoCodeAdmin = async (
   } catch (error) {
     console.error('Failed to delete promo code from Firestore:', error);
     throw error;
+  }
+};
+
+export const incrementPromoCodeUsageAdmin = async (
+  promoId: string
+): Promise<number> => {
+  try {
+    const promoDocRef = doc(db, 'promoCodes', promoId);
+    const snap = await fetchWithTimeout(getDoc(promoDocRef));
+    let newCount = 1;
+    if (snap.exists()) {
+      const data = snap.data();
+      newCount = (data.usedCount || 0) + 1;
+      await setDoc(promoDocRef, { usedCount: newCount }, { merge: true });
+    } else {
+      await setDoc(promoDocRef, { usedCount: 1 }, { merge: true });
+    }
+    return newCount;
+  } catch (error) {
+    console.error('Failed to increment promo code usage in Firestore:', error);
+    return 1;
   }
 };
 
