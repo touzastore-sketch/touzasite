@@ -706,19 +706,21 @@ export const AppContent: React.FC = () => {
       </div>
 
       {/* Top Navigation */}
-      <Navbar
-        currentView={currentView}
-        onNavigate={handleNavigate}
-        cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
-        wishlistCount={wishlistIds.length}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenWishlist={() => setIsWishlistOpen(true)}
-        onOpenSearch={() => setIsSearchOpen(true)}
-        onOpenAccount={() => setIsAccountOpen(true)}
-        onOpenAdmin={() => handleNavigate('admin')}
-        storeSettings={storeSettings}
-        user={user}
-      />
+      {currentView !== 'admin' && (
+        <Navbar
+          currentView={currentView}
+          onNavigate={handleNavigate}
+          cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+          wishlistCount={wishlistIds.length}
+          onOpenCart={() => setIsCartOpen(true)}
+          onOpenWishlist={() => setIsWishlistOpen(true)}
+          onOpenSearch={() => setIsSearchOpen(true)}
+          onOpenAccount={() => setIsAccountOpen(true)}
+          onOpenAdmin={() => handleNavigate('admin')}
+          storeSettings={storeSettings}
+          user={user}
+        />
+      )}
 
       {/* Main View Switcher */}
       <main className="flex-1">

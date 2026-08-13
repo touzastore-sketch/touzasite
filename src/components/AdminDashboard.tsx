@@ -1084,8 +1084,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </h2>
             <p className="font-body text-[13px] text-[#aaaaaa] mt-2">
               {language === 'ar'
-                ? 'أدخل رمز الدخول السري للوصول إلى إدارة الطلبات والمنتجات (الرمز الافتراضي: 1234)'
-                : 'Enter security PIN to access store management (Default PIN: 1234)'}
+                ? 'أدخل رمز الدخول السري للوصول إلى إدارة الطلبات والمنتجات'
+                : 'Enter security PIN to access store management'}
             </p>
           </div>
 
@@ -1239,7 +1239,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   );
 
   return (
-    <div className="min-h-screen bg-[#f4f5f7] text-[#1f1f1f] flex flex-col pt-16 font-body">
+    <div className="min-h-screen bg-[#f4f5f7] text-[#1f1f1f] flex flex-col font-body">
       {/* Top Admin Navigation Header */}
       <header className="bg-[#000000] text-white border-b border-[#333333] sticky top-0 z-40 shadow-md">
         <div className="max-w-[1500px] mx-auto px-4 sm:px-8 py-3.5 flex items-center justify-between">
