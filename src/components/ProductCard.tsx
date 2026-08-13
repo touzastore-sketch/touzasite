@@ -39,15 +39,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   }, []);
 
   const getAspectClass = () => {
-    if (aspectRatio === 'wide') return 'aspect-[16/9] max-h-[320px]';
-    if (aspectRatio === 'square') return 'aspect-square max-h-[300px]';
-    // Portrait height with natural containment
-    return 'h-[280px] sm:h-[320px] md:h-[360px] w-full';
+    if (aspectRatio === 'wide') return 'aspect-[16/9] max-h-[300px]';
+    if (aspectRatio === 'square') return 'aspect-square max-h-[280px]';
+    // Proportional aspect ratio that scales smoothly on all mobile viewports
+    return 'aspect-[3/4] max-h-[320px] sm:max-h-[360px] w-full';
   };
 
   const activeColor = product.colors?.[activeColorIndex];
   const rawImg = activeColor?.imageUrl || product.images?.[0];
-  const fallbackImage = '/images/touza_green_shirt.jpg';
+  const fallbackImage = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
   const displayImage = getOptimizedImageUrl(rawImg && rawImg.trim() ? rawImg : fallbackImage, { width: 600 });
 
   const displayName = getLocalizedProductName(product, language);
@@ -70,7 +70,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       <div>
         <div
-          className={`relative overflow-hidden bg-[#f3f3f4] rounded-xl ${getAspectClass()} mb-3`}
+          className={`relative overflow-hidden bg-[#fafafa] rounded-xl flex items-center justify-center border border-[#c4c7c7]/20 ${getAspectClass()} mb-3`}
         >
           {!isLoaded && (
             <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse z-0" />
@@ -83,8 +83,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               onLoad={() => setIsLoaded(true)}
               onError={(e) => {
                 setIsLoaded(true);
-                if (e.currentTarget.src !== window.location.origin + fallbackImage && !e.currentTarget.src.endsWith(fallbackImage)) {
+                if (!e.currentTarget.dataset.failed) {
+                  e.currentTarget.dataset.failed = 'true';
                   e.currentTarget.src = fallbackImage;
+                } else {
+                  e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400"><rect width="100%" height="100%" fill="%23f5f5f7"/><text x="50%" y="50%" fill="%23888888" font-family="sans-serif" font-size="16" text-anchor="middle" font-weight="bold">TOUZA</text></svg>';
                 }
               }}
               className="w-full h-full object-contain p-1.5 transition-all duration-350 ease-out group-hover:scale-105 opacity-100"

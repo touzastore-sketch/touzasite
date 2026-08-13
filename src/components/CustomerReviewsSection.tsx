@@ -16,12 +16,62 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
   const { language } = useLanguage();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [reviews, setReviews] = useState<SavedReview[]>([]);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   useEffect(() => {
     getAllReviews()
       .then((data) => setReviews(data))
       .catch((err) => console.error('Error loading homepage reviews:', err));
   }, []);
+
+  const updateScrollButtons = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    const maxScroll = el.scrollWidth - el.clientWidth;
+
+    if (maxScroll <= 5) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+
+    const sLeft = el.scrollLeft;
+    const isRTL = language === 'ar';
+
+    let atLeftEdge = false;
+    let atRightEdge = false;
+
+    if (isRTL) {
+      if (sLeft < 0) {
+        atRightEdge = Math.abs(sLeft) <= 10;
+        atLeftEdge = Math.abs(sLeft) >= maxScroll - 10;
+      } else if (sLeft > 0) {
+        atLeftEdge = sLeft >= maxScroll - 10;
+        atRightEdge = sLeft <= 10;
+      } else {
+        atRightEdge = true;
+        atLeftEdge = false;
+      }
+    } else {
+      atLeftEdge = sLeft <= 10;
+      atRightEdge = sLeft >= maxScroll - 10;
+    }
+
+    setCanScrollLeft(!atLeftEdge);
+    setCanScrollRight(!atRightEdge);
+  };
+
+  useEffect(() => {
+    updateScrollButtons();
+    const timer = setTimeout(updateScrollButtons, 300);
+    window.addEventListener('resize', updateScrollButtons);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', updateScrollButtons);
+    };
+  }, [reviews, language]);
 
   // Display list from database reviews (or default list returned by getAllReviews)
   const displayList = reviews.map((r) => ({
@@ -33,14 +83,16 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
   }));
 
   const scrollLeft = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -320, behavior: 'smooth' });
+    if (scrollContainerRef.current && canScrollLeft) {
+      const step = scrollContainerRef.current.clientWidth < 640 ? 280 : 320;
+      scrollContainerRef.current.scrollBy({ left: -step, behavior: 'smooth' });
     }
   };
 
   const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 320, behavior: 'smooth' });
+    if (scrollContainerRef.current && canScrollRight) {
+      const step = scrollContainerRef.current.clientWidth < 640 ? 280 : 320;
+      scrollContainerRef.current.scrollBy({ left: step, behavior: 'smooth' });
     }
   };
 
@@ -79,6 +131,7 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
           {/* Scroll Container */}
           <div
             ref={scrollContainerRef}
+            onScroll={updateScrollButtons}
             className="flex gap-8 overflow-x-auto scrollbar-none scroll-smooth py-6 px-2 snap-x snap-mandatory"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
@@ -123,7 +176,12 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
           <div className="flex items-center gap-3 mt-4 lg:mt-0 lg:absolute lg:top-1/2 lg:-translate-y-1/2 lg:w-full lg:left-0 lg:justify-between pointer-events-none px-2">
             <button
               onClick={scrollLeft}
-              className="pointer-events-auto w-11 h-11 rounded-full bg-[#000000] text-white flex items-center justify-center shadow-md hover:bg-[#333333] transition-all cursor-pointer hover:scale-110 active:scale-95"
+              disabled={!canScrollLeft}
+              className={`w-11 h-11 rounded-full bg-[#000000] text-white flex items-center justify-center shadow-md transition-all ${
+                canScrollLeft
+                  ? 'pointer-events-auto opacity-100 hover:bg-[#333333] cursor-pointer hover:scale-110 active:scale-95'
+                  : 'opacity-25 cursor-not-allowed pointer-events-none'
+              }`}
               aria-label="Previous review"
             >
               <span className="material-symbols-outlined text-[20px]">chevron_left</span>
@@ -131,7 +189,12 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
 
             <button
               onClick={scrollRight}
-              className="pointer-events-auto w-11 h-11 rounded-full bg-[#000000] text-white flex items-center justify-center shadow-md hover:bg-[#333333] transition-all cursor-pointer hover:scale-110 active:scale-95"
+              disabled={!canScrollRight}
+              className={`w-11 h-11 rounded-full bg-[#000000] text-white flex items-center justify-center shadow-md transition-all ${
+                canScrollRight
+                  ? 'pointer-events-auto opacity-100 hover:bg-[#333333] cursor-pointer hover:scale-110 active:scale-95'
+                  : 'opacity-25 cursor-not-allowed pointer-events-none'
+              }`}
               aria-label="Next review"
             >
               <span className="material-symbols-outlined text-[20px]">chevron_right</span>

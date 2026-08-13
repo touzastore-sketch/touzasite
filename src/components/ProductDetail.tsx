@@ -9,6 +9,7 @@ import { getOptimizedImageUrl } from '../utils/cloudinary';
 
 interface ProductDetailProps {
   product: Product;
+  products?: Product[];
   onAddToCart: (product: Product, color: string, size: string) => void;
   onBuyNow: (product: Product, color: string, size: string) => void;
   onSelectProduct: (product: Product) => void;
@@ -23,6 +24,7 @@ interface ProductDetailProps {
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
   product,
+  products = [],
   onAddToCart,
   onBuyNow,
   onSelectProduct,
@@ -144,8 +146,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const displayDescription = getLocalizedProductDescription(product, language);
   const displayDetails = getLocalizedProductDetails(product, language);
 
-  // Related products for "Curated For You"
-  const curatedProducts = PRODUCTS.filter((p) => p.id !== product.id).slice(0, 3);
+  // Related products for "Curated For You" (uses live products from Firestore if available)
+  const sourceProducts = products && products.length > 0 ? products : PRODUCTS;
+  const curatedProducts = sourceProducts.filter((p) => p.id !== product.id).slice(0, 3);
   const largeCurated = curatedProducts[0];
   const stackedCurated = curatedProducts.slice(1, 3);
 
@@ -202,12 +205,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   }`}
                 >
                   <img
-                    src={getOptimizedImageUrl(img || '/images/touza_green_shirt.jpg', { width: 200 })}
+                    src={getOptimizedImageUrl(img || 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg', { width: 200 })}
                     alt={`${displayName} view ${idx + 1}`}
                     onError={(e) => {
-                      e.currentTarget.src = '/images/touza_green_shirt.jpg';
+                      e.currentTarget.src = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
                     }}
-                    className="w-full h-full object-contain p-0.5"
+                    className="w-full h-full object-cover object-center"
                     referrerPolicy="no-referrer"
                     loading="lazy"
                   />
@@ -216,21 +219,21 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             </div>
           )}
 
-          {/* Main Display Image - Compact & Balanced Height */}
-          <div className="w-full h-[360px] sm:h-[420px] lg:h-[480px] bg-[#f3f3f4] relative group cursor-crosshair overflow-hidden rounded-xl border border-[#747878]/10">
+          {/* Main Display Image - Matched to Home Page Frame Aspect Ratio & Sleek Compact Size */}
+          <div className="w-full max-w-[420px] sm:max-w-[460px] lg:max-w-[480px] aspect-[3/4] max-h-[460px] sm:max-h-[500px] lg:max-h-[540px] bg-[#fafafa] relative group cursor-crosshair overflow-hidden rounded-2xl border border-[#c4c7c7]/30 shadow-xs mx-auto lg:mx-0">
             <img
-              src={getOptimizedImageUrl(currentImage || '/images/touza_green_shirt.jpg', { width: 1000 })}
+              src={getOptimizedImageUrl(currentImage || 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg', { width: 1000 })}
               alt={displayName}
               onError={(e) => {
-                e.currentTarget.src = '/images/touza_green_shirt.jpg';
+                e.currentTarget.src = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
               }}
-              className="w-full h-full object-contain p-2 transition-transform duration-500 hover:scale-105"
+              className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
               referrerPolicy="no-referrer"
               loading="eager"
             />
             <button
               onClick={() => onOpenImageModal(currentImage)}
-              className="absolute top-4 right-4 p-2.5 bg-white/80 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-white cursor-pointer shadow-md"
+              className="absolute top-4 right-4 p-2.5 bg-white/80 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-white cursor-pointer shadow-md z-10"
               title="Fullscreen view"
             >
               <span className="material-symbols-outlined text-[#000000] text-[20px]">fullscreen</span>

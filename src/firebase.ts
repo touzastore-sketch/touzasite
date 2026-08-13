@@ -1072,27 +1072,25 @@ export const getNewsletterCampaignsAdmin = async (): Promise<NewsletterCampaign[
 
 const sanitizeProduct = (p: Product): Product => {
   if (!p) return p;
-  const images = (p.images || []).map((img) => {
-    if (!img || typeof img !== 'string' || img.includes('unsplash') || img.includes('photo-1') || img.includes('linen_shirt')) {
-      return '/images/touza_green_shirt.jpg';
-    }
-    return img;
-  });
+  const images = (p.images || [])
+    .filter((img) => img && typeof img === 'string' && img.trim() !== '')
+    .map((img) => img.trim());
+
   if (images.length === 0) {
     images.push('/images/touza_green_shirt.jpg');
   }
 
   const colors = (p.colors || []).map((c) => ({
     ...c,
-    imageUrl: (!c.imageUrl || typeof c.imageUrl !== 'string' || c.imageUrl.includes('unsplash') || c.imageUrl.includes('photo-1') || c.imageUrl.includes('linen_shirt'))
-      ? '/images/touza_green_shirt.jpg'
-      : c.imageUrl
+    imageUrl: (c.imageUrl && typeof c.imageUrl === 'string' && c.imageUrl.trim() !== '')
+      ? c.imageUrl.trim()
+      : images[0] || '/images/touza_green_shirt.jpg'
   }));
 
   return {
     ...p,
     images,
-    colors: colors.length > 0 ? colors : [{ name: 'Default', nameAr: 'افتراضي', hex: '#2e5a44', imageUrl: '/images/touza_green_shirt.jpg' }]
+    colors: colors.length > 0 ? colors : [{ name: 'Default', nameAr: 'افتراضي', hex: '#2e5a44', imageUrl: images[0] || '/images/touza_green_shirt.jpg' }]
   };
 };
 

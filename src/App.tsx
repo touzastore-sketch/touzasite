@@ -828,6 +828,7 @@ export const AppContent: React.FC = () => {
         {currentView === 'product' && (
           <ProductDetail
             product={selectedProduct}
+            products={products}
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
             onSelectProduct={handleSelectProduct}
