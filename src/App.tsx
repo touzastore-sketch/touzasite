@@ -31,6 +31,7 @@ import {
   subscribeToAuth,
   signInWithGoogle,
   getAllCategories,
+  subscribeToCategories,
   saveCategoryAdmin,
   updateCategoryAdmin,
   deleteCategoryAdmin,
@@ -207,19 +208,19 @@ export const AppContent: React.FC = () => {
     storeNameEn: 'TOUZA CASUAL',
     taglineAr: 'ملابس كاجوال رجالي فاخرة - بورسعيد | مصر',
     taglineEn: 'Luxury Men Casual Wear - Portsaid | Egypt',
-    announcementAr: 'شحن مجاني للطلبات لجميع المحافظات | إرجاع واستبدال مجاني خلال 14 يوم | خامات قطن مصري وكتان فاخر 100% | تغليف توزا الفاخر مجاناً',
-    announcementEn: 'COMPLIMENTARY EXPRESS SHIPPING NATIONWIDE | 14-DAY EASY RETURNS & EXCHANGES | 100% HEAVYWEIGHT EGYPTIAN COTTON | SIGNATURE TOUZA LUXURY PACKAGING',
+    announcementAr: 'شحن سريع لجميع المحافظات | تشكيلة الخريف والشتاء الحصرية متاحة الآن | خامات قطن مصري وكتان فاخر 100%',
+    announcementEn: 'COMPLIMENTARY EXPRESS SHIPPING NATIONWIDE | AUTUMN & WINTER COLLECTION AVAILABLE NOW | 100% HEAVYWEIGHT EGYPTIAN COTTON',
     enableMarqueeBar: true,
     marqueeSpeed: 'normal',
     marqueeBgColor: '#121212',
     marqueeTextColor: '#f3f3f3',
     marqueeSymbol: '✦',
-    heroTitleAr: 'أزياء كاجوال أنيقة تعكس شخصيتك',
-    heroTitleEn: 'Premium Casual Menswear & Streetwear',
-    heroSubtitleAr: 'تصاميم كاجوال عصرية مصنعة من أفضل خامات القطن المصري والكتان الفاخر.',
-    heroSubtitleEn: 'Handcrafted from 100% heavyweight Egyptian cotton, fine linen, and premium fabrics.',
-    heroBadgeAr: 'تشكيلة أزياء رجالية فاخرة • بورسعيد',
-    heroBadgeEn: "TOUZA MEN'S WEAR COLLECTION",
+    heroTitleAr: 'ستايلك يبدأ من هنا',
+    heroTitleEn: 'Your Style Starts Here',
+    heroSubtitleAr: 'تشكيلة رجالية مميزة صُممت بعناية لتمنحك إطلالة أنيقة وعصرية تناسب مختلف المناسبات، مع اختيارات تجمع بين الجودة، الراحة، والأناقة في كل تفصيلة.',
+    heroSubtitleEn: 'A distinctive men’s collection crafted with care to give you a stylish and modern look for all occasions, combining quality, comfort, and elegance in every detail.',
+    heroBadgeAr: 'تشكيلة توزا الرجالية • بورسعيد ومصر',
+    heroBadgeEn: 'TOUZA MENSWEAR • EGYPT',
     heroImageUrl: 'https://res.cloudinary.com/qazdrpcx/video/upload/q_auto,f_mp4/v1786595529/touza_header_videos/pb3glshlcqx6jhuapcpq.mp4',
     newsletterBadgeAr: 'توزا',
     newsletterBadgeEn: 'TOUZA',
@@ -258,9 +259,27 @@ export const AppContent: React.FC = () => {
     shippingAr: 'نوفر خدمة التوصيل السريع لجميع محافظات مصر (القاهرة والجيزة خلال 24-48 ساعة، وباقي المحافظات خلال 2-4 أيام عمل).',
     shippingEn: 'Express delivery nationwide across Egypt (Cairo & Giza within 24-48 hrs, other governorates within 2-4 business days).',
     defaultLanguage: 'ar',
-    instaPayAddress: 'touza@instapay',
-    instaPayPhone: '01012345678',
+    enableVodafoneCash: true,
     vodafoneCashNumber: '01012345678',
+    vodafoneCashInstructionsAr: 'يرجى تحويل المبلغ المطلوب إلى رقم محفظة فودافون كاش الموضح أعلاه، ثم إدخال رقم الموبايل المحول منه لتأكيد الطلب.',
+    vodafoneCashInstructionsEn: 'Please transfer the exact total amount to the Vodafone Cash number above, then enter your sender phone number to confirm your order.',
+    enableOrangeCash: true,
+    orangeCashNumber: '01200031140',
+    orangeCashInstructionsAr: 'يرجى تحويل المبلغ المطلوب إلى رقم محفظة أورانج كاش الموضح أعلاه، ثم إدخال رقم الموبايل المحول منه لتأكيد الطلب.',
+    orangeCashInstructionsEn: 'Please transfer the exact total amount to the Orange Cash number above, then enter your sender phone number to confirm your order.',
+    enableInstaPay: true,
+    instaPayAddress: 'touza@instapay',
+    instaPayAccount: 'touza@instapay',
+    instaPayPhone: '01012345678',
+    instaPayInstructionsAr: 'يرجى تحويل المبلغ عبر تطبيق InstaPay إلى عنوان IPA أو رقم الهاتف الموضح أعلاه، ثم أدخل رقم الموبايل أو رقم مرجع العملية.',
+    instaPayInstructionsEn: 'Please transfer the exact amount via InstaPay to the IPA handle or phone number above, then enter your sender number or reference ID.',
+    enableCashOnDelivery: true,
+    codInstructionsAr: 'ستقوم بدفع المبلغ الإجمالي للمندوب عند وصول الشحنة إلى عنوانك مباشرة.',
+    codInstructionsEn: 'You will pay the exact total amount in cash directly to the courier upon delivery.',
+    collectionsTitleAr: 'استايلك يبدأ من هنا',
+    collectionsTitleEn: 'Your Style Starts Here',
+    collectionsSubtitleAr: 'تشكيلة راقية صُممت بعناية فائقة لتمنحك إطلالة جذابة تناسب جميع المناسبات في مصر.',
+    collectionsSubtitleEn: 'A curated selection of luxury pieces tailored with precision and unhurried elegance.',
   };
 
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => {
@@ -268,6 +287,16 @@ export const AppContent: React.FC = () => {
       const saved = localStorage.getItem('maison_settings');
       if (saved) {
         const parsed = JSON.parse(saved);
+        // Upgrade legacy default hero text to new copy
+        if (!parsed.heroTitleAr || parsed.heroTitleAr.includes('تشكيلة الخريف والشتاء') || parsed.heroTitleAr.includes('الموضة العصرية')) {
+          parsed.heroTitleAr = defaultSettings.heroTitleAr;
+        }
+        if (!parsed.heroSubtitleAr || parsed.heroSubtitleAr.includes('تشكيلة راقية صُممت بعناية')) {
+          parsed.heroSubtitleAr = defaultSettings.heroSubtitleAr;
+        }
+        if (parsed.heroBadgeAr && parsed.heroBadgeAr.includes('تشكيلة الخريف والشتاء')) {
+          parsed.heroBadgeAr = defaultSettings.heroBadgeAr;
+        }
         // Clean out legacy announcement text if present in cached settings
         if (parsed.announcementAr && parsed.announcementAr.includes('شحن مجاني لجميع المحافظات | خصم 10%')) {
           delete parsed.announcementAr;
@@ -342,6 +371,12 @@ export const AppContent: React.FC = () => {
       }
     });
 
+    const unsubscribeCategories = subscribeToCategories((liveCats) => {
+      if (isSubscribed && liveCats && liveCats.length > 0) {
+        setCategories(liveCats);
+      }
+    });
+
     const unsubscribeSettings = subscribeToStoreSettings(defaultSettings, (liveSettings) => {
       if (isSubscribed && liveSettings) {
         setStoreSettings(liveSettings);
@@ -351,6 +386,7 @@ export const AppContent: React.FC = () => {
     return () => {
       isSubscribed = false;
       unsubscribeProducts();
+      unsubscribeCategories();
       unsubscribeSettings();
     };
   }, []);
@@ -883,6 +919,7 @@ export const AppContent: React.FC = () => {
             initialCategory={categoryFilter}
             products={products}
             categories={categories}
+            storeSettings={storeSettings}
           />
         )}
 
@@ -912,6 +949,7 @@ export const AppContent: React.FC = () => {
             onSignInGoogle={handleSignInGoogle}
             promoCodes={promoCodes}
             onUsePromoCode={handleUsePromoCode}
+            storeSettings={storeSettings}
           />
         )}
 

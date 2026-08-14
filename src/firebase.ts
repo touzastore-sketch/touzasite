@@ -933,85 +933,115 @@ export const getAllCategories = async (): Promise<Category[]> => {
     return categories;
   } catch (error) {
     console.warn('Using offline fallback for categories:', error);
+    try {
+      const saved = localStorage.getItem('maison_categories');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
     return DEFAULT_CATEGORIES;
+  }
+};
+
+export const subscribeToCategories = (
+  callback: (categories: Category[]) => void
+): (() => void) => {
+  try {
+    const saved = localStorage.getItem('maison_categories');
+    if (saved) {
+      const parsed: Category[] = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        callback(parsed);
+      }
+    }
+  } catch {}
+
+  try {
+    const catsRef = collection(db, 'categories');
+    const unsubscribe = onSnapshot(
+      catsRef,
+      (snapshot) => {
+        const firestoreCats: Category[] = [];
+        snapshot.forEach((docSnap) => {
+          firestoreCats.push({ id: docSnap.id, ...docSnap.data() } as Category);
+        });
+
+        if (firestoreCats.length > 0) {
+          localStorage.setItem('maison_categories', safeJsonStringify(firestoreCats));
+          callback(firestoreCats);
+        }
+      },
+      (err) => {
+        console.warn('Realtime categories listener notice:', err);
+      }
+    );
+    return unsubscribe;
+  } catch (error) {
+    console.warn('Could not initialize realtime categories listener:', error);
+    return () => {};
   }
 };
 
 export const saveCategoryAdmin = async (
   categoryData: Omit<Category, 'id'>,
-  currentCategories?: Category[]
-): Promise<Category> => {
-  const catsRef = collection(db, 'categories');
-  const snapshot = await getDocs(catsRef);
-
-  if (snapshot.empty && currentCategories && currentCategories.length > 0) {
-    for (const c of currentCategories) {
-      const docRef = doc(db, 'categories', c.id);
-      await setDoc(docRef, c, { merge: true });
-    }
-  }
-
-  const newDocRef = doc(catsRef);
+  currentCategories: Category[] = []
+): Promise<Category[]> => {
+  const newCatId = 'cat-' + (categoryData.nameEn ? categoryData.nameEn.toLowerCase().replace(/[^a-z0-9]/g, '-') : Date.now());
   const newCat: Category = {
-    id: newDocRef.id,
+    id: newCatId,
     ...categoryData,
   };
 
-  await setDoc(newDocRef, newCat);
-  return newCat;
+  const updatedList = [newCat, ...currentCategories.filter((c) => c.id !== newCatId)];
+  localStorage.setItem('maison_categories', safeJsonStringify(updatedList));
+
+  try {
+    const catsRef = collection(db, 'categories');
+    const catDocRef = doc(catsRef, newCatId);
+    await setDoc(catDocRef, sanitizeForFirestore(newCat), { merge: true });
+  } catch (error) {
+    console.error('Failed to save category in Firestore:', error);
+  }
+
+  return updatedList;
 };
 
 export const updateCategoryAdmin = async (
   categoryId: string,
   updatedData: Partial<Category>,
-  currentCategories?: Category[]
-): Promise<boolean> => {
+  currentCategories: Category[] = []
+): Promise<Category[]> => {
+  const updatedList = currentCategories.map((c) =>
+    c.id === categoryId ? { ...c, ...updatedData } : c
+  );
+  localStorage.setItem('maison_categories', safeJsonStringify(updatedList));
+
   try {
-    const catsRef = collection(db, 'categories');
-    const snapshot = await getDocs(catsRef);
-
-    if (snapshot.empty && currentCategories && currentCategories.length > 0) {
-      for (const c of currentCategories) {
-        const docRef = doc(db, 'categories', c.id);
-        const dataToSave = c.id === categoryId ? { ...c, ...updatedData } : c;
-        await setDoc(docRef, dataToSave, { merge: true });
-      }
-      return true;
-    }
-
     const catDocRef = doc(db, 'categories', categoryId);
-    await setDoc(catDocRef, updatedData, { merge: true });
-    return true;
+    await setDoc(catDocRef, sanitizeForFirestore(updatedData), { merge: true });
   } catch (error) {
-    console.error('Failed to update category:', error);
-    throw error;
+    console.error('Failed to update category in Firestore:', error);
   }
+
+  return updatedList;
 };
 
 export const deleteCategoryAdmin = async (
   categoryId: string,
-  currentCategories?: Category[]
-): Promise<boolean> => {
-  try {
-    const catsRef = collection(db, 'categories');
-    const snapshot = await getDocs(catsRef);
+  currentCategories: Category[] = []
+): Promise<Category[]> => {
+  const updatedList = currentCategories.filter((c) => c.id !== categoryId);
+  localStorage.setItem('maison_categories', safeJsonStringify(updatedList));
 
-    if (snapshot.empty && currentCategories && currentCategories.length > 0) {
-      for (const c of currentCategories) {
-        if (c.id !== categoryId) {
-          const docRef = doc(db, 'categories', c.id);
-          await setDoc(docRef, c, { merge: true });
-        }
-      }
-    } else {
-      const catDocRef = doc(db, 'categories', categoryId);
-      await deleteDoc(catDocRef);
-    }
-    return true;
+  try {
+    const catDocRef = doc(db, 'categories', categoryId);
+    await deleteDoc(catDocRef);
   } catch (error) {
-    console.error('Failed to delete category:', error);
-    throw error;
+    console.error('Failed to delete category from Firestore:', error);
   }
+
+  return updatedList;
 };
 
 export const resetDefaultCategoriesAdmin = async (): Promise<Category[]> => {
@@ -1027,9 +1057,11 @@ export const resetDefaultCategoriesAdmin = async (): Promise<Category[]> => {
     for (const c of DEFAULT_CATEGORIES) {
       await setDoc(doc(db, 'categories', c.id), c);
     }
+    localStorage.setItem('maison_categories', safeJsonStringify(DEFAULT_CATEGORIES));
     return DEFAULT_CATEGORIES;
   } catch (error) {
     console.error('Failed to reset default categories:', error);
+    localStorage.setItem('maison_categories', safeJsonStringify(DEFAULT_CATEGORIES));
     return DEFAULT_CATEGORIES;
   }
 };
@@ -1570,35 +1602,59 @@ function sanitizeSettings(settings: StoreSettings, defaultSettings: StoreSetting
   if (sanitized.enableVodafoneCash === undefined) {
     sanitized.enableVodafoneCash = defaultSettings.enableVodafoneCash ?? true;
   }
-  if (!sanitized.vodafoneCashNumber) {
-    sanitized.vodafoneCashNumber = defaultSettings.vodafoneCashNumber || '01012345678';
+  if (sanitized.vodafoneCashNumber === undefined || sanitized.vodafoneCashNumber === null) {
+    sanitized.vodafoneCashNumber = defaultSettings.vodafoneCashNumber || '';
   }
-  if (!sanitized.vodafoneCashInstructionsAr) {
+  if (sanitized.vodafoneCashInstructionsAr === undefined || sanitized.vodafoneCashInstructionsAr === null) {
     sanitized.vodafoneCashInstructionsAr = defaultSettings.vodafoneCashInstructionsAr || 'يرجى تحويل المبلغ المطلوب إلى رقم محفظة فودافون كاش الموضح أعلاه، ثم إدخال رقم الموبايل المحول منه لتأكيد الطلب.';
   }
-  if (!sanitized.vodafoneCashInstructionsEn) {
+  if (sanitized.vodafoneCashInstructionsEn === undefined || sanitized.vodafoneCashInstructionsEn === null) {
     sanitized.vodafoneCashInstructionsEn = defaultSettings.vodafoneCashInstructionsEn || 'Please transfer the exact total amount to the Vodafone Cash number above, then enter your sender phone number to confirm your order.';
+  }
+  if (sanitized.enableOrangeCash === undefined) {
+    sanitized.enableOrangeCash = defaultSettings.enableOrangeCash ?? true;
+  }
+  if (sanitized.orangeCashNumber === undefined || sanitized.orangeCashNumber === null) {
+    sanitized.orangeCashNumber = defaultSettings.orangeCashNumber || '';
+  }
+  if (sanitized.orangeCashInstructionsAr === undefined || sanitized.orangeCashInstructionsAr === null) {
+    sanitized.orangeCashInstructionsAr = defaultSettings.orangeCashInstructionsAr || 'يرجى تحويل المبلغ المطلوب إلى رقم محفظة أورانج كاش الموضح أعلاه، ثم إدخال رقم الموبايل المحول منه لتأكيد الطلب.';
+  }
+  if (sanitized.orangeCashInstructionsEn === undefined || sanitized.orangeCashInstructionsEn === null) {
+    sanitized.orangeCashInstructionsEn = defaultSettings.orangeCashInstructionsEn || 'Please transfer the exact total amount to the Orange Cash number above, then enter your sender phone number to confirm your order.';
   }
   if (sanitized.enableInstaPay === undefined) {
     sanitized.enableInstaPay = defaultSettings.enableInstaPay ?? true;
   }
-  if (!sanitized.instaPayAccount) {
-    sanitized.instaPayAccount = defaultSettings.instaPayAccount || defaultSettings.instaPayAddress || 'touza@instapay';
+  if (sanitized.instaPayAccount === undefined || sanitized.instaPayAccount === null) {
+    sanitized.instaPayAccount = sanitized.instaPayAddress || defaultSettings.instaPayAccount || '';
   }
-  if (!sanitized.instaPayAddress) {
-    sanitized.instaPayAddress = defaultSettings.instaPayAddress || 'touza@instapay';
+  if (sanitized.instaPayAddress === undefined || sanitized.instaPayAddress === null) {
+    sanitized.instaPayAddress = sanitized.instaPayAccount || defaultSettings.instaPayAddress || '';
   }
-  if (!sanitized.instaPayPhone) {
-    sanitized.instaPayPhone = defaultSettings.instaPayPhone || '01012345678';
+  if (sanitized.instaPayPhone === undefined || sanitized.instaPayPhone === null) {
+    sanitized.instaPayPhone = defaultSettings.instaPayPhone || '';
   }
-  if (!sanitized.instaPayInstructionsAr) {
+  if (sanitized.instaPayInstructionsAr === undefined || sanitized.instaPayInstructionsAr === null) {
     sanitized.instaPayInstructionsAr = defaultSettings.instaPayInstructionsAr || 'يرجى تحويل المبلغ عبر تطبيق InstaPay إلى عنوان IPA أو رقم الهاتف الموضح أعلاه، ثم أدخل رقم الموبايل أو رقم مرجع العملية.';
   }
-  if (!sanitized.instaPayInstructionsEn) {
+  if (sanitized.instaPayInstructionsEn === undefined || sanitized.instaPayInstructionsEn === null) {
     sanitized.instaPayInstructionsEn = defaultSettings.instaPayInstructionsEn || 'Please transfer the exact amount via InstaPay to the IPA handle or phone number above, then enter your sender number or reference ID.';
   }
   if (sanitized.enableCashOnDelivery === undefined) {
     sanitized.enableCashOnDelivery = defaultSettings.enableCashOnDelivery ?? true;
+  }
+  if (!sanitized.collectionsTitleAr || !sanitized.collectionsTitleAr.trim()) {
+    sanitized.collectionsTitleAr = defaultSettings.collectionsTitleAr || 'استايلك يبدأ من هنا';
+  }
+  if (!sanitized.collectionsTitleEn || !sanitized.collectionsTitleEn.trim()) {
+    sanitized.collectionsTitleEn = defaultSettings.collectionsTitleEn || 'Your Style Starts Here';
+  }
+  if (!sanitized.collectionsSubtitleAr || !sanitized.collectionsSubtitleAr.trim()) {
+    sanitized.collectionsSubtitleAr = defaultSettings.collectionsSubtitleAr || 'تشكيلة راقية صُممت بعناية فائقة لتمنحك إطلالة جذابة تناسب جميع المناسبات في مصر.';
+  }
+  if (!sanitized.collectionsSubtitleEn || !sanitized.collectionsSubtitleEn.trim()) {
+    sanitized.collectionsSubtitleEn = defaultSettings.collectionsSubtitleEn || 'A curated selection of luxury pieces tailored with precision and unhurried elegance.';
   }
   return sanitized;
 }

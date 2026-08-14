@@ -72,11 +72,21 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'instapay' | 'vodafone_cash'>('cod');
   const [transferRef, setTransferRef] = useState('');
 
+  // Fallback to cached local settings if storeSettings prop is momentarily pending
+  const activeSettings = storeSettings || (() => {
+    try {
+      const saved = localStorage.getItem('maison_settings');
+      return saved ? JSON.parse(saved) : undefined;
+    } catch {
+      return undefined;
+    }
+  })();
+
   // Auto-switch payment method if current is disabled in store settings
   useEffect(() => {
-    const isCodEnabled = storeSettings?.enableCashOnDelivery !== false;
-    const isInstaPayEnabled = storeSettings?.enableInstaPay !== false;
-    const isVodaEnabled = storeSettings?.enableVodafoneCash !== false;
+    const isCodEnabled = activeSettings?.enableCashOnDelivery !== false;
+    const isInstaPayEnabled = activeSettings?.enableInstaPay !== false;
+    const isVodaEnabled = activeSettings?.enableVodafoneCash !== false;
 
     if (paymentMethod === 'cod' && !isCodEnabled) {
       if (isInstaPayEnabled) setPaymentMethod('instapay');
@@ -88,7 +98,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       if (isCodEnabled) setPaymentMethod('cod');
       else if (isInstaPayEnabled) setPaymentMethod('instapay');
     }
-  }, [storeSettings, paymentMethod]);
+  }, [activeSettings, paymentMethod]);
 
   const [orderNumber, setOrderNumber] = useState('');
 
@@ -814,7 +824,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* Option 1: Cash on Delivery */}
-                  {storeSettings?.enableCashOnDelivery !== false && (
+                  {activeSettings?.enableCashOnDelivery !== false && (
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('cod')}
@@ -830,7 +840,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                   )}
 
                   {/* Option 2: InstaPay */}
-                  {storeSettings?.enableInstaPay !== false && (
+                  {activeSettings?.enableInstaPay !== false && (
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('instapay')}
@@ -846,7 +856,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                   )}
 
                   {/* Option 3: Vodafone Cash */}
-                  {storeSettings?.enableVodafoneCash !== false && (
+                  {activeSettings?.enableVodafoneCash !== false && (
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('vodafone_cash')}
@@ -863,7 +873,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                 </div>
 
                 {/* Details box according to selected method */}
-                {paymentMethod === 'cod' && storeSettings?.enableCashOnDelivery !== false && (
+                {paymentMethod === 'cod' && activeSettings?.enableCashOnDelivery !== false && (
                   <div className="p-4 bg-[#f9f9f9] border border-[#c4c7c7]/30 rounded-xl space-y-2 text-[14px]">
                     <div className="flex items-center gap-2 text-[#2e7d32] font-bold">
                       <span className="material-symbols-outlined">check_circle</span>
@@ -871,30 +881,30 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                     </div>
                     <p className="text-[#5e5e5c] text-[13px] leading-relaxed">
                       {language === 'ar'
-                        ? (storeSettings?.codInstructionsAr || 'ستقوم بدفع المبلغ الإجمالي للمندوب عند وصول الشحنة إلى عنوانك مباشرة.')
-                        : (storeSettings?.codInstructionsEn || 'You will pay the exact total amount in cash directly to the courier upon delivery.')}
+                        ? (activeSettings?.codInstructionsAr || 'ستقوم بدفع المبلغ الإجمالي للمندوب عند وصول الشحنة إلى عنوانك مباشرة.')
+                        : (activeSettings?.codInstructionsEn || 'You will pay the exact total amount in cash directly to the courier upon delivery.')}
                     </p>
                   </div>
                 )}
 
-                {paymentMethod === 'instapay' && storeSettings?.enableInstaPay !== false && (
+                {paymentMethod === 'instapay' && activeSettings?.enableInstaPay !== false && (
                   <div className="p-5 bg-purple-50 border border-purple-200 rounded-xl space-y-4 text-[14px]">
                     <div className="space-y-1">
                       <p className="font-bold text-purple-900 font-label-caps">
                         {language === 'ar' ? 'بيانات تحويل إنستا باي (InstaPay):' : 'InstaPay Transfer Details:'}
                       </p>
                       <div className="p-3 bg-white rounded-lg border border-purple-200 font-mono text-[14px] text-purple-950 space-y-1">
-                        <p><strong>Account / IPA:</strong> {storeSettings?.instaPayAccount || storeSettings?.instaPayAddress || 'touza@instapay'}</p>
-                        {storeSettings?.instaPayPhone && (
-                          <p><strong>Phone Number:</strong> {storeSettings.instaPayPhone}</p>
+                        <p><strong>Account / IPA:</strong> {activeSettings?.instaPayAccount || activeSettings?.instaPayAddress || 'touza@instapay'}</p>
+                        {activeSettings?.instaPayPhone && (
+                          <p><strong>Phone Number:</strong> {activeSettings.instaPayPhone}</p>
                         )}
                         <p className="text-[12px] text-purple-700 font-sans">
                           {language === 'ar' ? `المبلغ المطلوب تحويله: ${formatPrice(total)}` : `Amount to transfer: ${formatPrice(total)}`}
                         </p>
                       </div>
-                      {(storeSettings?.instaPayInstructionsAr || storeSettings?.instaPayInstructionsEn) && (
+                      {(activeSettings?.instaPayInstructionsAr || activeSettings?.instaPayInstructionsEn) && (
                         <p className="text-[#555] text-[13px] leading-relaxed pt-1 font-sans">
-                          {language === 'ar' ? storeSettings.instaPayInstructionsAr : storeSettings.instaPayInstructionsEn}
+                          {language === 'ar' ? activeSettings.instaPayInstructionsAr : activeSettings.instaPayInstructionsEn}
                         </p>
                       )}
                     </div>
@@ -915,21 +925,21 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                   </div>
                 )}
 
-                {paymentMethod === 'vodafone_cash' && storeSettings?.enableVodafoneCash !== false && (
+                {paymentMethod === 'vodafone_cash' && activeSettings?.enableVodafoneCash !== false && (
                   <div className="p-5 bg-red-50 border border-red-200 rounded-xl space-y-4 text-[14px]">
                     <div className="space-y-1">
                       <p className="font-bold text-red-900 font-label-caps">
                         {language === 'ar' ? 'بيانات تحويل محفظة فودافون كاش:' : 'Vodafone Cash Wallet Details:'}
                       </p>
                       <div className="p-3 bg-white rounded-lg border border-red-200 font-mono text-[14px] text-red-950 space-y-1">
-                        <p><strong>Wallet Number:</strong> {storeSettings?.vodafoneCashNumber || '01012345678'}</p>
+                        <p><strong>Wallet Number:</strong> {activeSettings?.vodafoneCashNumber || '01012345678'}</p>
                         <p className="text-[12px] text-red-700 font-sans">
                           {language === 'ar' ? `المبلغ المطلوب تحويله: ${formatPrice(total)}` : `Amount to transfer: ${formatPrice(total)}`}
                         </p>
                       </div>
-                      {(storeSettings?.vodafoneCashInstructionsAr || storeSettings?.vodafoneCashInstructionsEn) && (
+                      {(activeSettings?.vodafoneCashInstructionsAr || activeSettings?.vodafoneCashInstructionsEn) && (
                         <p className="text-[#555] text-[13px] leading-relaxed pt-1 font-sans">
-                          {language === 'ar' ? storeSettings.vodafoneCashInstructionsAr : storeSettings.vodafoneCashInstructionsEn}
+                          {language === 'ar' ? activeSettings.vodafoneCashInstructionsAr : activeSettings.vodafoneCashInstructionsEn}
                         </p>
                       )}
                     </div>

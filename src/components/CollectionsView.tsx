@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Category, Product } from '../types';
+import { Category, Product, StoreSettings } from '../types';
 import { ProductCard } from './ProductCard';
 import { PRODUCTS } from '../data/products';
 import { useLanguage } from '../context/LanguageContext';
@@ -16,6 +16,7 @@ interface CollectionsViewProps {
   initialCategory?: string;
   products?: Product[];
   categories?: Category[];
+  storeSettings?: StoreSettings;
 }
 
 export const CollectionsView: React.FC<CollectionsViewProps> = ({
@@ -27,6 +28,7 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
   initialCategory = 'All',
   products: customProducts,
   categories: customCategories = DEFAULT_CATEGORIES,
+  storeSettings,
 }) => {
   const allProducts = customProducts || PRODUCTS;
   const categoriesList = customCategories || DEFAULT_CATEGORIES;
@@ -85,18 +87,42 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
         result = result.filter((p) => p.isNewArrival);
       } else {
         result = result.filter((p) => {
-          if (!p.category) return false;
+          if (!p.category && !p.categoryAr) return false;
+          const pCatEn = p.category?.toLowerCase()?.trim() || '';
+          const pCatAr = p.categoryAr?.trim() || '';
+          const sel = selectedCategory.trim();
+          const selLower = sel.toLowerCase();
+
           const targetCat = categoriesList.find(
-            (c) => c.nameEn === selectedCategory || c.nameAr === selectedCategory
+            (c) =>
+              c.nameEn?.toLowerCase() === selLower ||
+              c.nameAr?.trim() === sel ||
+              c.id === sel
           );
+
           if (targetCat) {
+            const tEn = targetCat.nameEn?.toLowerCase()?.trim() || '';
+            const tAr = targetCat.nameAr?.trim() || '';
             return (
               p.category === targetCat.nameEn ||
               p.category === targetCat.nameAr ||
-              p.categoryAr === targetCat.nameAr
+              p.categoryAr === targetCat.nameAr ||
+              p.categoryAr === targetCat.nameEn ||
+              (tEn && pCatEn === tEn) ||
+              (tAr && pCatAr === tAr) ||
+              (tEn && pCatEn.includes(tEn)) ||
+              (tAr && pCatAr.includes(tAr))
             );
           }
-          return p.category === selectedCategory || p.categoryAr === selectedCategory;
+
+          return (
+            p.category === selectedCategory ||
+            p.categoryAr === selectedCategory ||
+            pCatEn === selLower ||
+            pCatAr === sel ||
+            pCatEn.includes(selLower) ||
+            pCatAr.includes(sel)
+          );
         });
       }
     }
@@ -199,12 +225,14 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
       <ScrollReveal>
         <div className="mb-8 text-center max-w-3xl mx-auto">
           <h1 className="font-display text-[32px] md:text-[50px] text-[#000000] mb-3 leading-tight font-bold">
-            {language === 'ar' ? 'تشكيلة الخريف والشتاء الحصرية' : "Autumn / Winter Couture"}
+            {language === 'ar'
+              ? (storeSettings?.collectionsTitleAr || 'استايلك يبدأ من هنا')
+              : (storeSettings?.collectionsTitleEn || "Your Style Starts Here")}
           </h1>
           <p className="font-body text-[15px] md:text-[17px] text-[#444748] leading-relaxed">
             {language === 'ar'
-              ? 'تشكيلة راقية صُممت بعناية فائقة لتمنحك إطلالة جذابة تناسب جميع المناسبات في مصر.'
-              : 'A curated selection of luxury pieces tailored with precision and unhurried elegance.'}
+              ? (storeSettings?.collectionsSubtitleAr || 'تشكيلة راقية صُممت بعناية فائقة لتمنحك إطلالة جذابة تناسب جميع المناسبات في مصر.')
+              : (storeSettings?.collectionsSubtitleEn || 'A curated selection of luxury pieces tailored with precision and unhurried elegance.')}
           </p>
         </div>
       </ScrollReveal>
@@ -213,6 +241,78 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
         {/* Sidebar Filters - Desktop */}
         <aside className="w-full lg:w-1/4 xl:w-1/5 shrink-0 hidden lg:block pr-6 border-r border-[#c4c7c7]/20 rtl:border-r-0 rtl:border-l rtl:pl-6 rtl:pr-0">
           <div className="sticky top-[100px] space-y-7">
+            {/* Filter: Categories */}
+            <div className="border-b border-[#c4c7c7]/30 pb-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-display text-[18px] text-[#000000] font-bold">
+                  {language === 'ar' ? 'الأقسام والتصنيفات' : 'Categories'}
+                </h3>
+                {selectedCategory !== 'All' && (
+                  <button
+                    onClick={() => setSelectedCategory('All')}
+                    className="text-[11px] font-label-caps text-[#747878] hover:text-[#000000] underline"
+                  >
+                    {language === 'ar' ? 'عرض الكل' : 'Clear'}
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('All')}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[13px] font-body transition-colors cursor-pointer ${
+                    selectedCategory === 'All'
+                      ? 'bg-[#000000] text-white font-bold shadow-2xs'
+                      : 'text-[#444748] hover:bg-[#f3f3f4] hover:text-[#000000]'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">grid_view</span>
+                    <span>{language === 'ar' ? 'جميع المنتجات' : 'All Products'}</span>
+                  </span>
+                  <span className={`text-[11px] font-mono ${selectedCategory === 'All' ? 'text-white/80' : 'text-[#747878]'}`}>
+                    {allProducts.length}
+                  </span>
+                </button>
+
+                {categoriesList.map((cat) => {
+                  const isSelected =
+                    selectedCategory === cat.nameEn ||
+                    selectedCategory === cat.nameAr;
+                  const count = allProducts.filter(
+                    (p) =>
+                      p.category === cat.nameEn ||
+                      p.category === cat.nameAr ||
+                      p.categoryAr === cat.nameAr
+                  ).length;
+
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat.nameEn)}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[13px] font-body transition-colors cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#000000] text-white font-bold shadow-2xs'
+                          : 'text-[#444748] hover:bg-[#f3f3f4] hover:text-[#000000]'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px]">
+                          {cat.icon || 'label'}
+                        </span>
+                        <span>{language === 'ar' ? cat.nameAr : cat.nameEn}</span>
+                      </span>
+                      <span className={`text-[11px] font-mono ${isSelected ? 'text-white/80' : 'text-[#747878]'}`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Filter: Price */}
             <div className="border-b border-[#c4c7c7]/30 pb-5">
               <div className="flex items-center justify-between mb-3">
@@ -361,6 +461,62 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
 
         {/* Product Grid Area */}
         <div id="product-grid-section" className="w-full lg:w-3/4 xl:w-4/5 flex flex-col scroll-mt-28">
+          {/* Classic Category Quick Bar (Horizontal Scrolling Pills) */}
+          <div className="mb-6 overflow-x-auto no-scrollbar pb-1">
+            <div className="flex items-center gap-2 min-w-max">
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('All')}
+                className={`px-4 py-2 rounded-xl text-[13px] font-body transition-all cursor-pointer flex items-center gap-2 border shadow-2xs ${
+                  selectedCategory === 'All'
+                    ? 'bg-[#000000] text-white border-[#000000] font-bold ring-1 ring-black'
+                    : 'bg-white text-[#444748] border-[#c4c7c7]/50 hover:border-[#000000] hover:text-[#000000]'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[17px]">grid_view</span>
+                <span>{language === 'ar' ? 'الكل' : 'All'}</span>
+                <span className={`text-[10px] font-mono ${selectedCategory === 'All' ? 'text-white/80' : 'text-[#747878]'}`}>
+                  ({allProducts.length})
+                </span>
+              </button>
+
+              {categoriesList.map((cat) => {
+                const isSelected =
+                  selectedCategory === cat.nameEn ||
+                  selectedCategory === cat.nameAr;
+                const count = allProducts.filter(
+                  (p) =>
+                    p.category === cat.nameEn ||
+                    p.category === cat.nameAr ||
+                    p.categoryAr === cat.nameAr
+                ).length;
+
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat.nameEn)}
+                    className={`px-4 py-2 rounded-xl text-[13px] font-body transition-all cursor-pointer flex items-center gap-2 border shadow-2xs ${
+                      isSelected
+                        ? 'bg-[#000000] text-white border-[#000000] font-bold ring-1 ring-black'
+                        : 'bg-white text-[#444748] border-[#c4c7c7]/50 hover:border-[#000000] hover:text-[#000000]'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[17px]">
+                      {cat.icon || 'label'}
+                    </span>
+                    <span>{language === 'ar' ? cat.nameAr : cat.nameEn}</span>
+                    {count > 0 && (
+                      <span className={`text-[10px] font-mono ${isSelected ? 'text-white/80' : 'text-[#747878]'}`}>
+                        ({count})
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Top Control Bar */}
           <div className="flex justify-between items-center mb-6 pb-4 border-b border-[#c4c7c7]/30">
             <button
@@ -403,6 +559,43 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                 >
                   <span className="material-symbols-outlined text-[20px]">close</span>
                 </button>
+              </div>
+
+              {/* Mobile Category Filter */}
+              <div>
+                <h4 className="font-label-caps text-[13px] font-bold text-[#000000] mb-2">
+                  {language === 'ar' ? 'الأقسام والتصنيفات' : 'Category'}
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setSelectedCategory('All')}
+                    className={`px-3 py-1.5 rounded-xl text-[12px] font-body border cursor-pointer ${
+                      selectedCategory === 'All'
+                        ? 'bg-[#000000] text-white border-[#000000] font-bold'
+                        : 'bg-white text-[#444748] border-[#c4c7c7]'
+                    }`}
+                  >
+                    {language === 'ar' ? 'الكل' : 'All'}
+                  </button>
+                  {categoriesList.map((cat) => {
+                    const isSelected =
+                      selectedCategory === cat.nameEn ||
+                      selectedCategory === cat.nameAr;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => setSelectedCategory(cat.nameEn)}
+                        className={`px-3 py-1.5 rounded-xl text-[12px] font-body border cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#000000] text-white border-[#000000] font-bold'
+                            : 'bg-white text-[#444748] border-[#c4c7c7]'
+                        }`}
+                      >
+                        {language === 'ar' ? cat.nameAr : cat.nameEn}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Mobile Price Filter */}

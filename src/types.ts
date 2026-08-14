@@ -126,6 +126,11 @@ export interface StoreSettings {
   shippingEn?: string;
   copyrightAr?: string;
   copyrightEn?: string;
+  // Collections View Header Settings
+  collectionsTitleAr?: string;
+  collectionsTitleEn?: string;
+  collectionsSubtitleAr?: string;
+  collectionsSubtitleEn?: string;
   // Site Default Language & Payment Accounts
   defaultLanguage?: 'ar' | 'en';
   // Payment Settings
@@ -133,6 +138,10 @@ export interface StoreSettings {
   vodafoneCashNumber?: string;
   vodafoneCashInstructionsAr?: string;
   vodafoneCashInstructionsEn?: string;
+  enableOrangeCash?: boolean;
+  orangeCashNumber?: string;
+  orangeCashInstructionsAr?: string;
+  orangeCashInstructionsEn?: string;
   enableInstaPay?: boolean;
   instaPayAccount?: string;
   instaPayAddress?: string;

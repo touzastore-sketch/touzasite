@@ -19,17 +19,17 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings
   const heroTitle = (language === 'ar'
     ? storeSettings?.heroTitleAr
     : storeSettings?.heroTitleEn
-  )?.trim() || (language === 'ar' ? 'أزياء كاجوال أنيقة تعكس شخصيتك' : "TOUZA Men's Wear Collection");
+  )?.trim() || (language === 'ar' ? 'ستايلك يبدأ من هنا' : 'Your Style Starts Here');
 
   const heroSubtitle = (language === 'ar'
     ? storeSettings?.heroSubtitleAr
     : storeSettings?.heroSubtitleEn
-  )?.trim() || (language === 'ar' ? 'تصاميم كاجوال عصرية مصنعة من أفضل خامات القطن والكتان الفاخر.' : 'Our collection of versatile pieces designed to fit your everyday lifestyle.');
+  )?.trim() || (language === 'ar' ? 'تشكيلة رجالية مميزة صُممت بعناية لتمنحك إطلالة أنيقة وعصرية تناسب مختلف المناسبات، مع اختيارات تجمع بين الجودة، الراحة، والأناقة في كل تفصيلة.' : 'A distinctive men’s collection crafted with care to give you a stylish and modern look for all occasions, combining quality, comfort, and elegance in every detail.');
 
   const heroBadge = (language === 'ar'
     ? storeSettings?.heroBadgeAr
     : storeSettings?.heroBadgeEn
-  )?.trim() || (language === 'ar' ? 'تشكيلة أزياء رجالية فاخرة • بورسعيد' : "TOUZA MEN'S WEAR COLLECTION");
+  )?.trim() || (language === 'ar' ? 'تشكيلة توزا الرجالية • بورسعيد ومصر' : 'TOUZA MENSWEAR • EGYPT');
 
   const rawMedia = storeSettings?.heroImageUrl?.trim();
 

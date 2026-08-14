@@ -6,6 +6,7 @@ import {
   LogOut,
   Store,
   BarChart3,
+  LayoutGrid,
   Shirt,
   Truck,
   Users,
@@ -227,8 +228,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     nameAr: '',
     subtitle: '',
     subtitleAr: '',
-    category: 'Dresses',
-    categoryAr: 'فساتين',
+    category: 'Shirts',
+    categoryAr: 'قميص',
     price: 1500,
     description: '',
     descriptionAr: '',
@@ -392,7 +393,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   }, [storeSettings]);
 
-  const handleSavePaymentSettings = (e: React.FormEvent) => {
+  const handleSavePaymentSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setPaymentSaveSuccess('');
     setPaymentSaveError('');
@@ -421,11 +422,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
 
     try {
-      onUpdateStoreSettings(settingsForm);
+      const sanitized = {
+        ...settingsForm,
+        instaPayAccount: settingsForm.instaPayAccount || settingsForm.instaPayAddress || '',
+        instaPayAddress: settingsForm.instaPayAddress || settingsForm.instaPayAccount || '',
+      };
+      await onUpdateStoreSettings(sanitized);
       setPaymentSaveSuccess(
         language === 'ar'
-          ? '✓ تم حفظ وتحديث إعدادات وسائل الدفع بنجاح في النظام وFirestore!'
-          : '✓ Payment settings saved and published successfully!'
+          ? '✓ تم حفظ وتحديث بيانات فودافون كاش وإنستا باي بنجاح في الموقع وقاعدة البيانات!'
+          : '✓ Payment settings saved and updated successfully!'
       );
       setTimeout(() => setPaymentSaveSuccess(''), 5000);
     } catch (err: any) {
@@ -693,40 +699,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   // Product modal handlers
-  const handleOpenAddModal = () => {
+  const handleOpenAddModal = (presetCategory?: Category) => {
     setEditingProduct(null);
     setFormData({
       name: '',
       nameAr: '',
-      subtitle: '',
-      subtitleAr: '',
-      category: 'Dresses',
-      categoryAr: 'فساتين',
-      price: 1800,
-      originalPrice: 0,
+      subtitle: 'TOUZA Casual Collection',
+      subtitleAr: 'تشكيلة توزا الكاجوال الفاخرة',
+      category: presetCategory?.nameEn || categories[0]?.nameEn || 'Shirts',
+      categoryAr: presetCategory?.nameAr || categories[0]?.nameAr || 'قميص',
+      price: 850,
+      originalPrice: 1100,
       description: '',
       descriptionAr: '',
       images: [
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuCBAx6WH0ek9bAHiepbvclTqA-ful2ISLUDk0V4-GtMOUSjZHiPTVPeDsCVn8xxeKkdRtzYFCjVuv0_XkUpUsDVEYgQKvrgsgqIy1c6C5qTUsrKtukEuvTYHLlwqBx0rPf-gag3ncho0ZkGVrYxsqdGpwB9tZ7Z7JMeFrgZKVnIMgi88jA01lJqliVqGX_9ifl8H3Wia1lYD27qPz5o0B10GVrQw7F2QlGYrvfutLEIMfe-NTD6iTin7A'
+        'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=600'
       ],
       colors: [
-        { name: 'Noir', hex: '#1e1b19' },
-        { name: 'Beige', hex: '#f5f5dc' }
+        { name: 'Black', nameAr: 'أسود', hex: '#111111' },
+        { name: 'Beige', nameAr: 'بيج', hex: '#d9cdb8' }
       ],
       sizes: [
-        { size: '36', inStock: true },
-        { size: '38', inStock: true },
-        { size: '40', inStock: true }
+        { size: 'M', inStock: true },
+        { size: 'L', inStock: true },
+        { size: 'XL', inStock: true },
+        { size: 'XXL', inStock: true }
       ],
       isNewArrival: true,
-      isFeatured: false,
+      isFeatured: true,
+      showOnHome: true,
     });
     setIsProductModalOpen(true);
   };
 
   const handleOpenEditModal = (prod: Product) => {
     setEditingProduct(prod);
-    setFormData({ ...prod, originalPrice: prod.originalPrice || 0 });
+    setFormData({
+      ...prod,
+      category: prod.category || (categories[0]?.nameEn || 'Shirts'),
+      categoryAr: prod.categoryAr || (categories[0]?.nameAr || 'قميص'),
+      originalPrice: prod.originalPrice || 0
+    });
     setIsProductModalOpen(true);
   };
 
@@ -741,10 +754,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       ? Number(formData.originalPrice)
       : undefined;
 
+    const assignedCategory = formData.category || (categories[0]?.nameEn || 'Shirts');
+    const assignedCategoryAr = formData.categoryAr || (categories[0]?.nameAr || 'قميص');
+
     if (editingProduct) {
       const updated: Product = {
         ...editingProduct,
         ...(formData as Product),
+        category: assignedCategory,
+        categoryAr: assignedCategoryAr,
         price: Number(formData.price),
         originalPrice: cleanedOriginalPrice,
       };
@@ -754,19 +772,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         id: 'prod-' + Date.now(),
         name: formData.name || 'New Item',
         nameAr: formData.nameAr || formData.name,
-        subtitle: formData.subtitle || 'Luxury Collection',
-        subtitleAr: formData.subtitleAr || 'تشكيلة راقية',
-        category: formData.category || 'Dresses',
-        categoryAr: formData.categoryAr || 'فساتين',
+        subtitle: formData.subtitle || 'TOUZA Casual Collection',
+        subtitleAr: formData.subtitleAr || 'تشكيلة توزا الكاجوال',
+        category: assignedCategory,
+        categoryAr: assignedCategoryAr,
         price: Number(formData.price),
         originalPrice: cleanedOriginalPrice,
         description: formData.description || '',
         descriptionAr: formData.descriptionAr || formData.description || '',
-        colors: formData.colors && formData.colors.length > 0 ? formData.colors : [{ name: 'Noir', hex: '#1e1b19' }],
-        sizes: formData.sizes && formData.sizes.length > 0 ? formData.sizes : [{ size: 'M', inStock: true }],
-        images: formData.images && formData.images.length > 0 ? formData.images : ['https://images.unsplash.com/photo-1539109136881-3be0616acf4b'],
+        colors: formData.colors && formData.colors.length > 0 ? formData.colors : [{ name: 'Black', nameAr: 'أسود', hex: '#111111' }],
+        sizes: formData.sizes && formData.sizes.length > 0 ? formData.sizes : [
+          { size: 'M', inStock: true },
+          { size: 'L', inStock: true },
+          { size: 'XL', inStock: true },
+          { size: 'XXL', inStock: true }
+        ],
+        images: formData.images && formData.images.length > 0 ? formData.images : ['https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=600'],
         isNewArrival: formData.isNewArrival ?? true,
-        isFeatured: formData.isFeatured ?? false,
+        isFeatured: formData.isFeatured ?? true,
+        showOnHome: formData.showOnHome ?? true,
       };
       onAddProduct(newProd);
     }
@@ -1070,10 +1094,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Filtered Products
   const filteredProducts = products.filter((p) => {
-    const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
+    const matchesCategory =
+      selectedCategory === 'all' ||
+      p.category === selectedCategory ||
+      p.categoryAr === selectedCategory ||
+      categories.some(
+        (c) =>
+          (c.nameEn === selectedCategory || c.nameAr === selectedCategory) &&
+          (p.category === c.nameEn || p.category === c.nameAr || p.categoryAr === c.nameAr)
+      );
     const matchesSearch =
       p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-      (p.nameAr && p.nameAr.toLowerCase().includes(productSearch.toLowerCase()));
+      (p.nameAr && p.nameAr.toLowerCase().includes(productSearch.toLowerCase())) ||
+      (p.categoryAr && p.categoryAr.toLowerCase().includes(productSearch.toLowerCase())) ||
+      (p.category && p.category.toLowerCase().includes(productSearch.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
@@ -1324,6 +1358,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="max-w-[1500px] mx-auto px-2 sm:px-8 flex overflow-x-auto border-t border-[#222222] scrollbar-none">
           {[
             { id: 'overview', Icon: BarChart3, labelAr: 'الإحصائيات', labelEn: 'Overview' },
+            { id: 'categories', Icon: LayoutGrid, labelAr: `التصنيفات (${categories.length})`, labelEn: `Categories (${categories.length})` },
             { id: 'products', Icon: Shirt, labelAr: `المنتجات (${products.length})`, labelEn: `Products (${products.length})` },
             { id: 'orders', Icon: Truck, labelAr: `الطلبات (${orders.length})`, labelEn: `Orders (${orders.length})` },
             { id: 'users', Icon: Users, labelAr: `المستخدمين (${users.length})`, labelEn: `Users (${users.length})` },
@@ -1705,31 +1740,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </p>
 
                         {/* Actions Footer */}
-                        <div className="pt-3 border-t border-[#c4c7c7]/20 flex items-center justify-between">
-                          <span className="text-[11px] font-mono text-[#747878]">
-                            ID: {cat.id}
-                          </span>
+                        <div className="pt-3 border-t border-[#c4c7c7]/20 flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenAddModal(cat)}
+                            className="w-full py-2 px-3 rounded-xl bg-[#000000] text-white hover:bg-[#222222] font-label-caps text-[12px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">add_circle</span>
+                            <span>{language === 'ar' ? `+ إضافة منتج بقسم (${cat.nameAr})` : `+ Add Product to (${cat.nameEn})`}</span>
+                          </button>
 
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEditCategoryModal(cat)}
-                              className="px-3 py-1.5 rounded-lg bg-[#f3f3f4] hover:bg-[#e0e0e0] text-[#000000] font-label-caps text-[12px] font-bold transition-colors cursor-pointer flex items-center gap-1 border border-[#c4c7c7]/30"
-                              title={language === 'ar' ? 'تعديل التصنيف' : 'Edit Category'}
-                            >
-                              <span className="material-symbols-outlined text-[15px]">edit</span>
-                              <span>{language === 'ar' ? 'تعديل' : 'Edit'}</span>
-                            </button>
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-[11px] font-mono text-[#747878]">
+                              ID: {cat.id}
+                            </span>
 
-                            <button
-                              type="button"
-                              onClick={() => setCategoryToDelete(cat)}
-                              className="px-3 py-1.5 rounded-lg bg-[#ba1a1a]/10 hover:bg-[#ba1a1a]/20 text-[#ba1a1a] font-label-caps text-[12px] font-bold transition-colors cursor-pointer flex items-center gap-1 border border-[#ba1a1a]/20"
-                              title={language === 'ar' ? 'حذف التصنيف' : 'Delete Category'}
-                            >
-                              <span className="material-symbols-outlined text-[15px]">delete</span>
-                              <span>{language === 'ar' ? 'حذف' : 'Delete'}</span>
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditCategoryModal(cat)}
+                                className="px-3 py-1.5 rounded-lg bg-[#f3f3f4] hover:bg-[#e0e0e0] text-[#000000] font-label-caps text-[12px] font-bold transition-colors cursor-pointer flex items-center gap-1 border border-[#c4c7c7]/30"
+                                title={language === 'ar' ? 'تعديل التصنيف' : 'Edit Category'}
+                              >
+                                <span className="material-symbols-outlined text-[15px]">edit</span>
+                                <span>{language === 'ar' ? 'تعديل' : 'Edit'}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setCategoryToDelete(cat)}
+                                className="px-3 py-1.5 rounded-lg bg-[#ba1a1a]/10 hover:bg-[#ba1a1a]/20 text-[#ba1a1a] font-label-caps text-[12px] font-bold transition-colors cursor-pointer flex items-center gap-1 border border-[#ba1a1a]/20"
+                                title={language === 'ar' ? 'حذف التصنيف' : 'Delete Category'}
+                              >
+                                <span className="material-symbols-outlined text-[15px]">delete</span>
+                                <span>{language === 'ar' ? 'حذف' : 'Delete'}</span>
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1746,14 +1792,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="space-y-6 fade-in-up">
             {/* Action Bar */}
             <div className="bg-white p-5 rounded-2xl border border-[#c4c7c7]/30 shadow-xs flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="flex flex-1 items-center gap-3 w-full md:w-auto">
+              <div className="flex flex-wrap flex-1 items-center gap-3 w-full md:w-auto">
                 <input
                   type="text"
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
-                  placeholder={language === 'ar' ? 'بحث عن منتج بالاسم...' : 'Search products by name...'}
-                  className="w-full md:w-72 border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px]"
+                  placeholder={language === 'ar' ? 'بحث عن منتج بالاسم أو القسم...' : 'Search products by name or category...'}
+                  className="w-full sm:w-64 border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px]"
                 />
+
+                {/* Category Filter Dropdown */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[12px] font-label-caps text-[#747878] hidden sm:inline">
+                    {language === 'ar' ? 'القسم:' : 'Category:'}
+                  </span>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="border border-[#c4c7c7] rounded-xl py-2 px-3 text-[13px] bg-white font-body focus:border-[#000000] focus:outline-none cursor-pointer"
+                  >
+                    <option value="all">
+                      {language === 'ar' ? '🏷️ كل الأقسام والتصنيفات' : '🏷️ All Categories'}
+                    </option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.nameEn}>
+                        {cat.nameAr} ({cat.nameEn})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <button
@@ -1771,7 +1838,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <table className="w-full text-start text-[14px]">
                   <thead className="bg-[#f9f9f9] border-b border-[#c4c7c7]/30 font-label-caps text-[11px] text-[#747878]">
                     <tr>
-                      <th className="p-4 text-start">{language === 'ar' ? 'المنتج' : 'Product'}</th>
+                      <th className="p-4 text-start">{language === 'ar' ? 'المنتج والقسم' : 'Product & Category'}</th>
                       <th className="p-4 text-start">{language === 'ar' ? 'المقاسات المتاحة' : 'Available Sizes'}</th>
                       <th className="p-4 text-start">{language === 'ar' ? 'السعر' : 'Price'}</th>
                       <th className="p-4 text-center">{language === 'ar' ? 'الظهور بالرئيسية' : 'Show on Home'}</th>
@@ -1782,6 +1849,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <tbody className="divide-y divide-[#c4c7c7]/20">
                     {filteredProducts.map((prod) => {
                       const isOnHome = !!(prod.showOnHome || prod.isFeatured);
+                      const displayCat = prod.categoryAr || prod.category || (language === 'ar' ? 'قميص' : 'Shirts');
 
                       return (
                       <tr key={prod.id} className="hover:bg-[#f9f9f9] transition-colors">
@@ -1796,7 +1864,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               <p className="font-bold text-[#000000]">
                                 {language === 'ar' && prod.nameAr ? prod.nameAr : prod.name}
                               </p>
-                              <p className="text-[12px] text-[#747878]">{prod.subtitle}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#f4ece1] text-[#8c6d37] border border-[#c5a059]/30">
+                                  <span className="material-symbols-outlined text-[13px]">label</span>
+                                  {displayCat}
+                                </span>
+                                {prod.subtitle && (
+                                  <span className="text-[12px] text-[#747878] truncate max-w-[150px]">{prod.subtitle}</span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -2819,6 +2895,72 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         setSettingsForm({ ...settingsForm, heroSubtitleEn: e.target.value })
                       }
                       className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Collections Page Header Customization */}
+              <div className="space-y-3 p-4 bg-[#f9f9f9] rounded-xl border border-[#c4c7c7]/20">
+                <h3 className="font-label-caps text-[13px] font-bold text-[#000000] flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">collections</span>
+                  <span>{language === 'ar' ? 'نصوص صفحة المجموعات (Collections Page Banner)' : 'Collections Page Banner Text'}</span>
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
+                      عنوان صفحة المجموعات (عربي)
+                    </label>
+                    <input
+                      type="text"
+                      value={settingsForm.collectionsTitleAr || ''}
+                      onChange={(e) =>
+                        setSettingsForm({ ...settingsForm, collectionsTitleAr: e.target.value })
+                      }
+                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px]"
+                      placeholder="استايلك يبدأ من هنا"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
+                      Collections Title (English)
+                    </label>
+                    <input
+                      type="text"
+                      value={settingsForm.collectionsTitleEn || ''}
+                      onChange={(e) =>
+                        setSettingsForm({ ...settingsForm, collectionsTitleEn: e.target.value })
+                      }
+                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px]"
+                      placeholder="Your Style Starts Here"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
+                      وصف صفحة المجموعات (عربي)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={settingsForm.collectionsSubtitleAr || ''}
+                      onChange={(e) =>
+                        setSettingsForm({ ...settingsForm, collectionsSubtitleAr: e.target.value })
+                      }
+                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px]"
+                      placeholder="تشكيلة راقية صُممت بعناية فائقة لتمنحك إطلالة جذابة تناسب جميع المناسبات في مصر."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
+                      Collections Subtitle (English)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={settingsForm.collectionsSubtitleEn || ''}
+                      onChange={(e) =>
+                        setSettingsForm({ ...settingsForm, collectionsSubtitleEn: e.target.value })
+                      }
+                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[14px]"
+                      placeholder="A curated selection of luxury pieces tailored with precision and unhurried elegance."
                     />
                   </div>
                 </div>
@@ -4620,6 +4762,117 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
                     className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3"
                   />
+                </div>
+              </div>
+
+              {/* Category Selector */}
+              <div className="p-4 bg-[#f9f9f9] rounded-2xl border border-[#c4c7c7]/40 space-y-3">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <label className="block font-label-caps text-[13px] font-bold text-[#000000]">
+                      {language === 'ar' ? '🏷️ تصنيف وقسم المنتج *' : '🏷️ Product Category *'}
+                    </label>
+                    <p className="text-[11px] text-[#747878]">
+                      {language === 'ar'
+                        ? 'اضغط على القسم المطلوب (قميص، تيشيرت، بنطلون، إلخ) ليتم تصنيف المنتج داخله فوراً'
+                        : 'Click on the desired category to instantly assign the product'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProductModalOpen(false);
+                      setActiveTab('categories');
+                      handleOpenAddCategoryModal();
+                    }}
+                    className="text-[12px] font-label-caps text-[#8c6d37] hover:text-[#000000] underline font-bold cursor-pointer flex items-center gap-1"
+                  >
+                    <span>+ {language === 'ar' ? 'إضافة قسم جديد' : 'New Category'}</span>
+                  </button>
+                </div>
+
+                {/* Quick Selection Buttons Grid */}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {categories.map((cat) => {
+                    const isSelected =
+                      formData.category === cat.nameEn ||
+                      formData.category === cat.nameAr ||
+                      formData.categoryAr === cat.nameAr;
+
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            category: cat.nameEn,
+                            categoryAr: cat.nameAr,
+                          });
+                        }}
+                        className={`px-3 py-2 rounded-xl text-[12px] sm:text-[13px] font-bold transition-all cursor-pointer flex items-center gap-2 border shadow-2xs ${
+                          isSelected
+                            ? 'bg-[#000000] text-white border-[#000000] ring-2 ring-[#c5a059]'
+                            : 'bg-white text-[#222222] border-[#c4c7c7]/60 hover:border-[#000000] hover:bg-[#f3f3f4]'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[17px]">
+                          {cat.icon || 'label'}
+                        </span>
+                        <span>{cat.nameAr}</span>
+                        <span className="text-[10px] opacity-70 font-mono">({cat.nameEn})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#c4c7c7]/20">
+                  <div>
+                    <label className="block text-[11px] text-[#747878] mb-1">
+                      {language === 'ar' ? 'الاسم البرمجي / الإنجليزي:' : 'Category ID / English Name:'}
+                    </label>
+                    <select
+                      value={formData.category || (categories[0]?.nameEn || 'Shirts')}
+                      onChange={(e) => {
+                        const selectedVal = e.target.value;
+                        const match = categories.find(
+                          (c) => c.nameEn === selectedVal || c.nameAr === selectedVal
+                        );
+                        if (match) {
+                          setFormData({
+                            ...formData,
+                            category: match.nameEn,
+                            categoryAr: match.nameAr,
+                          });
+                        } else {
+                          setFormData({
+                            ...formData,
+                            category: selectedVal,
+                          });
+                        }
+                      }}
+                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 bg-white font-body text-[13px] focus:border-[#000000] focus:outline-none"
+                    >
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.nameEn}>
+                          {cat.nameAr} — {cat.nameEn}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-[#747878] mb-1">
+                      {language === 'ar' ? 'اسم التصنيف الظاهر في المتجر (بالعربية):' : 'Display Arabic Category Name:'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.categoryAr || ''}
+                      onChange={(e) => setFormData({ ...formData, categoryAr: e.target.value })}
+                      placeholder="مثال: قميص"
+                      className="w-full border border-[#c4c7c7] rounded-xl py-2 px-3 text-[13px] bg-white font-bold"
+                    />
+                  </div>
                 </div>
               </div>
 

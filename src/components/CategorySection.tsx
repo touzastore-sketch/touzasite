@@ -28,18 +28,33 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
 
   const getProductCount = (categoryNameEn: string, categoryNameAr: string) => {
     if (categoryNameEn === 'All') return products.length;
-    return products.filter(
-      (p) =>
+    return products.filter((p) => {
+      if (!p.category && !p.categoryAr) return false;
+      const pCatEn = p.category?.toLowerCase()?.trim() || '';
+      const pCatAr = p.categoryAr?.trim() || '';
+      const cEn = categoryNameEn.toLowerCase().trim();
+      const cAr = categoryNameAr.trim();
+      return (
+        pCatEn === cEn ||
         p.category === categoryNameEn ||
         p.category === categoryNameAr ||
-        p.categoryAr === categoryNameAr
-    ).length;
+        pCatAr === cAr ||
+        p.categoryAr === categoryNameEn ||
+        (cEn && pCatEn.includes(cEn)) ||
+        (cAr && pCatAr.includes(cAr))
+      );
+    }).length;
   };
 
   const defaultCategoryImages: Record<string, string> = {
-    Dresses: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&q=80&w=600',
-    Outerwear: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=600',
-    Accessories: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=600',
+    Shirts: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=600',
+    'T-Shirts': 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=600',
+    Pants: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&q=80&w=600',
+    Polo: 'https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?auto=format&fit=crop&q=80&w=600',
+    'Hoodies & Sweatshirts': 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&q=80&w=600',
+    'Jackets & Coats': 'https://images.unsplash.com/photo-1544022613-e87ce7526edb?auto=format&fit=crop&q=80&w=600',
+    Shorts: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&q=80&w=600',
+    Accessories: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&q=80&w=600',
   };
 
   return (
