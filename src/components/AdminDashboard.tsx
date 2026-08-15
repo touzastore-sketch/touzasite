@@ -500,7 +500,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       if (orders.length === 0) setLoadingOrders(true);
       setLoadingUsers(true);
 
-      // Real-time listener for Orders
+      // Immediate fetch + Real-time listener for Orders
+      getAllOrdersAdmin().then((list) => {
+        if (list && list.length > 0) {
+          setOrders(list);
+        }
+        setLoadingOrders(false);
+      }).catch(() => setLoadingOrders(false));
+
       const unsubOrders = subscribeToOrdersAdmin((latestOrders) => {
         setOrders(latestOrders);
         setLoadingOrders(false);

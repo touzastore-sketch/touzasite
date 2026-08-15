@@ -107,7 +107,20 @@ export const AppContent: React.FC = () => {
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem('maison_products');
-      return saved ? JSON.parse(saved) : PRODUCTS;
+      if (saved) {
+        const parsed: Product[] = JSON.parse(saved);
+        const legacyIds = new Set([
+          'silk-georgette-gown', 'sculptural-leather-mules', 'minimalist-silver-cuff',
+          'structured-crossbody', 'obsidian-tailored-coat', 'silk-draped-blouse',
+          'wide-leg-camel-trousers', 'noir-silk-slip-dress', 'architectural-tote', 'geometric-silver-pendant'
+        ]);
+        const valid = parsed.filter((p) => p && !legacyIds.has(p.id));
+        const validIds = new Set(valid.map((p) => p.id));
+        const missing = PRODUCTS.filter((dp) => !validIds.has(dp.id));
+        const combined = [...valid, ...missing];
+        if (combined.length > 0) return combined;
+      }
+      return PRODUCTS;
     } catch {
       return PRODUCTS;
     }

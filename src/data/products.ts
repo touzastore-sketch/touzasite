@@ -42,7 +42,8 @@ export const PRODUCTS: Product[] = [
       '/images/touza_green_shirt.jpg'
     ],
     isNewArrival: true,
-    isFeatured: true
+    isFeatured: true,
+    showOnHome: true
   },
   {
     id: 'touza-summer-striped-shirt-brown',
@@ -83,7 +84,8 @@ export const PRODUCTS: Product[] = [
       '/images/touza_brown_shirt.jpg'
     ],
     isNewArrival: true,
-    isFeatured: true
+    isFeatured: true,
+    showOnHome: true
   },
   {
     id: 'touza-summer-striped-shirt-orange',
@@ -124,7 +126,8 @@ export const PRODUCTS: Product[] = [
       '/images/touza_orange_shirt.jpg'
     ],
     isNewArrival: true,
-    isFeatured: true
+    isFeatured: true,
+    showOnHome: true
   },
   {
     id: 'touza-summer-striped-shirt-yellow',
@@ -165,7 +168,8 @@ export const PRODUCTS: Product[] = [
       '/images/touza_yellow_shirt.jpg'
     ],
     isNewArrival: true,
-    isFeatured: true
+    isFeatured: true,
+    showOnHome: true
   }
 ];
 

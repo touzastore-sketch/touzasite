@@ -512,6 +512,16 @@ export const saveUserOrder = async (
     console.warn('Non-fatal error saving order to user subcollection:', err);
   }
 
+  // Update admin orders cache immediately
+  try {
+    const cachedOrdersStr = localStorage.getItem('maison_orders_cache');
+    const cachedOrders: SavedOrder[] = cachedOrdersStr ? JSON.parse(cachedOrdersStr) : [];
+    if (!cachedOrders.some((o) => o.id === returnOrder.id)) {
+      cachedOrders.unshift(returnOrder);
+      localStorage.setItem('maison_orders_cache', safeJsonStringify(cachedOrders));
+    }
+  } catch {}
+
   return returnOrder;
 };
 
@@ -1378,27 +1388,16 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
       }
     });
 
-    if (firestoreProducts.length === 0) {
-      // Check if localStorage has existing modified products before falling back to defaults
-      let productsToSeed = PRODUCTS.map(sanitizeProduct);
-      try {
-        const saved = localStorage.getItem('maison_products');
-        if (saved) {
-          const parsed: Product[] = JSON.parse(saved);
-          const valid = parsed
-            .filter((p) => p && !legacyProductIds.has(p.id))
-            .map(sanitizeProduct);
-          if (valid.length > 0) {
-            productsToSeed = valid;
-          }
-        }
-      } catch {}
-
-      for (const prod of productsToSeed) {
-        await setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true });
+    // Merge any missing default TOUZA products so all 4 are always present
+    const existingIds = new Set(firestoreProducts.map((p) => p.id));
+    const missingDefaults = PRODUCTS.filter((dp) => !existingIds.has(dp.id));
+    if (missingDefaults.length > 0) {
+      for (const dp of missingDefaults) {
+        const sanitized = sanitizeProduct(dp);
+        firestoreProducts.push(sanitized);
+        // Persist missing defaults into Firestore in background
+        setDoc(doc(db, 'products', dp.id), sanitizeForFirestore(sanitized), { merge: true }).catch(() => {});
       }
-      localStorage.setItem('maison_products', safeJsonStringify(productsToSeed));
-      return productsToSeed;
     }
 
     localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
@@ -1412,7 +1411,10 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
         const valid = parsed
           .filter((p) => p && !legacyProductIds.has(p.id))
           .map(sanitizeProduct);
-        if (valid.length > 0) return valid;
+        const validIds = new Set(valid.map((p) => p.id));
+        const missing = PRODUCTS.filter((dp) => !validIds.has(dp.id)).map(sanitizeProduct);
+        const combined = [...valid, ...missing];
+        if (combined.length > 0) return combined;
       }
       return PRODUCTS.map(sanitizeProduct);
     } catch {
@@ -1430,7 +1432,7 @@ export const subscribeToProducts = (
     'wide-leg-camel-trousers', 'noir-silk-slip-dress', 'architectural-tote', 'geometric-silver-pendant'
   ]);
 
-  // Immediately emit sanitized cached products from localStorage
+  // Immediately emit sanitized cached products from localStorage with all 4 default products ensured
   try {
     const saved = localStorage.getItem('maison_products');
     if (saved) {
@@ -1438,11 +1440,18 @@ export const subscribeToProducts = (
       const valid = parsed
         .filter((p) => p && !legacyProductIds.has(p.id))
         .map(sanitizeProduct);
-      if (valid.length > 0) {
-        callback(valid);
+      const validIds = new Set(valid.map((p) => p.id));
+      const missing = PRODUCTS.filter((dp) => !validIds.has(dp.id)).map(sanitizeProduct);
+      const combined = [...valid, ...missing];
+      if (combined.length > 0) {
+        callback(combined);
       }
+    } else {
+      callback(PRODUCTS.map(sanitizeProduct));
     }
-  } catch {}
+  } catch {
+    callback(PRODUCTS.map(sanitizeProduct));
+  }
 
   try {
     const productsRef = collection(db, 'products');
@@ -1455,6 +1464,17 @@ export const subscribeToProducts = (
             firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...docSnap.data() } as Product));
           }
         });
+
+        // Always ensure all 4 default TOUZA products are present
+        const existingIds = new Set(firestoreProducts.map((p) => p.id));
+        const missingDefaults = PRODUCTS.filter((dp) => !existingIds.has(dp.id));
+        if (missingDefaults.length > 0) {
+          for (const dp of missingDefaults) {
+            const sanitized = sanitizeProduct(dp);
+            firestoreProducts.push(sanitized);
+            setDoc(doc(db, 'products', dp.id), sanitizeForFirestore(sanitized), { merge: true }).catch(() => {});
+          }
+        }
 
         if (firestoreProducts.length > 0) {
           localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
