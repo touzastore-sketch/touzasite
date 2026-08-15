@@ -1584,6 +1584,23 @@ function sanitizeSettings(settings: StoreSettings, defaultSettings: StoreSetting
   if (!sanitized.defaultLanguage) {
     sanitized.defaultLanguage = defaultSettings.defaultLanguage || 'ar';
   }
+  // Sanitize announcement text to prevent old cached or hardcoded repetitive text flashes
+  if (
+    !sanitized.announcementAr ||
+    sanitized.announcementAr.includes('TOUZA MEN\'S WEAR') ||
+    sanitized.announcementAr.includes('شحن مجاني لجميع المحافظات | خصم 10%') ||
+    sanitized.announcementAr.includes('تشكيلة الخريف والشتاء')
+  ) {
+    sanitized.announcementAr = defaultSettings.announcementAr;
+  }
+  if (
+    !sanitized.announcementEn ||
+    sanitized.announcementEn.includes('TOUZA MEN\'S WEAR') ||
+    sanitized.announcementEn.includes('Complimentary Express Shipping') ||
+    sanitized.announcementEn.includes('AUTUMN & WINTER')
+  ) {
+    sanitized.announcementEn = defaultSettings.announcementEn;
+  }
   if (sanitized.enableMarqueeBar === undefined) {
     sanitized.enableMarqueeBar = defaultSettings.enableMarqueeBar ?? true;
   }
@@ -1659,6 +1676,8 @@ function sanitizeSettings(settings: StoreSettings, defaultSettings: StoreSetting
   return sanitized;
 }
 
+const SETTINGS_STORAGE_KEY = 'maison_settings_v4';
+
 export const getStoreSettingsAdmin = async (
   defaultSettings: StoreSettings
 ): Promise<StoreSettings> => {
@@ -1669,7 +1688,7 @@ export const getStoreSettingsAdmin = async (
     if (!docSnap.exists()) {
       let settingsToSeed = defaultSettings;
       try {
-        const saved = localStorage.getItem('maison_settings');
+        const saved = localStorage.getItem(SETTINGS_STORAGE_KEY) || localStorage.getItem('maison_settings');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed) {
@@ -1679,17 +1698,17 @@ export const getStoreSettingsAdmin = async (
       } catch {}
 
       await setDoc(settingsDocRef, sanitizeForFirestore(settingsToSeed), { merge: true });
-      localStorage.setItem('maison_settings', safeJsonStringify(settingsToSeed));
+      localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(settingsToSeed));
       return settingsToSeed;
     }
 
     const remoteData = sanitizeSettings({ ...defaultSettings, ...(docSnap.data() as StoreSettings) }, defaultSettings);
-    localStorage.setItem('maison_settings', safeJsonStringify(remoteData));
+    localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(remoteData));
     return remoteData;
   } catch (error) {
     console.warn('Using offline fallback for store settings:', error);
     try {
-      const saved = localStorage.getItem('maison_settings');
+      const saved = localStorage.getItem(SETTINGS_STORAGE_KEY) || localStorage.getItem('maison_settings');
       return saved ? sanitizeSettings({ ...defaultSettings, ...JSON.parse(saved) }, defaultSettings) : defaultSettings;
     } catch {
       return defaultSettings;
@@ -1703,7 +1722,7 @@ export const subscribeToStoreSettings = (
 ): (() => void) => {
   // Immediately emit cached settings from localStorage for instant render on Safari
   try {
-    const saved = localStorage.getItem('maison_settings');
+    const saved = localStorage.getItem(SETTINGS_STORAGE_KEY) || localStorage.getItem('maison_settings');
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed) {
@@ -1719,7 +1738,7 @@ export const subscribeToStoreSettings = (
       (docSnap) => {
         if (docSnap.exists()) {
           const remoteData = sanitizeSettings({ ...defaultSettings, ...(docSnap.data() as StoreSettings) }, defaultSettings);
-          localStorage.setItem('maison_settings', safeJsonStringify(remoteData));
+          localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(remoteData));
           callback(remoteData);
         }
       },

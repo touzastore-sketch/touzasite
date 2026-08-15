@@ -18,18 +18,18 @@ export const PerksMarqueeBar: React.FC<PerksMarqueeBarProps> = ({ storeSettings 
 
   const defaultPerks = isRtl
     ? [
-        'شحن مجاني للطلبات لجميع المحافظات',
-        'إرجاع واستبدال مجاني خلال 14 يوم',
-        'جميع القطع خامات قطن مصري وكتان فاخر 100%',
+        'شحن سريع لجميع المحافظات',
+        'خامات قطن مصري وكتان فاخر 100%',
+        'استبدال واسترجاع خلال 14 يوم',
         'توصيل سريع لجميع محافظات مصر',
         'تغليف توزا الفاخر مجاناً لجميع الطلبات',
       ]
     : [
-        'COMPLIMENTARY EXPRESS SHIPPING NATIONWIDE',
-        'COMPLIMENTARY 14-DAY EASY RETURNS & EXCHANGES',
-        '100% HEAVYWEIGHT EGYPTIAN COTTON & FINE LINEN',
-        'EXPRESS DOORSTEP DELIVERY ACROSS ALL EGYPT',
-        'SIGNATURE TOUZA LUXURY PACKAGING INCLUDED',
+        'EXPRESS SHIPPING NATIONWIDE',
+        '100% PREMIUM EGYPTIAN COTTON & LINEN',
+        '14-DAY EASY RETURNS & EXCHANGES',
+        'FAST DOORSTEP DELIVERY ACROSS EGYPT',
+        'SIGNATURE TOUZA LUXURY PACKAGING',
       ];
 
   let parsedPerks: string[] = [];

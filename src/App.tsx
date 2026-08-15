@@ -284,7 +284,12 @@ export const AppContent: React.FC = () => {
 
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => {
     try {
-      const saved = localStorage.getItem('maison_settings');
+      // Clear out legacy cache to prevent stale data flashes
+      localStorage.removeItem('maison_settings');
+      localStorage.removeItem('maison_settings_v2');
+      localStorage.removeItem('maison_settings_v3');
+
+      const saved = localStorage.getItem('maison_settings_v4');
       if (saved) {
         const parsed = JSON.parse(saved);
         // Upgrade legacy default hero text to new copy
@@ -299,16 +304,18 @@ export const AppContent: React.FC = () => {
         }
         // Clean out legacy announcement text if present in cached settings
         if (
-          parsed.announcementAr &&
-          (parsed.announcementAr.includes('شحن مجاني لجميع المحافظات | خصم 10%') ||
-            parsed.announcementAr.includes('تشكيلة الخريف والشتاء'))
+          !parsed.announcementAr ||
+          parsed.announcementAr.includes('TOUZA MEN\'S WEAR') ||
+          parsed.announcementAr.includes('شحن مجاني لجميع المحافظات | خصم 10%') ||
+          parsed.announcementAr.includes('تشكيلة الخريف والشتاء')
         ) {
           parsed.announcementAr = defaultSettings.announcementAr;
         }
         if (
-          parsed.announcementEn &&
-          (parsed.announcementEn.includes('Complimentary Express Shipping') ||
-            parsed.announcementEn.includes('AUTUMN & WINTER'))
+          !parsed.announcementEn ||
+          parsed.announcementEn.includes('TOUZA MEN\'S WEAR') ||
+          parsed.announcementEn.includes('Complimentary Express Shipping') ||
+          parsed.announcementEn.includes('AUTUMN & WINTER')
         ) {
           parsed.announcementEn = defaultSettings.announcementEn;
         }
@@ -322,7 +329,7 @@ export const AppContent: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('maison_settings', safeJsonStringify(storeSettings));
+      localStorage.setItem('maison_settings_v4', safeJsonStringify(storeSettings));
     } catch (err) {
       console.error('Failed to store settings:', err);
     }
