@@ -68,8 +68,8 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     }
   }, [user]);
 
-  // Payment method: 'cod' | 'instapay' | 'vodafone_cash'
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'instapay' | 'vodafone_cash'>('cod');
+  // Payment method: 'cod' | 'instapay' | 'vodafone_cash' | 'orange_cash'
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'instapay' | 'vodafone_cash' | 'orange_cash'>('cod');
   const [transferRef, setTransferRef] = useState('');
 
   // Fallback to cached local settings if storeSettings prop is momentarily pending
@@ -87,16 +87,24 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     const isCodEnabled = activeSettings?.enableCashOnDelivery !== false;
     const isInstaPayEnabled = activeSettings?.enableInstaPay !== false;
     const isVodaEnabled = activeSettings?.enableVodafoneCash !== false;
+    const isOrangeEnabled = activeSettings?.enableOrangeCash !== false;
 
     if (paymentMethod === 'cod' && !isCodEnabled) {
       if (isInstaPayEnabled) setPaymentMethod('instapay');
       else if (isVodaEnabled) setPaymentMethod('vodafone_cash');
+      else if (isOrangeEnabled) setPaymentMethod('orange_cash');
     } else if (paymentMethod === 'instapay' && !isInstaPayEnabled) {
       if (isCodEnabled) setPaymentMethod('cod');
       else if (isVodaEnabled) setPaymentMethod('vodafone_cash');
+      else if (isOrangeEnabled) setPaymentMethod('orange_cash');
     } else if (paymentMethod === 'vodafone_cash' && !isVodaEnabled) {
       if (isCodEnabled) setPaymentMethod('cod');
       else if (isInstaPayEnabled) setPaymentMethod('instapay');
+      else if (isOrangeEnabled) setPaymentMethod('orange_cash');
+    } else if (paymentMethod === 'orange_cash' && !isOrangeEnabled) {
+      if (isCodEnabled) setPaymentMethod('cod');
+      else if (isInstaPayEnabled) setPaymentMethod('instapay');
+      else if (isVodaEnabled) setPaymentMethod('vodafone_cash');
     }
   }, [activeSettings, paymentMethod]);
 
@@ -266,7 +274,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       return;
     }
 
-    if ((paymentMethod === 'instapay' || paymentMethod === 'vodafone_cash') && !transferRef.trim()) {
+    if ((paymentMethod === 'instapay' || paymentMethod === 'vodafone_cash' || paymentMethod === 'orange_cash') && !transferRef.trim()) {
       setSubmitError(language === 'ar' ? 'يرجى إدخال رقم الهاتف أو رقم العملية المحول منها للتحقق' : 'Please enter the transfer sender phone number or reference ID');
       return;
     }
@@ -279,7 +287,9 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
         ? 'الدفع عند الاستلام (كاش)'
         : paymentMethod === 'instapay'
         ? `إنستا باي (InstaPay) - المحول: ${transferRef}`
-        : `فودافون كاش (Vodafone Cash) - المحول: ${transferRef}`;
+        : paymentMethod === 'vodafone_cash'
+        ? `فودافون كاش (Vodafone Cash) - المحول: ${transferRef}`
+        : `أورانج كاش (Orange Cash) - المحول: ${transferRef}`;
 
     try {
       if (appliedPromoCode && onUsePromoCode) {
@@ -822,7 +832,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                   {language === 'ar' ? 'اختر طريقة الدفع' : 'Select Payment Method'}
                 </h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {/* Option 1: Cash on Delivery */}
                   {activeSettings?.enableCashOnDelivery !== false && (
                     <button
@@ -868,6 +878,22 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                     >
                       <span className="material-symbols-outlined text-[24px]">phonelink_ring</span>
                       <span>{language === 'ar' ? 'فودافون كاش' : 'Vodafone Cash'}</span>
+                    </button>
+                  )}
+
+                  {/* Option 4: Orange Cash */}
+                  {activeSettings?.enableOrangeCash !== false && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('orange_cash')}
+                      className={`p-4 border rounded-xl font-label-caps text-[13px] flex flex-col items-center justify-center text-center gap-2 cursor-pointer transition-all ${
+                        paymentMethod === 'orange_cash'
+                          ? 'border-[#ff6600] bg-[#ff6600] text-white font-bold shadow-md'
+                          : 'border-[#c4c7c7] bg-white text-[#5e5e5c] hover:border-[#ff6600] hover:text-[#ff6600]'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[24px]">phone_android</span>
+                      <span>{language === 'ar' ? 'أورانج كاش' : 'Orange Cash'}</span>
                     </button>
                   )}
                 </div>
@@ -954,6 +980,42 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                         onChange={(e) => setTransferRef(e.target.value)}
                         placeholder="010XXXXXXXX"
                         className="w-full bg-white border border-red-300 rounded-lg p-2.5 text-[14px] font-mono"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {paymentMethod === 'orange_cash' && activeSettings?.enableOrangeCash !== false && (
+                  <div className="p-5 bg-orange-50 border border-orange-200 rounded-xl space-y-4 text-[14px]">
+                    <div className="space-y-1">
+                      <p className="font-bold text-orange-950 font-label-caps flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[18px] text-[#ff6600]">phone_android</span>
+                        <span>{language === 'ar' ? 'بيانات تحويل محفظة أورانج كاش (Orange Cash):' : 'Orange Cash Wallet Details:'}</span>
+                      </p>
+                      <div className="p-3 bg-white rounded-lg border border-orange-200 font-mono text-[14px] text-orange-950 space-y-1">
+                        <p><strong>Wallet Number:</strong> {activeSettings?.orangeCashNumber || '01200031140'}</p>
+                        <p className="text-[12px] text-orange-700 font-sans">
+                          {language === 'ar' ? `المبلغ المطلوب تحويله: ${formatPrice(total)}` : `Amount to transfer: ${formatPrice(total)}`}
+                        </p>
+                      </div>
+                      {(activeSettings?.orangeCashInstructionsAr || activeSettings?.orangeCashInstructionsEn) && (
+                        <p className="text-[#555] text-[13px] leading-relaxed pt-1 font-sans">
+                          {language === 'ar' ? activeSettings.orangeCashInstructionsAr : activeSettings.orangeCashInstructionsEn}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-[12px] font-label-caps font-bold text-orange-950 mb-1">
+                        {language === 'ar' ? 'رقم محفظة أورانج كاش المحول منها *' : 'Sender Orange Cash Number *'}
+                      </label>
+                      <input
+                        type="tel"
+                        value={transferRef}
+                        onChange={(e) => setTransferRef(e.target.value)}
+                        placeholder="012XXXXXXXX"
+                        className="w-full bg-white border border-orange-300 rounded-lg p-2.5 text-[14px] font-mono focus:border-[#ff6600] focus:ring-1 focus:ring-[#ff6600] outline-hidden"
                         required
                       />
                     </div>

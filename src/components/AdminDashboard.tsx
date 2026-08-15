@@ -408,6 +408,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       return;
     }
 
+    if (settingsForm.enableOrangeCash !== false && !settingsForm.orangeCashNumber?.trim()) {
+      setPaymentSaveError(
+        language === 'ar'
+          ? 'تنبيه: يرجى إدخال رقم محفظة أورانج كاش قبل الحفظ'
+          : 'Please enter the Orange Cash phone number before saving'
+      );
+      return;
+    }
+
     if (
       settingsForm.enableInstaPay !== false &&
       !settingsForm.instaPayAccount?.trim() &&
@@ -430,8 +439,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       await onUpdateStoreSettings(sanitized);
       setPaymentSaveSuccess(
         language === 'ar'
-          ? '✓ تم حفظ وتحديث بيانات فودافون كاش وإنستا باي بنجاح في الموقع وقاعدة البيانات!'
-          : '✓ Payment settings saved and updated successfully!'
+          ? '✓ تم حفظ وتحديث بيانات فودافون كاش، أورانج كاش وإنستا باي بنجاح في الموقع وقاعدة البيانات!'
+          : '✓ Payment settings (Vodafone Cash, Orange Cash, InstaPay) saved and updated successfully!'
       );
       setTimeout(() => setPaymentSaveSuccess(''), 5000);
     } catch (err: any) {
@@ -2148,7 +2157,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </p>
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-1">
                           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold shadow-2xs border bg-white max-w-full overflow-hidden">
-                            {ord.paymentMethod?.includes('فودافون') || ord.paymentMethod?.toLowerCase().includes('vodafone') ? (
+                            {ord.paymentMethod?.includes('أورانج') || ord.paymentMethod?.toLowerCase().includes('orange') ? (
+                              <span className="text-[#ff6600] flex items-center gap-1 break-all">
+                                <span className="material-symbols-outlined text-[18px] shrink-0">phone_android</span>
+                                <span>{ord.paymentMethod}</span>
+                              </span>
+                            ) : ord.paymentMethod?.includes('فودافون') || ord.paymentMethod?.toLowerCase().includes('vodafone') ? (
                               <span className="text-red-700 flex items-center gap-1 break-all">
                                 <span className="material-symbols-outlined text-[18px] shrink-0">phonelink_ring</span>
                                 <span>{ord.paymentMethod}</span>
@@ -3894,12 +3908,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <div>
                   <h2 className="font-display text-[22px] font-bold text-black">
-                    {language === 'ar' ? 'إعدادات وسائل الدفع (فودافون كاش وإنستا باي)' : 'Payment Methods Configuration'}
+                    {language === 'ar' ? 'إعدادات وسائل الدفع (فودافون كاش، أورانج كاش، إنستا باي)' : 'Payment Methods Configuration'}
                   </h2>
                   <p className="font-body text-[13px] text-[#5e5e5c]">
                     {language === 'ar'
                       ? 'التحكم المركزي في أرقام المحافظ والحسابات البنكية وإتاحة أو تفعيل طرق الدفع وإرشادات الشراء للعملاء'
-                      : 'Manage Vodafone Cash numbers, InstaPay accounts, enable/disable options, and payment instructions.'}
+                      : 'Manage Vodafone Cash numbers, Orange Cash wallet, InstaPay accounts, enable/disable options, and payment instructions.'}
                   </p>
                 </div>
               </div>
@@ -3999,6 +4013,91 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         }
                         placeholder="Please transfer total amount to Vodafone Cash number above and provide sender phone..."
                         className="w-full border border-gray-300 rounded-xl p-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-red-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. ORANGE CASH CARD */}
+              <div className="bg-white p-6 rounded-2xl border border-orange-300 shadow-xs space-y-5">
+                <div className="flex items-center justify-between border-b border-orange-100 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-orange-100 text-[#ff6600] flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[22px]">phone_android</span>
+                    </div>
+                    <div>
+                      <h3 className="font-display text-[18px] font-bold text-orange-950">
+                        {language === 'ar' ? 'محفظة أورانج كاش (Orange Cash)' : 'Orange Cash Wallet'}
+                      </h3>
+                      <p className="text-[12px] text-orange-700">
+                        {language === 'ar' ? 'استلام الأموال عبر تحويل محفظة أورانج كاش الإلكترونية' : 'Collect payments via Orange Cash mobile wallet'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Toggle switch */}
+                  <label className="relative inline-flex items-center cursor-pointer gap-2">
+                    <input
+                      type="checkbox"
+                      checked={settingsForm.enableOrangeCash !== false}
+                      onChange={(e) =>
+                        setSettingsForm({ ...settingsForm, enableOrangeCash: e.target.checked })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#ff6600]"></div>
+                    <span className="text-[13px] font-label-caps font-bold text-gray-700">
+                      {settingsForm.enableOrangeCash !== false
+                        ? language === 'ar' ? 'مُفعل' : 'Enabled'
+                        : language === 'ar' ? 'معطل' : 'Disabled'}
+                    </span>
+                  </label>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[13px] font-label-caps font-bold text-gray-800 mb-1">
+                      {language === 'ar' ? 'رقم محفظة أورانج كاش المخصص للاستلام *' : 'Orange Cash Phone Number *'}
+                    </label>
+                    <input
+                      type="tel"
+                      value={settingsForm.orangeCashNumber || ''}
+                      onChange={(e) =>
+                        setSettingsForm({ ...settingsForm, orangeCashNumber: e.target.value })
+                      }
+                      placeholder="012XXXXXXXX"
+                      className="w-full border border-orange-300 rounded-xl p-3 text-[15px] font-mono dir-ltr text-right rtl:text-right bg-orange-50/30 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[12px] font-label-caps text-gray-700 mb-1">
+                        {language === 'ar' ? 'تعليمات الشراء باللغة العربية' : 'Arabic Instructions'}
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={settingsForm.orangeCashInstructionsAr || ''}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, orangeCashInstructionsAr: e.target.value })
+                        }
+                        placeholder="يرجى تحويل المبلغ المطلوب إلى رقم محفظة أورانج كاش أعلاه ثم إدخال رقم الهاتف المحول منه..."
+                        className="w-full border border-gray-300 rounded-xl p-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[12px] font-label-caps text-gray-700 mb-1">
+                        {language === 'ar' ? 'تعليمات الشراء باللغة الإنجليزية' : 'English Instructions'}
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={settingsForm.orangeCashInstructionsEn || ''}
+                        onChange={(e) =>
+                          setSettingsForm({ ...settingsForm, orangeCashInstructionsEn: e.target.value })
+                        }
+                        placeholder="Please transfer total amount to Orange Cash wallet number above and provide sender phone..."
+                        className="w-full border border-gray-300 rounded-xl p-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#ff6600]"
                       />
                     </div>
                   </div>

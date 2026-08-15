@@ -88,7 +88,27 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const isTransparent = currentView === 'home' && !isScrolled;
-  const topAnnouncement = language === 'ar' ? storeSettings?.announcementAr : storeSettings?.announcementEn;
+  const rawTopAnnouncement = language === 'ar' ? storeSettings?.announcementAr : storeSettings?.announcementEn;
+  const showTopAnnouncement = storeSettings?.enableMarqueeBar !== false && Boolean(rawTopAnnouncement?.trim());
+
+  // Parse custom messages cleanly without hardcoded injections
+  let announcementItems: string[] = [];
+  if (rawTopAnnouncement && rawTopAnnouncement.trim()) {
+    if (rawTopAnnouncement.includes('|')) {
+      announcementItems = rawTopAnnouncement.split('|').map((s) => s.trim()).filter(Boolean);
+    } else if (rawTopAnnouncement.includes('\n')) {
+      announcementItems = rawTopAnnouncement.split('\n').map((s) => s.trim()).filter(Boolean);
+    } else {
+      announcementItems = [rawTopAnnouncement.trim()];
+    }
+  }
+
+  // Double/repeat items for smooth infinite loop
+  const marqueeList = announcementItems.length > 0 
+    ? [...announcementItems, ...announcementItems, ...announcementItems, ...announcementItems]
+    : [];
+
+  const marqueeSymbol = storeSettings?.marqueeSymbol || '✦';
 
   return (
     <>
@@ -103,49 +123,29 @@ export const Navbar: React.FC<NavbarProps> = ({
         }`}
       >
         {/* Top Announcement Bar (Infinite Moving Marquee Ticker) */}
-        {topAnnouncement && (
+        {showTopAnnouncement && marqueeList.length > 0 && (
           <div className="w-full bg-[#111111] text-[#e2c792] text-[11px] sm:text-[12px] font-medium py-1.5 border-b border-[#e2c792]/20 overflow-hidden font-label-caps whitespace-nowrap marquee-container select-none">
             <div
-              className={`flex whitespace-nowrap gap-12 ${
+              className={`flex whitespace-nowrap gap-10 ${
                 language === 'ar' ? 'animate-marquee-rtl' : 'animate-marquee'
               }`}
               style={{ animationDuration: '24s' }}
             >
-              <div className="flex items-center gap-12 shrink-0">
-                <span className="flex items-center gap-3">
-                  <span className="text-[#e2c792] text-[10px]">✦</span>
-                  <span className="tracking-[0.18em]">{topAnnouncement}</span>
-                </span>
-                <span className="flex items-center gap-3">
-                  <span className="text-[#e2c792] text-[10px]">✦</span>
-                  <span className="tracking-[0.18em]">TOUZA MEN'S WEAR</span>
-                </span>
-                <span className="flex items-center gap-3">
-                  <span className="text-[#e2c792] text-[10px]">✦</span>
-                  <span className="tracking-[0.18em]">{topAnnouncement}</span>
-                </span>
-                <span className="flex items-center gap-3">
-                  <span className="text-[#e2c792] text-[10px]">✦</span>
-                  <span className="tracking-[0.18em]">TOUZA MEN'S WEAR</span>
-                </span>
+              <div className="flex items-center gap-10 shrink-0">
+                {marqueeList.map((item, idx) => (
+                  <span key={`nav-ann-${idx}`} className="flex items-center gap-3">
+                    <span className="text-[#e2c792] text-[10px] opacity-80">{marqueeSymbol}</span>
+                    <span className="tracking-[0.18em]">{item}</span>
+                  </span>
+                ))}
               </div>
-              <div className="flex items-center gap-12 shrink-0">
-                <span className="flex items-center gap-3">
-                  <span className="text-[#e2c792] text-[10px]">✦</span>
-                  <span className="tracking-[0.18em]">{topAnnouncement}</span>
-                </span>
-                <span className="flex items-center gap-3">
-                  <span className="text-[#e2c792] text-[10px]">✦</span>
-                  <span className="tracking-[0.18em]">TOUZA MEN'S WEAR</span>
-                </span>
-                <span className="flex items-center gap-3">
-                  <span className="text-[#e2c792] text-[10px]">✦</span>
-                  <span className="tracking-[0.18em]">{topAnnouncement}</span>
-                </span>
-                <span className="flex items-center gap-3">
-                  <span className="text-[#e2c792] text-[10px]">✦</span>
-                  <span className="tracking-[0.18em]">TOUZA MEN'S WEAR</span>
-                </span>
+              <div className="flex items-center gap-10 shrink-0">
+                {marqueeList.map((item, idx) => (
+                  <span key={`nav-ann-dup-${idx}`} className="flex items-center gap-3">
+                    <span className="text-[#e2c792] text-[10px] opacity-80">{marqueeSymbol}</span>
+                    <span className="tracking-[0.18em]">{item}</span>
+                  </span>
+                ))}
               </div>
             </div>
           </div>

@@ -208,8 +208,8 @@ export const AppContent: React.FC = () => {
     storeNameEn: 'TOUZA CASUAL',
     taglineAr: 'ملابس كاجوال رجالي فاخرة - بورسعيد | مصر',
     taglineEn: 'Luxury Men Casual Wear - Portsaid | Egypt',
-    announcementAr: 'شحن سريع لجميع المحافظات | تشكيلة الخريف والشتاء الحصرية متاحة الآن | خامات قطن مصري وكتان فاخر 100%',
-    announcementEn: 'COMPLIMENTARY EXPRESS SHIPPING NATIONWIDE | AUTUMN & WINTER COLLECTION AVAILABLE NOW | 100% HEAVYWEIGHT EGYPTIAN COTTON',
+    announcementAr: 'شحن سريع لجميع المحافظات | خامات قطن مصري وكتان فاخر 100% | استبدال واسترجاع خلال 14 يوم',
+    announcementEn: 'EXPRESS SHIPPING NATIONWIDE | 100% PREMIUM EGYPTIAN COTTON & LINEN | 14-DAY EASY RETURNS',
     enableMarqueeBar: true,
     marqueeSpeed: 'normal',
     marqueeBgColor: '#121212',
@@ -298,11 +298,19 @@ export const AppContent: React.FC = () => {
           parsed.heroBadgeAr = defaultSettings.heroBadgeAr;
         }
         // Clean out legacy announcement text if present in cached settings
-        if (parsed.announcementAr && parsed.announcementAr.includes('شحن مجاني لجميع المحافظات | خصم 10%')) {
-          delete parsed.announcementAr;
+        if (
+          parsed.announcementAr &&
+          (parsed.announcementAr.includes('شحن مجاني لجميع المحافظات | خصم 10%') ||
+            parsed.announcementAr.includes('تشكيلة الخريف والشتاء'))
+        ) {
+          parsed.announcementAr = defaultSettings.announcementAr;
         }
-        if (parsed.announcementEn && parsed.announcementEn.includes('Complimentary Express Shipping')) {
-          delete parsed.announcementEn;
+        if (
+          parsed.announcementEn &&
+          (parsed.announcementEn.includes('Complimentary Express Shipping') ||
+            parsed.announcementEn.includes('AUTUMN & WINTER'))
+        ) {
+          parsed.announcementEn = defaultSettings.announcementEn;
         }
         return { ...defaultSettings, ...parsed };
       }
