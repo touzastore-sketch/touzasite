@@ -39,7 +39,9 @@ export const PerksMarqueeBar: React.FC<PerksMarqueeBarProps> = ({ storeSettings 
   const perks = parsedPerks.length > 0 ? parsedPerks : defaultPerks;
 
   // Repeat items for seamless continuous loop
-  const marqueeItems = [...perks, ...perks, ...perks, ...perks];
+  const effectiveItems = perks.length > 0 ? perks : ["TOUZA MEN'S WEAR"];
+  const repeatCount = Math.max(4, Math.ceil(12 / effectiveItems.length));
+  const marqueeItems = Array(repeatCount).fill(effectiveItems).flat();
 
   const bgColor = storeSettings?.marqueeBgColor || '#121212';
   const textColor = storeSettings?.marqueeTextColor || '#f3f3f3';
@@ -53,6 +55,7 @@ export const PerksMarqueeBar: React.FC<PerksMarqueeBarProps> = ({ storeSettings 
 
   return (
     <div
+      dir="ltr"
       className="w-full border-y border-[#c5a059]/40 py-3 overflow-hidden relative shadow-sm marquee-container group transition-colors duration-300"
       style={{ backgroundColor: bgColor }}
     >
@@ -72,7 +75,7 @@ export const PerksMarqueeBar: React.FC<PerksMarqueeBarProps> = ({ storeSettings 
 
       {/* Marquee Track */}
       <div
-        className={isRtl ? 'animate-marquee-rtl' : 'animate-marquee'}
+        className="flex whitespace-nowrap animate-marquee"
         style={{ animationDuration: duration }}
       >
         {marqueeItems.map((perk, idx) => (

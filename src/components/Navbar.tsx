@@ -34,7 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { language, setLanguage, t } = useLanguage();
   const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollTop, setLastScrollTop] = useState(0);
+  const lastScrollTopRef = React.useRef(0);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [menuAnimated, setMenuAnimated] = useState(false);
@@ -55,18 +55,24 @@ export const Navbar: React.FC<NavbarProps> = ({
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      if (scrollTop > lastScrollTop && scrollTop > 100) {
+      
+      // Always stay visible at the top of the screen (first 150px)
+      if (scrollTop <= 150) {
+        setIsVisible(true);
+      } else if (scrollTop > lastScrollTopRef.current + 15) {
+        // Scrolling down past threshold
         setIsVisible(false);
-      } else {
+      } else if (scrollTop < lastScrollTopRef.current - 15) {
+        // Scrolling up
         setIsVisible(true);
       }
-      setIsScrolled(scrollTop > 50);
-      setLastScrollTop(scrollTop <= 0 ? 0 : scrollTop);
+      setIsScrolled(scrollTop > 40);
+      lastScrollTopRef.current = Math.max(0, scrollTop);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollTop]);
+  }, []);
 
   const navLinks = [
     { labelKey: 'nav.home', defaultLabel: 'Home', view: 'home' as ViewMode },
@@ -103,10 +109,10 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   }
 
-  // Double/repeat items for smooth infinite loop
-  const marqueeList = announcementItems.length > 0 
-    ? [...announcementItems, ...announcementItems, ...announcementItems, ...announcementItems]
-    : [];
+  const effectiveItems = announcementItems.length > 0 ? announcementItems : ["TOUZA MEN'S WEAR"];
+  // Repeat items for seamless continuous ticker
+  const repeatCount = Math.max(4, Math.ceil(12 / effectiveItems.length));
+  const marqueeList = Array(repeatCount).fill(effectiveItems).flat();
 
   const marqueeSymbol = storeSettings?.marqueeSymbol || '✦';
 
@@ -123,12 +129,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         }`}
       >
         {/* Top Announcement Bar (Infinite Moving Marquee Ticker) */}
-        {showTopAnnouncement && marqueeList.length > 0 && (
-          <div className="w-full bg-[#111111] text-[#e2c792] text-[11px] sm:text-[12px] font-medium py-1.5 border-b border-[#e2c792]/20 overflow-hidden font-label-caps whitespace-nowrap marquee-container select-none">
+        {showTopAnnouncement && (
+          <div 
+            dir="ltr"
+            className="w-full bg-[#111111] text-[#e2c792] text-[11px] sm:text-[12px] font-medium py-1.5 border-b border-[#e2c792]/20 overflow-hidden font-label-caps whitespace-nowrap marquee-container select-none"
+          >
             <div
-              className={`flex whitespace-nowrap gap-10 ${
-                language === 'ar' ? 'animate-marquee-rtl' : 'animate-marquee'
-              }`}
+              className="flex whitespace-nowrap gap-10 animate-marquee"
               style={{ animationDuration: '24s' }}
             >
               <div className="flex items-center gap-10 shrink-0">

@@ -135,34 +135,31 @@ video, img {
    ========================================== */
 @keyframes marquee {
   0% {
-    transform: translateX(0%);
+    transform: translate3d(0, 0, 0);
   }
   100% {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
 @keyframes marquee-rtl {
   0% {
-    transform: translateX(0%);
+    transform: translate3d(0, 0, 0);
   }
   100% {
-    transform: translateX(50%);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
-.animate-marquee {
-  display: flex;
-  width: max-content;
-  animation: marquee 38s linear infinite;
-  will-change: transform;
-}
-
+.animate-marquee,
 .animate-marquee-rtl {
   display: flex;
   width: max-content;
-  animation: marquee-rtl 38s linear infinite;
+  animation: marquee 26s linear infinite;
+  -webkit-animation: marquee 26s linear infinite;
   will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .marquee-container:hover .animate-marquee,
