@@ -18,18 +18,10 @@ export const PerksMarqueeBar: React.FC<PerksMarqueeBarProps> = ({ storeSettings 
 
   const defaultPerks = isRtl
     ? [
-        'شحن سريع لجميع المحافظات',
-        'خامات قطن مصري وكتان فاخر 100%',
-        'استبدال واسترجاع خلال 14 يوم',
-        'توصيل سريع لجميع محافظات مصر',
-        'تغليف توزا الفاخر مجاناً لجميع الطلبات',
+        "TOUZA MEN'S WEAR",
       ]
     : [
-        'EXPRESS SHIPPING NATIONWIDE',
-        '100% PREMIUM EGYPTIAN COTTON & LINEN',
-        '14-DAY EASY RETURNS & EXCHANGES',
-        'FAST DOORSTEP DELIVERY ACROSS EGYPT',
-        'SIGNATURE TOUZA LUXURY PACKAGING',
+        "TOUZA MEN'S WEAR",
       ];
 
   let parsedPerks: string[] = [];

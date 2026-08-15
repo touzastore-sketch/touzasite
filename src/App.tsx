@@ -208,8 +208,8 @@ export const AppContent: React.FC = () => {
     storeNameEn: 'TOUZA CASUAL',
     taglineAr: 'ملابس كاجوال رجالي فاخرة - بورسعيد | مصر',
     taglineEn: 'Luxury Men Casual Wear - Portsaid | Egypt',
-    announcementAr: 'شحن سريع لجميع المحافظات | خامات قطن مصري وكتان فاخر 100% | استبدال واسترجاع خلال 14 يوم',
-    announcementEn: 'EXPRESS SHIPPING NATIONWIDE | 100% PREMIUM EGYPTIAN COTTON & LINEN | 14-DAY EASY RETURNS',
+    announcementAr: "TOUZA MEN'S WEAR",
+    announcementEn: "TOUZA MEN'S WEAR",
     enableMarqueeBar: true,
     marqueeSpeed: 'normal',
     marqueeBgColor: '#121212',
@@ -302,21 +302,11 @@ export const AppContent: React.FC = () => {
         if (parsed.heroBadgeAr && parsed.heroBadgeAr.includes('تشكيلة الخريف والشتاء')) {
           parsed.heroBadgeAr = defaultSettings.heroBadgeAr;
         }
-        // Clean out legacy announcement text if present in cached settings
-        if (
-          !parsed.announcementAr ||
-          parsed.announcementAr.includes('TOUZA MEN\'S WEAR') ||
-          parsed.announcementAr.includes('شحن مجاني لجميع المحافظات | خصم 10%') ||
-          parsed.announcementAr.includes('تشكيلة الخريف والشتاء')
-        ) {
+        // Fallback for empty announcements
+        if (!parsed.announcementAr || !parsed.announcementAr.trim()) {
           parsed.announcementAr = defaultSettings.announcementAr;
         }
-        if (
-          !parsed.announcementEn ||
-          parsed.announcementEn.includes('TOUZA MEN\'S WEAR') ||
-          parsed.announcementEn.includes('Complimentary Express Shipping') ||
-          parsed.announcementEn.includes('AUTUMN & WINTER')
-        ) {
+        if (!parsed.announcementEn || !parsed.announcementEn.trim()) {
           parsed.announcementEn = defaultSettings.announcementEn;
         }
         return { ...defaultSettings, ...parsed };
@@ -735,7 +725,7 @@ export const AppContent: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-[#ffffff] text-[#1a1c1c] relative">
       {/* Initial Luxury Loading Screen Overlay */}
       <div
-        className={`fixed inset-0 z-50 bg-[#0a0a0a] flex flex-col items-center justify-center text-white px-4 select-none transition-opacity duration-700 ease-out ${
+        className={`fixed inset-0 z-[9999] bg-[#0a0a0a] flex flex-col items-center justify-center text-white px-4 select-none transition-opacity duration-700 ease-out ${
           isInitialLoading ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >

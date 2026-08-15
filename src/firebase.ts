@@ -1584,22 +1584,12 @@ function sanitizeSettings(settings: StoreSettings, defaultSettings: StoreSetting
   if (!sanitized.defaultLanguage) {
     sanitized.defaultLanguage = defaultSettings.defaultLanguage || 'ar';
   }
-  // Sanitize announcement text to prevent old cached or hardcoded repetitive text flashes
-  if (
-    !sanitized.announcementAr ||
-    sanitized.announcementAr.includes('TOUZA MEN\'S WEAR') ||
-    sanitized.announcementAr.includes('شحن مجاني لجميع المحافظات | خصم 10%') ||
-    sanitized.announcementAr.includes('تشكيلة الخريف والشتاء')
-  ) {
-    sanitized.announcementAr = defaultSettings.announcementAr;
+  // Sanitize announcement text to prevent empty or broken announcements
+  if (!sanitized.announcementAr || !sanitized.announcementAr.trim()) {
+    sanitized.announcementAr = defaultSettings.announcementAr || "TOUZA MEN'S WEAR";
   }
-  if (
-    !sanitized.announcementEn ||
-    sanitized.announcementEn.includes('TOUZA MEN\'S WEAR') ||
-    sanitized.announcementEn.includes('Complimentary Express Shipping') ||
-    sanitized.announcementEn.includes('AUTUMN & WINTER')
-  ) {
-    sanitized.announcementEn = defaultSettings.announcementEn;
+  if (!sanitized.announcementEn || !sanitized.announcementEn.trim()) {
+    sanitized.announcementEn = defaultSettings.announcementEn || "TOUZA MEN'S WEAR";
   }
   if (sanitized.enableMarqueeBar === undefined) {
     sanitized.enableMarqueeBar = defaultSettings.enableMarqueeBar ?? true;
