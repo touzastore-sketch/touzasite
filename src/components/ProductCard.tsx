@@ -50,7 +50,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const activeColor = product.colors?.[activeColorIndex];
   const rawImg = activeColor?.imageUrl || product.images?.[0];
   const fallbackImage = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
-  const displayImage = getOptimizedImageUrl(rawImg && rawImg.trim() ? rawImg : fallbackImage, { width: 600 });
+  const displayImage = getOptimizedImageUrl(rawImg && rawImg.trim() ? rawImg : fallbackImage, { width: 500 });
 
   const displayName = getLocalizedProductName(product, language);
   const displaySubtitle = getLocalizedProductSubtitle(product, language);
@@ -92,9 +92,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400"><rect width="100%" height="100%" fill="%23f5f5f7"/><text x="50%" y="50%" fill="%23888888" font-family="sans-serif" font-size="16" text-anchor="middle" font-weight="bold">TOUZA</text></svg>';
                 }
               }}
-              className="w-full h-full object-contain p-1.5 transition-all duration-300 ease-out group-hover:scale-105 opacity-100"
+              className={`w-full h-full object-contain p-1.5 transition-all duration-300 ease-out group-hover:scale-105 ${
+                isLoaded ? 'opacity-100' : 'opacity-90'
+              }`}
               loading="eager"
               decoding="async"
+              fetchPriority="high"
               referrerPolicy="no-referrer"
             />
           )}

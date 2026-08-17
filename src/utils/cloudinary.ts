@@ -139,7 +139,7 @@ export function uploadVideoToCloudinary(
 
 /**
  * Formats a Cloudinary image URL with auto-format (f_auto), auto-quality (q_auto),
- * and width scaling for lightning-fast image delivery.
+ * width scaling, progressive rendering, and DPR auto for lightning-fast image delivery.
  */
 export function getOptimizedImageUrl(
   url: string,
@@ -163,12 +163,12 @@ export function getOptimizedImageUrl(
     return url;
   }
 
-  const width = options?.width || 600;
-  const quality = options?.quality || 'auto';
+  const width = options?.width || 500;
+  const quality = options?.quality || 'auto:good';
   const format = options?.format || 'auto';
   const crop = options?.crop || 'limit';
 
-  const transformParts = [`f_${format}`, `q_${quality}`, `w_${width}`, `c_${crop}`];
+  const transformParts = [`f_${format}`, `q_${quality}`, `w_${width}`, `c_${crop}`, 'fl_progressive', 'dpr_auto'];
   if (options?.height) {
     transformParts.push(`h_${options.height}`);
   }

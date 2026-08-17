@@ -28,6 +28,7 @@ import { PerksMarqueeBar } from './components/PerksMarqueeBar';
 import { FloatingContactButtons } from './components/FloatingContactButtons';
 import { ScrollReveal } from './components/ScrollReveal';
 import { useLanguage } from './context/LanguageContext';
+import { getOptimizedImageUrl } from './utils/cloudinary';
 import {
   subscribeToAuth,
   signInWithGoogle,
@@ -140,6 +141,29 @@ export const AppContent: React.FC = () => {
       localStorage.setItem('maison_products', safeJsonStringify(products));
     } catch (err) {
       console.error('Failed to store products:', err);
+    }
+
+    // Preload product images into browser cache immediately in the background
+    if (typeof window !== 'undefined' && products && products.length > 0) {
+      const preloadList = products.slice(0, 12);
+      preloadList.forEach((prod) => {
+        const rawImg = prod.colors?.[0]?.imageUrl || prod.images?.[0];
+        if (rawImg && rawImg.trim()) {
+          const optimized = getOptimizedImageUrl(rawImg, { width: 500 });
+          const img = new Image();
+          img.src = optimized;
+        }
+        // Also pre-warm secondary color image
+        if (prod.colors && prod.colors.length > 1) {
+          prod.colors.slice(1, 3).forEach((c) => {
+            if (c.imageUrl && c.imageUrl.trim()) {
+              const opt = getOptimizedImageUrl(c.imageUrl, { width: 500 });
+              const cImg = new Image();
+              cImg.src = opt;
+            }
+          });
+        }
+      });
     }
   }, [products]);
 
