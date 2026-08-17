@@ -1,4 +1,5 @@
 import React from 'react';
+import { Phone } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { StoreSettings } from '../types';
 
@@ -56,9 +57,7 @@ export const FloatingContactButtons: React.FC<FloatingContactButtonsProps> = ({ 
         className="group relative flex items-center justify-center w-12 h-12 md:w-13 md:h-13 bg-[#000000] hover:bg-[#222222] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 cursor-pointer border border-white/20"
         aria-label="Direct Phone Call"
       >
-        <span className="material-symbols-outlined text-[22px] md:text-[24px]">
-          call
-        </span>
+        <Phone className="w-5 h-5 md:w-6 md:h-6 text-white" />
 
         {/* Tooltip */}
         <span className="absolute left-14 bg-[#000000] text-white font-body text-[12px] px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-md pointer-events-none font-bold">

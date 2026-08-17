@@ -1,4 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import {
+  ArrowRight,
+  ArrowLeft,
+  LayoutGrid,
+  Tag,
+  SlidersHorizontal,
+  X,
+  FilterX,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { Category, Product, StoreSettings } from '../types';
 import { ProductCard } from './ProductCard';
 import { PRODUCTS } from '../data/products';
@@ -210,9 +221,11 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
           }}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#000000] text-white font-label-caps text-[13px] font-bold hover:bg-[#222222] transition-all cursor-pointer shadow-xs active:scale-[0.98]"
         >
-          <span className="material-symbols-outlined text-[18px]">
-            {language === 'ar' ? 'arrow_forward' : 'arrow_back'}
-          </span>
+          {language === 'ar' ? (
+            <ArrowRight className="w-4.5 h-4.5" />
+          ) : (
+            <ArrowLeft className="w-4.5 h-4.5" />
+          )}
           <span>{language === 'ar' ? 'الرجوع للرئيسية' : 'Back to Home'}</span>
         </button>
 
@@ -268,7 +281,7 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px]">grid_view</span>
+                    <LayoutGrid className="w-4 h-4" />
                     <span>{language === 'ar' ? 'جميع المنتجات' : 'All Products'}</span>
                   </span>
                   <span className={`text-[11px] font-mono ${selectedCategory === 'All' ? 'text-white/80' : 'text-[#747878]'}`}>
@@ -299,9 +312,7 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                       }`}
                     >
                       <span className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[18px]">
-                          {cat.icon || 'label'}
-                        </span>
+                        <Tag className="w-4 h-4 text-[#c5a059]" />
                         <span>{language === 'ar' ? cat.nameAr : cat.nameEn}</span>
                       </span>
                       <span className={`text-[11px] font-mono ${isSelected ? 'text-white/80' : 'text-[#747878]'}`}>
@@ -473,7 +484,7 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                     : 'bg-white text-[#444748] border-[#c4c7c7]/50 hover:border-[#000000] hover:text-[#000000]'
                 }`}
               >
-                <span className="material-symbols-outlined text-[17px]">grid_view</span>
+                <LayoutGrid className="w-4 h-4" />
                 <span>{language === 'ar' ? 'الكل' : 'All'}</span>
                 <span className={`text-[10px] font-mono ${selectedCategory === 'All' ? 'text-white/80' : 'text-[#747878]'}`}>
                   ({allProducts.length})
@@ -502,9 +513,7 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                         : 'bg-white text-[#444748] border-[#c4c7c7]/50 hover:border-[#000000] hover:text-[#000000]'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-[17px]">
-                      {cat.icon || 'label'}
-                    </span>
+                    <Tag className="w-4 h-4 text-[#c5a059]" />
                     <span>{language === 'ar' ? cat.nameAr : cat.nameEn}</span>
                     {count > 0 && (
                       <span className={`text-[10px] font-mono ${isSelected ? 'text-white/80' : 'text-[#747878]'}`}>
@@ -523,7 +532,7 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
               onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
               className="lg:hidden flex items-center gap-2 font-label-caps text-[#000000] border border-[#c4c7c7] px-4 py-2 rounded-full cursor-pointer text-[13px]"
             >
-              <span className="material-symbols-outlined text-[18px]">tune</span>
+              <SlidersHorizontal className="w-4 h-4" />
               {language === 'ar' ? 'تصفية المنتجات' : 'Filters'}
             </button>
             <div className="hidden lg:block font-body text-[14px] text-[#444748]">
@@ -557,7 +566,7 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                   onClick={() => setMobileFilterOpen(false)}
                   className="p-1 text-[#747878] hover:text-[#000000]"
                 >
-                  <span className="material-symbols-outlined text-[20px]">close</span>
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -736,7 +745,7 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
           {/* Grid Layout */}
           {displayedProducts.length === 0 ? (
             <div className="py-16 text-center bg-[#fafafa] rounded-2xl border border-dashed border-[#c4c7c7]/50 p-8 my-4">
-              <span className="material-symbols-outlined text-[48px] text-[#c4c7c7] mb-3">filter_alt_off</span>
+              <FilterX className="w-12 h-12 text-[#c4c7c7] mx-auto mb-3" />
               <p className="font-display text-[20px] text-[#000000] font-bold mb-2">
                 {language === 'ar' ? 'لا توجد منتجات تطابق اختياراتك حالياً' : 'No products match your selected filters'}
               </p>
@@ -799,7 +808,7 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                   }`}
                   title={language === 'ar' ? 'الصفحة السابقة' : 'Previous Page'}
                 >
-                  <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                  <ChevronLeft className="w-4.5 h-4.5" />
                 </button>
 
                 {/* Individual Page Number Buttons */}
@@ -841,7 +850,7 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                   }`}
                   title={language === 'ar' ? 'الصفحة التالية' : 'Next Page'}
                 >
-                  <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                  <ChevronRight className="w-4.5 h-4.5" />
                 </button>
               </div>
             </div>

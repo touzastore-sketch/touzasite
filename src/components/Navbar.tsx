@@ -381,7 +381,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/70 hover:text-[#c5a059] hover:bg-white/10 rounded-full transition-all duration-300 cursor-pointer"
                     aria-label="Close menu"
                   >
-                    <span className="material-symbols-outlined text-[26px]">close</span>
+                    <X className="w-6 h-6" />
                   </button>
                 </div>
 

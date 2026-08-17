@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 
 interface ImageModalProps {
   imageSrc: string | null;
@@ -15,7 +16,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({ imageSrc, onClose }) => 
         className="absolute top-6 right-6 text-white p-3 hover:opacity-70 transition-opacity z-10 cursor-pointer"
         title="Close image"
       >
-        <span className="material-symbols-outlined text-[36px]">close</span>
+        <X className="w-8 h-8" />
       </button>
 
       <div className="max-w-4xl max-h-[90vh] overflow-hidden rounded flex items-center justify-center">

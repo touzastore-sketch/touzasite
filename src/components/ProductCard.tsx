@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Heart, ShoppingBag, CheckCircle2 } from 'lucide-react';
 import { Product } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getLocalizedProductName, getLocalizedProductSubtitle } from '../data/products';
@@ -104,15 +105,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             className="absolute top-3 right-3 w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-[#000000] opacity-90 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white z-10 cursor-pointer shadow-xs"
             title={isWishlisted ? t('product.removeFromWishlist', 'Remove') : t('product.addToWishlist', 'Add')}
           >
-            <span
-              className="material-symbols-outlined text-[18px]"
-              style={{
-                fontVariationSettings: isWishlisted ? "'FILL' 1" : "'FILL' 0",
-                color: isWishlisted ? '#ba1a1a' : '#000000',
-              }}
-            >
-              favorite
-            </span>
+            <Heart
+              className={`w-4.5 h-4.5 transition-colors ${
+                isWishlisted ? 'fill-[#ba1a1a] text-[#ba1a1a]' : 'text-[#000000]'
+              }`}
+            />
           </button>
 
           {/* Badge */}
@@ -241,9 +238,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 : 'bg-[#000000] text-white hover:bg-[#222222] active:scale-[0.98]'
             }`}
           >
-            <span className="material-symbols-outlined text-[18px]">
-              {isAddedSuccess ? 'check_circle' : 'shopping_bag'}
-            </span>
+            {isAddedSuccess ? (
+              <CheckCircle2 className="w-4.5 h-4.5 text-white" />
+            ) : (
+              <ShoppingBag className="w-4.5 h-4.5 text-white" />
+            )}
             <span>
               {isAddedSuccess
                 ? language === 'ar'

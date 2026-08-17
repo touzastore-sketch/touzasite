@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { StoreSettings } from '../types';
 import { getOptimizedImageUrl } from '../utils/cloudinary';
@@ -176,9 +177,11 @@ export const PhilosophySection: React.FC<PhilosophySectionProps> = ({
               <span className="relative z-10 group-hover:text-white transition-colors duration-500">
                 {language === 'ar' ? 'اكتشف التشكيلة الكاملة' : 'Explore The Atelier'}
               </span>
-              <span className="relative z-10 material-symbols-outlined text-[17px] group-hover:text-white transition-all duration-500 transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1">
-                {language === 'ar' ? 'arrow_back' : 'arrow_forward'}
-              </span>
+              {language === 'ar' ? (
+                <ArrowLeft className="relative z-10 w-4.5 h-4.5 group-hover:text-white transition-all duration-500 transform group-hover:-translate-x-1" />
+              ) : (
+                <ArrowRight className="relative z-10 w-4.5 h-4.5 group-hover:text-white transition-all duration-500 transform group-hover:translate-x-1" />
+              )}
             </button>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { MessageSquarePlus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { useLanguage } from '../context/LanguageContext';
 import { getAllReviews, SavedReview } from '../firebase';
@@ -120,7 +121,7 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
                 onClick={onOpenAccount}
                 className="inline-flex items-center gap-2 bg-[#000000] text-white px-5 py-2.5 rounded-full font-body text-[13px] font-bold hover:bg-[#222222] transition-all cursor-pointer shadow-xs"
               >
-                <span className="material-symbols-outlined text-[18px]">rate_review</span>
+                <MessageSquarePlus className="w-4.5 h-4.5" />
                 <span>{language === 'ar' ? 'إضافة تقييم لطلباتك' : 'Review Your Orders'}</span>
               </button>
             </div>
@@ -186,9 +187,11 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
               }`}
               aria-label="Previous review"
             >
-              <span className="material-symbols-outlined text-[20px]">
-                {language === 'ar' ? 'chevron_right' : 'chevron_left'}
-              </span>
+              {language === 'ar' ? (
+                <ChevronRight className="w-5 h-5" />
+              ) : (
+                <ChevronLeft className="w-5 h-5" />
+              )}
             </button>
 
             <button
@@ -201,9 +204,11 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
               }`}
               aria-label="Next review"
             >
-              <span className="material-symbols-outlined text-[20px]">
-                {language === 'ar' ? 'chevron_left' : 'chevron_right'}
-              </span>
+              {language === 'ar' ? (
+                <ChevronLeft className="w-5 h-5" />
+              ) : (
+                <ChevronRight className="w-5 h-5" />
+              )}
             </button>
           </div>
 

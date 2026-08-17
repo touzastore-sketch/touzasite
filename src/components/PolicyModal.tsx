@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 
 interface PolicyModalProps {
   title: string | null;
@@ -15,7 +16,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({ title, content, onClos
         <div className="flex justify-between items-center border-b border-[#c4c7c7]/30 pb-4">
           <h2 className="font-display text-[24px] text-[#000000]">{title}</h2>
           <button onClick={onClose} className="p-2 text-[#000000] hover:opacity-70 cursor-pointer">
-            <span className="material-symbols-outlined text-[24px]">close</span>
+            <X className="w-6 h-6" />
           </button>
         </div>
 

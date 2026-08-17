@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { CheckCircle2 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { Category, Product, CartItem, ViewMode, PromoCode, StoreSettings } from './types';
 import { PRODUCTS } from './data/products';
@@ -1035,9 +1036,7 @@ export const AppContent: React.FC = () => {
       {/* Floating Toast Notification for Add to Cart */}
       {toastNotification.show && (
         <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 bg-[#000000] text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/20 animate-fade-in font-body text-[14px]">
-          <span className="material-symbols-outlined text-[#25D366] text-[22px]">
-            check_circle
-          </span>
+          <CheckCircle2 className="w-5 h-5 text-[#25D366] shrink-0" />
           <span>
             {language === 'ar'
               ? `تمت إضافة "${toastNotification.productName}" إلى السلة`

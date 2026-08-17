@@ -1,4 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  User as UserIcon,
+  LogIn,
+  UserPlus,
+  AlertCircle,
+  Check,
+  Banknote,
+  Landmark,
+  Smartphone,
+  PhoneCall,
+  CheckCircle,
+} from 'lucide-react';
 import { User } from 'firebase/auth';
 import { CartItem, ShippingAddress, StoreSettings, PromoCode } from '../types';
 import { useLanguage } from '../context/LanguageContext';
@@ -363,7 +378,11 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
             onClick={onBackToShop}
             className="flex items-center gap-2 font-label-caps text-[#5e5e5c] hover:text-[#000000] transition-colors mb-2 cursor-pointer text-[13px]"
           >
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            {language === 'ar' ? (
+              <ArrowRight className="w-4.5 h-4.5" />
+            ) : (
+              <ArrowLeft className="w-4.5 h-4.5" />
+            )}
             {t('checkout.backToShop', 'Return to Shopping')}
           </button>
           <h1 className="font-display text-[28px] md:text-[36px] text-[#000000] font-bold">
@@ -412,7 +431,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                 )}
                 <div>
                   <div className="flex items-center gap-1.5 font-bold text-emerald-900 text-[14px]">
-                    <span className="material-symbols-outlined text-[18px] text-emerald-600">verified</span>
+                    <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600" />
                     <span>{user.displayName || user.email}</span>
                   </div>
                   <p className="text-[12px] text-emerald-700">
@@ -426,7 +445,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
               {/* Header */}
               <div className="space-y-1.5 text-center sm:text-start border-b border-[#c4c7c7]/20 pb-5">
                 <div className="flex items-center justify-center sm:justify-start gap-2.5 text-[#000000] font-bold font-display text-xl">
-                  <span className="material-symbols-outlined text-[26px] text-[#000000]">account_circle</span>
+                  <UserIcon className="w-6 h-6 text-[#000000]" />
                   <span>{language === 'ar' ? 'سجّل الدخول لإتمام الطلب' : 'Sign In or Create Account to Continue'}</span>
                 </div>
                 <p className="text-xs text-[#5e5e5c] leading-relaxed">
@@ -463,7 +482,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                   className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2.5 bg-[#000000] text-white px-5 py-2.5 rounded-xl font-body font-bold text-xs hover:bg-[#2f3131] transition-all cursor-pointer shadow-sm active:scale-98"
                 >
                   <span>{language === 'ar' ? 'متابعة باستخدام Google' : 'Continue with Google'}</span>
-                  <span className="material-symbols-outlined text-base">arrow_forward</span>
+                  {language === 'ar' ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
                 </button>
               </div>
 
@@ -488,7 +507,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                         : 'text-[#747878] hover:text-black'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-base">login</span>
+                    <LogIn className="w-4 h-4" />
                     <span>{language === 'ar' ? 'تسجيل الدخول' : 'Sign In'}</span>
                   </button>
 
@@ -501,14 +520,14 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                         : 'text-[#747878] hover:text-black'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-base">person_add</span>
+                    <UserPlus className="w-4 h-4" />
                     <span>{language === 'ar' ? 'إنشاء حساب جديد' : 'Create Account'}</span>
                   </button>
                 </div>
 
                 {checkoutAuthError && (
                   <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2.5 animate-fadeIn">
-                    <span className="material-symbols-outlined text-lg shrink-0">error</span>
+                    <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{checkoutAuthError}</span>
                   </div>
                 )}
@@ -557,7 +576,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                         </>
                       ) : (
                         <>
-                          <span className="material-symbols-outlined text-base">login</span>
+                          <LogIn className="w-4 h-4" />
                           <span>{language === 'ar' ? 'تسجيل الدخول ومتابعة الشراء' : 'Sign In & Continue'}</span>
                         </>
                       )}
@@ -667,7 +686,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                         </>
                       ) : (
                         <>
-                          <span className="material-symbols-outlined text-base">person_add</span>
+                          <UserPlus className="w-4 h-4" />
                           <span>{language === 'ar' ? 'إنشاء حساب جديد وتأكيد الدخول' : 'Create Account & Continue'}</span>
                         </>
                       )}
@@ -684,7 +703,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
         /* Order Confirmation View */
         <div className="max-w-2xl mx-auto py-10 text-center fade-in-up">
           <div className="w-16 h-16 bg-[#000000] text-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg">
-            <span className="material-symbols-outlined text-[32px]">check</span>
+            <Check className="w-8 h-8" />
           </div>
           <p className="font-label-caps text-[#2e7d32] font-bold text-[14px] mb-2">{t('checkout.successTitle', 'Order Confirmed!')}</p>
           <h2 className="font-display text-[30px] md:text-[42px] text-[#000000] mb-4 font-bold">
@@ -739,7 +758,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
           <div className="lg:col-span-7 space-y-6">
             {submitError && (
               <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-[14px] rounded-xl font-bold flex items-center gap-2">
-                <span className="material-symbols-outlined text-[20px]">error</span>
+                <AlertCircle className="w-5 h-5" />
                 <span>{submitError}</span>
               </div>
             )}
@@ -844,7 +863,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                           : 'border-[#c4c7c7] bg-white text-[#5e5e5c] hover:border-[#000000]'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[24px]">payments</span>
+                      <Banknote className="w-6 h-6" />
                       <span>{language === 'ar' ? 'كاش عند الاستلام' : 'Cash on Delivery'}</span>
                     </button>
                   )}
@@ -860,7 +879,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                           : 'border-[#c4c7c7] bg-white text-[#5e5e5c] hover:border-[#000000]'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[24px]">account_balance</span>
+                      <Landmark className="w-6 h-6" />
                       <span>{language === 'ar' ? 'إنستا باي (InstaPay)' : 'InstaPay'}</span>
                     </button>
                   )}
@@ -876,7 +895,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                           : 'border-[#c4c7c7] bg-white text-[#5e5e5c] hover:border-[#000000]'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[24px]">phonelink_ring</span>
+                      <PhoneCall className="w-6 h-6" />
                       <span>{language === 'ar' ? 'فودافون كاش' : 'Vodafone Cash'}</span>
                     </button>
                   )}
@@ -892,7 +911,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                           : 'border-[#c4c7c7] bg-white text-[#5e5e5c] hover:border-[#ff6600] hover:text-[#ff6600]'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[24px]">phone_android</span>
+                      <Smartphone className="w-6 h-6" />
                       <span>{language === 'ar' ? 'أورانج كاش' : 'Orange Cash'}</span>
                     </button>
                   )}
@@ -902,7 +921,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                 {paymentMethod === 'cod' && activeSettings?.enableCashOnDelivery !== false && (
                   <div className="p-4 bg-[#f9f9f9] border border-[#c4c7c7]/30 rounded-xl space-y-2 text-[14px]">
                     <div className="flex items-center gap-2 text-[#2e7d32] font-bold">
-                      <span className="material-symbols-outlined">check_circle</span>
+                      <CheckCircle className="w-5 h-5" />
                       <span>{language === 'ar' ? 'الدفع نقداً عند استلام الشحنة' : 'Pay Cash Upon Receipt'}</span>
                     </div>
                     <p className="text-[#5e5e5c] text-[13px] leading-relaxed">
@@ -990,7 +1009,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                   <div className="p-5 bg-orange-50 border border-orange-200 rounded-xl space-y-4 text-[14px]">
                     <div className="space-y-1">
                       <p className="font-bold text-orange-950 font-label-caps flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[18px] text-[#ff6600]">phone_android</span>
+                        <Smartphone className="w-4.5 h-4.5 text-[#ff6600]" />
                         <span>{language === 'ar' ? 'بيانات تحويل محفظة أورانج كاش (Orange Cash):' : 'Orange Cash Wallet Details:'}</span>
                       </p>
                       <div className="p-3 bg-white rounded-lg border border-orange-200 font-mono text-[14px] text-orange-950 space-y-1">

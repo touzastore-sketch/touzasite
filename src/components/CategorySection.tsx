@@ -1,4 +1,5 @@
 import React from 'react';
+import { LayoutGrid, Sparkles, Shirt, Layers, Tag } from 'lucide-react';
 import { Category, Product } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getOptimizedImageUrl } from '../utils/cloudinary';
@@ -80,7 +81,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
               : 'bg-white text-[#000000] border-[#000000]/20 hover:border-[#000000] hover:bg-[#000000] hover:text-white'
           }`}
         >
-          <span className="material-symbols-outlined text-[18px]">grid_view</span>
+          <LayoutGrid className="w-4 h-4 shrink-0" />
           <span>{language === 'ar' ? 'جميع التشكيلات' : 'All Collections'}</span>
           <span
             className={`px-2.5 py-0.5 text-[11px] rounded-full font-mono transition-colors ${
@@ -131,9 +132,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
               {/* Glassmorphism Icon & Gold Count Badge */}
               <div className="relative z-10 flex items-center justify-between">
                 <div className="w-9 h-9 rounded-full bg-black/35 backdrop-blur-md border border-white/25 text-white/90 flex items-center justify-center group-hover:border-[#c5a059] group-hover:text-[#c5a059] transition-all duration-300 shadow-sm">
-                  <span className="material-symbols-outlined text-[19px]">
-                    {cat.icon || 'styler'}
-                  </span>
+                  <Sparkles className="w-4.5 h-4.5" />
                 </div>
 
                 <span className="text-[11px] font-mono tracking-wider px-2.5 py-1 rounded-full bg-black/45 backdrop-blur-md text-[#dfc38c] border border-[#c5a059]/35 shadow-xs">
