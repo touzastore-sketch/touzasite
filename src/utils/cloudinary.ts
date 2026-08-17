@@ -138,8 +138,8 @@ export function uploadVideoToCloudinary(
 }
 
 /**
- * Formats a Cloudinary image URL with auto-format (f_auto), auto-quality (q_auto:good),
- * DPR optimization (dpr_auto), and lightweight width scaling for ultra-fast mobile loading on iOS and Android.
+ * Formats a Cloudinary image URL with auto-format (f_auto), auto-quality (q_auto),
+ * and width scaling for lightning-fast image delivery.
  */
 export function getOptimizedImageUrl(
   url: string,
@@ -158,21 +158,24 @@ export function getOptimizedImageUrl(
     return url;
   }
 
-  const width = options?.width || 500;
-  const quality = options?.quality || 'auto:good';
+  // If URL already contains transformations right after upload/
+  if (url.includes('/upload/f_auto') || url.includes('/upload/q_auto') || url.includes('/video/')) {
+    return url;
+  }
+
+  const width = options?.width || 600;
+  const quality = options?.quality || 'auto';
   const format = options?.format || 'auto';
   const crop = options?.crop || 'limit';
 
-  const transformParts = [`f_${format}`, `q_${quality}`, `w_${width}`, `c_${crop}`, 'dpr_auto'];
+  const transformParts = [`f_${format}`, `q_${quality}`, `w_${width}`, `c_${crop}`];
   if (options?.height) {
     transformParts.push(`h_${options.height}`);
   }
   const transformString = transformParts.join(',');
 
   if (url.includes('/upload/')) {
-    // Replace any existing transformations or insert after /upload/
-    const cleanedUrl = url.replace(/\/upload\/(?:[a-z]_[a-zA-Z0-9:.-]+,?)+\//i, '/upload/');
-    return cleanedUrl.replace('/upload/', `/upload/${transformString}/`);
+    return url.replace('/upload/', `/upload/${transformString}/`);
   }
 
   return url;

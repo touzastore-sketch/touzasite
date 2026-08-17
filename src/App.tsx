@@ -806,12 +806,11 @@ export const AppContent: React.FC = () => {
                   const listToDisplay = homeSelected.length > 0 ? homeSelected : products;
 
                   return (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-                      {listToDisplay.map((product, idx) => (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {listToDisplay.map((product) => (
                         <ProductCard
                           key={product.id}
                           product={product}
-                          priority={idx < 4}
                           onSelectProduct={handleSelectProduct}
                           isWishlisted={wishlistIds.includes(product.id)}
                           onToggleWishlist={(p, e) => {

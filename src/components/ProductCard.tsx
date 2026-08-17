@@ -42,16 +42,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   }, []);
 
   const getAspectClass = () => {
-    if (aspectRatio === 'wide') return 'aspect-[16/9] max-h-[300px]';
-    if (aspectRatio === 'square') return 'aspect-square max-h-[280px]';
-    // Proportional aspect ratio that scales smoothly on all mobile viewports
-    return 'aspect-[3/4] max-h-[320px] sm:max-h-[360px] w-full';
+    if (aspectRatio === 'wide') return 'aspect-[16/9] max-h-[320px]';
+    if (aspectRatio === 'square') return 'aspect-square max-h-[300px]';
+    return 'aspect-[3/4] max-h-[380px] sm:max-h-[360px] w-full';
   };
 
   const activeColor = product.colors?.[activeColorIndex];
   const rawImg = activeColor?.imageUrl || product.images?.[0];
   const fallbackImage = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
-  const displayImage = getOptimizedImageUrl(rawImg && rawImg.trim() ? rawImg : fallbackImage, { width: 450, quality: 'auto:good' });
+  const displayImage = getOptimizedImageUrl(rawImg && rawImg.trim() ? rawImg : fallbackImage, { width: 600 });
 
   const displayName = getLocalizedProductName(product, language);
   const displaySubtitle = getLocalizedProductSubtitle(product, language);
@@ -69,11 +68,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   return (
     <div
       onClick={() => onSelectProduct(product)}
-      className="group cursor-pointer flex flex-col justify-between transition-all duration-300 ease-out rounded-2xl p-2 sm:p-2.5 bg-white shadow-xs hover:shadow-xl hover:shadow-black/10 border border-[#c4c7c7]/20 hover:border-[#000000]/25 hover:-translate-y-0.5"
+      className="group cursor-pointer flex flex-col justify-between transition-all duration-300 ease-out rounded-2xl p-3 sm:p-2.5 bg-white shadow-xs hover:shadow-xl hover:shadow-black/10 border border-[#c4c7c7]/20 hover:border-[#000000]/25 hover:-translate-y-0.5"
     >
       <div>
         <div
-          className={`relative overflow-hidden bg-[#fafafa] rounded-xl flex items-center justify-center border border-[#c4c7c7]/20 ${getAspectClass()} mb-2 sm:mb-3`}
+          className={`relative overflow-hidden bg-[#fafafa] rounded-xl flex items-center justify-center border border-[#c4c7c7]/20 ${getAspectClass()} mb-3`}
         >
           {!isLoaded && (
             <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse z-0" />
@@ -93,8 +92,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400"><rect width="100%" height="100%" fill="%23f5f5f7"/><text x="50%" y="50%" fill="%23888888" font-family="sans-serif" font-size="16" text-anchor="middle" font-weight="bold">TOUZA</text></svg>';
                 }
               }}
-              className="w-full h-full object-contain p-1 sm:p-1.5 transition-all duration-300 ease-out group-hover:scale-105 opacity-100"
-              loading={priority ? 'eager' : 'lazy'}
+              className="w-full h-full object-contain p-1.5 transition-all duration-300 ease-out group-hover:scale-105 opacity-100"
+              loading="eager"
               decoding="async"
               referrerPolicy="no-referrer"
             />
