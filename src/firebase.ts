@@ -62,11 +62,8 @@ try {
   setLogLevel('error');
 } catch {}
 
-// Initialize Firestore with forced long polling for containerized network adaptability
-const firestoreSettings = {
-  experimentalAutoDetectLongPolling: true,
-  experimentalForceLongPolling: true,
-};
+// Initialize Firestore with standard default settings
+const firestoreSettings = {};
 
 export const db = (() => {
   try {
@@ -81,7 +78,7 @@ export const db = (() => {
 })();
 
 // Helper to timeout long-hanging Firestore requests (e.g. offline/network latency/Safari ITP)
-const fetchWithTimeout = <T>(promise: Promise<T>, timeoutMs = 3500): Promise<T> => {
+const fetchWithTimeout = <T>(promise: Promise<T>, timeoutMs = 15000): Promise<T> => {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error('Firestore operation timed out (offline fallback)'));
@@ -1368,53 +1365,35 @@ const sanitizeProduct = (p: Product): Product => {
 };
 
 export const getAllProductsAdmin = async (): Promise<Product[]> => {
-  const legacyProductIds = new Set([
-    'silk-georgette-gown', 'sculptural-leather-mules', 'minimalist-silver-cuff',
-    'structured-crossbody', 'obsidian-tailored-coat', 'silk-draped-blouse',
-    'wide-leg-camel-trousers', 'noir-silk-slip-dress', 'architectural-tote', 'geometric-silver-pendant'
-  ]);
-
   try {
     const productsRef = collection(db, 'products');
     const snapshot = await fetchWithTimeout(getDocs(productsRef));
     
     const firestoreProducts: Product[] = [];
     snapshot.forEach((docSnap) => {
-      if (legacyProductIds.has(docSnap.id)) {
-        // Asynchronously purge legacy products from Firestore
-        deleteDoc(doc(db, 'products', docSnap.id)).catch(() => {});
-      } else {
-        firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...docSnap.data() } as Product));
-      }
+      const data = docSnap.data();
+      firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
     });
 
-    // Merge any missing default TOUZA products so all 4 are always present
-    const existingIds = new Set(firestoreProducts.map((p) => p.id));
-    const missingDefaults = PRODUCTS.filter((dp) => !existingIds.has(dp.id));
-    if (missingDefaults.length > 0) {
-      for (const dp of missingDefaults) {
-        const sanitized = sanitizeProduct(dp);
-        firestoreProducts.push(sanitized);
-        // Persist missing defaults into Firestore in background
-        setDoc(doc(db, 'products', dp.id), sanitizeForFirestore(sanitized), { merge: true }).catch(() => {});
-      }
+    if (firestoreProducts.length > 0) {
+      localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
+      return firestoreProducts;
     }
 
-    localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
-    return firestoreProducts;
+    // If Firestore is empty, seed initial products
+    const initialProducts = PRODUCTS.map(sanitizeProduct);
+    for (const prod of initialProducts) {
+      setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true }).catch(() => {});
+    }
+    localStorage.setItem('maison_products', safeJsonStringify(initialProducts));
+    return initialProducts;
   } catch (error) {
-    console.warn('Using offline fallback for products:', error);
+    console.warn('Using offline cached products:', error);
     try {
       const saved = localStorage.getItem('maison_products');
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
-        const valid = parsed
-          .filter((p) => p && !legacyProductIds.has(p.id))
-          .map(sanitizeProduct);
-        const validIds = new Set(valid.map((p) => p.id));
-        const missing = PRODUCTS.filter((dp) => !validIds.has(dp.id)).map(sanitizeProduct);
-        const combined = [...valid, ...missing];
-        if (combined.length > 0) return combined;
+        if (parsed.length > 0) return parsed.map(sanitizeProduct);
       }
       return PRODUCTS.map(sanitizeProduct);
     } catch {
@@ -1426,25 +1405,15 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
 export const subscribeToProducts = (
   callback: (products: Product[]) => void
 ): (() => void) => {
-  const legacyProductIds = new Set([
-    'silk-georgette-gown', 'sculptural-leather-mules', 'minimalist-silver-cuff',
-    'structured-crossbody', 'obsidian-tailored-coat', 'silk-draped-blouse',
-    'wide-leg-camel-trousers', 'noir-silk-slip-dress', 'architectural-tote', 'geometric-silver-pendant'
-  ]);
-
-  // Immediately emit sanitized cached products from localStorage with all 4 default products ensured
+  // Immediately emit cached products from localStorage if available
   try {
     const saved = localStorage.getItem('maison_products');
     if (saved) {
       const parsed: Product[] = JSON.parse(saved);
-      const valid = parsed
-        .filter((p) => p && !legacyProductIds.has(p.id))
-        .map(sanitizeProduct);
-      const validIds = new Set(valid.map((p) => p.id));
-      const missing = PRODUCTS.filter((dp) => !validIds.has(dp.id)).map(sanitizeProduct);
-      const combined = [...valid, ...missing];
-      if (combined.length > 0) {
-        callback(combined);
+      if (parsed.length > 0) {
+        callback(parsed.map(sanitizeProduct));
+      } else {
+        callback(PRODUCTS.map(sanitizeProduct));
       }
     } else {
       callback(PRODUCTS.map(sanitizeProduct));
@@ -1460,25 +1429,21 @@ export const subscribeToProducts = (
       (snapshot) => {
         const firestoreProducts: Product[] = [];
         snapshot.forEach((docSnap) => {
-          if (!legacyProductIds.has(docSnap.id)) {
-            firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...docSnap.data() } as Product));
-          }
+          const data = docSnap.data();
+          firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
         });
-
-        // Always ensure all 4 default TOUZA products are present
-        const existingIds = new Set(firestoreProducts.map((p) => p.id));
-        const missingDefaults = PRODUCTS.filter((dp) => !existingIds.has(dp.id));
-        if (missingDefaults.length > 0) {
-          for (const dp of missingDefaults) {
-            const sanitized = sanitizeProduct(dp);
-            firestoreProducts.push(sanitized);
-            setDoc(doc(db, 'products', dp.id), sanitizeForFirestore(sanitized), { merge: true }).catch(() => {});
-          }
-        }
 
         if (firestoreProducts.length > 0) {
           localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
           callback(firestoreProducts);
+        } else if (snapshot.empty) {
+          // If Firestore is genuinely empty, seed default products once
+          const initialProducts = PRODUCTS.map(sanitizeProduct);
+          for (const prod of initialProducts) {
+            setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true }).catch(() => {});
+          }
+          localStorage.setItem('maison_products', safeJsonStringify(initialProducts));
+          callback(initialProducts);
         }
       },
       (err) => {

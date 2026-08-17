@@ -109,16 +109,7 @@ export const AppContent: React.FC = () => {
       const saved = localStorage.getItem('maison_products');
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
-        const legacyIds = new Set([
-          'silk-georgette-gown', 'sculptural-leather-mules', 'minimalist-silver-cuff',
-          'structured-crossbody', 'obsidian-tailored-coat', 'silk-draped-blouse',
-          'wide-leg-camel-trousers', 'noir-silk-slip-dress', 'architectural-tote', 'geometric-silver-pendant'
-        ]);
-        const valid = parsed.filter((p) => p && !legacyIds.has(p.id));
-        const validIds = new Set(valid.map((p) => p.id));
-        const missing = PRODUCTS.filter((dp) => !validIds.has(dp.id));
-        const combined = [...valid, ...missing];
-        if (combined.length > 0) return combined;
+        if (parsed.length > 0) return parsed;
       }
       return PRODUCTS;
     } catch {
@@ -829,8 +820,8 @@ export const AppContent: React.FC = () => {
                 </div>
 
                 {(() => {
-                  const homeSelected = products.filter((p) => p.showOnHome || p.isFeatured);
-                  const listToDisplay = homeSelected.length > 0 ? homeSelected : products.slice(0, 8);
+                  const homeSelected = products.filter((p) => p.showOnHome !== false && (p.showOnHome || p.isFeatured));
+                  const listToDisplay = homeSelected.length > 0 ? homeSelected : products;
 
                   return (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
