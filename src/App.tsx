@@ -100,13 +100,13 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Luxury Brand Loading State (smooth 1.4s transition)
+  // Instant smooth brand entry
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsInitialLoading(false);
-    }, 1400);
+    }, 200);
 
     return () => clearTimeout(timer);
   }, []);
