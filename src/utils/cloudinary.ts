@@ -138,8 +138,8 @@ export function uploadVideoToCloudinary(
 }
 
 /**
- * Formats a Cloudinary image URL with auto-format (f_auto), auto-quality (q_auto),
- * and optional dimensions.
+ * Formats a Cloudinary image URL with auto-format (f_auto), auto-quality (q_auto:good),
+ * DPR optimization (dpr_auto), and lightweight width scaling for ultra-fast mobile loading on iOS and Android.
  */
 export function getOptimizedImageUrl(
   url: string,
@@ -147,7 +147,7 @@ export function getOptimizedImageUrl(
     width?: number;
     height?: number;
     crop?: 'fill' | 'scale' | 'fit' | 'limit' | 'thumb';
-    quality?: 'auto' | string;
+    quality?: 'auto' | 'auto:good' | 'auto:eco' | 'auto:low' | string;
     format?: 'auto' | string;
   }
 ): string {
@@ -158,31 +158,24 @@ export function getOptimizedImageUrl(
     return url;
   }
 
-  // Avoid re-transforming if transformations are already present right after /upload/
-  if (url.includes('/upload/f_auto') || url.includes('/upload/q_auto')) {
-    return url;
-  }
-
-  const quality = options?.quality || 'auto';
+  const width = options?.width || 500;
+  const quality = options?.quality || 'auto:good';
   const format = options?.format || 'auto';
   const crop = options?.crop || 'limit';
 
-  const transformations: string[] = [`f_${format}`, `q_${quality}`];
-
-  if (options?.width) {
-    transformations.push(`w_${options.width}`);
-  }
+  const transformParts = [`f_${format}`, `q_${quality}`, `w_${width}`, `c_${crop}`, 'dpr_auto'];
   if (options?.height) {
-    transformations.push(`h_${options.height}`);
+    transformParts.push(`h_${options.height}`);
   }
-  if (options?.width || options?.height) {
-    transformations.push(`c_${crop}`);
+  const transformString = transformParts.join(',');
+
+  if (url.includes('/upload/')) {
+    // Replace any existing transformations or insert after /upload/
+    const cleanedUrl = url.replace(/\/upload\/(?:[a-z]_[a-zA-Z0-9:.-]+,?)+\//i, '/upload/');
+    return cleanedUrl.replace('/upload/', `/upload/${transformString}/`);
   }
 
-  const transformString = transformations.join(',');
-
-  // Insert transformations after /upload/
-  return url.replace('/upload/', `/upload/${transformString}/`);
+  return url;
 }
 
 /**

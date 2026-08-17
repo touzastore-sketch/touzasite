@@ -767,11 +767,12 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {displayedProducts.map((p) => (
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+              {displayedProducts.map((p, idx) => (
                 <ProductCard
                   key={p.id}
                   product={p}
+                  priority={idx < 6}
                   onSelectProduct={onSelectProduct}
                   isWishlisted={wishlistIds.includes(p.id)}
                   onToggleWishlist={(product, e) => {

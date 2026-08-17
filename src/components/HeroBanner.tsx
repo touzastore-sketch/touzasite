@@ -167,7 +167,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings
       <div
         className="absolute inset-0 z-0 bg-cover bg-center pointer-events-none"
         style={{
-          backgroundImage: `url('/images/touza_hero_poster.jpg'), url('/images/philosophy_model.jpg')`,
+          backgroundImage: `url('/images/philosophy_model.jpg')`,
         }}
       />
 
@@ -177,7 +177,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings
           key={videoSrc}
           ref={videoRef}
           src={videoSrc}
-          poster="/images/touza_hero_poster.jpg"
+          poster="/images/philosophy_model.jpg"
           autoPlay
           muted
           loop

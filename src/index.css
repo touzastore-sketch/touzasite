@@ -25,6 +25,11 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   width: 100%;
+  touch-action: manipulation;
+}
+
+button, a, select, input {
+  touch-action: manipulation;
 }
 
 /* Safari WebKit Hardware Acceleration and Backdrop Fixes */
