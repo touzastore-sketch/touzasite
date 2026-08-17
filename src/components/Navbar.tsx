@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
-import { Heart, User as UserIcon, ShoppingBag, X } from 'lucide-react';
+import { Heart, User as UserIcon, ShoppingBag, Search, X } from 'lucide-react';
 import { ViewMode, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { SocialLinks } from './SocialLinks';
@@ -115,8 +115,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         id="navbar"
         className={`fixed top-0 left-0 w-full z-[100] transition-colors duration-300 ease-in-out pt-[env(safe-area-inset-top,0px)] ${
           isTransparent
-            ? 'bg-gradient-to-b from-black/85 via-black/45 to-transparent shadow-none'
-            : 'bg-white/95 backdrop-blur-md shadow-md border-b border-[#000000]/10'
+            ? 'bg-[#0a0a0c]/90 backdrop-blur-md border-b border-white/10 shadow-sm'
+            : 'bg-white/98 backdrop-blur-md shadow-md border-b border-[#000000]/10'
         }`}
       >
         {/* Top Announcement Bar (Infinite Moving Marquee Ticker) */}
@@ -260,6 +260,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                 EN
               </button>
             </div>
+
+            {/* Search */}
+            <button
+              onClick={onOpenSearch}
+              className={`w-9 h-9 sm:w-11 sm:h-11 min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
+                isTransparent
+                  ? 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
+                  : 'text-[#000000] hover:bg-[#000000]/5'
+              }`}
+              title={t('nav.search', 'Search')}
+              aria-label={t('nav.search', 'Search')}
+            >
+              <Search className="w-5 h-5 sm:w-5.5 sm:h-5.5 md:w-6 md:h-6" />
+            </button>
 
             {/* Wishlist */}
             <button

@@ -100,9 +100,16 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Luxury Brand Loading State (smooth 1.4s transition)
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
-  const [isVideoReady, setIsVideoReady] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 1400);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Dynamic Products state initialized from localStorage
   const [products, setProducts] = useState<Product[]>(() => {
@@ -336,7 +343,7 @@ export const AppContent: React.FC = () => {
     }
   }, [storeSettings]);
 
-  // Initial Sync Network-First Strategy to prevent Stale Data Flash
+  // Initial Sync Strategy to seamlessly hydrate live Firestore data
   useEffect(() => {
     let isSubscribed = true;
 
@@ -364,11 +371,7 @@ export const AppContent: React.FC = () => {
           }
         }
       } catch (err) {
-        console.warn('Initial data load error:', err);
-      } finally {
-        if (isSubscribed) {
-          setIsDataLoaded(true);
-        }
+        console.warn('Initial data load notice:', err);
       }
     };
 
@@ -399,27 +402,6 @@ export const AppContent: React.FC = () => {
       unsubscribeCategories();
       unsubscribeSettings();
     };
-  }, []);
-
-  // Dismiss loading screen when data is loaded AND video is ready
-  useEffect(() => {
-    if (isDataLoaded && isVideoReady) {
-      const timer = setTimeout(() => {
-        setIsInitialLoading(false);
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isDataLoaded, isVideoReady]);
-
-  // Maximum safety fallback timeout (4.5s) in case of extreme network latency or browser media policy
-  useEffect(() => {
-    const maxTimer = setTimeout(() => {
-      setIsInitialLoading(false);
-      setIsDataLoaded(true);
-      setIsVideoReady(true);
-    }, 4500);
-
-    return () => clearTimeout(maxTimer);
   }, []);
 
   const [selectedProduct, setSelectedProduct] = useState<Product>(products[0] || PRODUCTS[0]);
@@ -728,7 +710,7 @@ export const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#ffffff] text-[#1a1c1c] relative">
-      {/* Initial Luxury Loading Screen Overlay */}
+      {/* Luxury Loading Screen Overlay */}
       <div
         className={`fixed inset-0 z-[9999] bg-[#0a0a0a] flex flex-col items-center justify-center text-white px-4 select-none transition-opacity duration-700 ease-out ${
           isInitialLoading ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -797,7 +779,6 @@ export const AppContent: React.FC = () => {
             <HeroBanner
               onShopNow={() => handleNavigate('shop', 'All')}
               storeSettings={storeSettings}
-              onVideoReady={() => setIsVideoReady(true)}
             />
 
             {/* Featured Collection Grid */}
