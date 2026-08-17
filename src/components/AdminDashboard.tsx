@@ -34,6 +34,7 @@ import {
   Clock,
   XCircle,
   TrendingUp,
+  Download,
 } from 'lucide-react';
 import { Category, Product, ProductColor, ProductSize, PromoCode, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
@@ -60,6 +61,7 @@ import {
   deleteNewsletterSubscriberAdmin,
   saveNewsletterCampaignAdmin,
   getNewsletterCampaignsAdmin,
+  exportFirestoreProductsBackup,
 } from '../firebase';
 
 interface AdminDashboardProps {
@@ -221,6 +223,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [isExportingProducts, setIsExportingProducts] = useState(false);
 
   // New/Edit Product Form state
   const [formData, setFormData] = useState<Partial<Product>>({
@@ -617,6 +620,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (productToDelete) {
       onDeleteProduct(productToDelete.id);
       setProductToDelete(null);
+    }
+  };
+
+  const handleExportProductsBackup = async () => {
+    try {
+      setIsExportingProducts(true);
+      const backupData = await exportFirestoreProductsBackup();
+
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const downloadAnchor = document.createElement('a');
+      const dateStr = new Date().toISOString().split('T')[0];
+      downloadAnchor.href = url;
+      downloadAnchor.download = `touza-products-backup-${dateStr}.json`;
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      document.body.removeChild(downloadAnchor);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export products backup from Firestore:', err);
+      alert(
+        language === 'ar'
+          ? 'حدث خطأ أثناء تصدير نسخة المنتجات. يرجى المحاولة مرة أخرى.'
+          : 'Failed to export products backup. Please try again.'
+      );
+    } finally {
+      setIsExportingProducts(false);
     }
   };
 
@@ -1839,13 +1871,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
-              <button
-                onClick={handleOpenAddModal}
-                className="w-full md:w-auto bg-[#000000] text-white px-5 py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#2f3131] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 text-[14px]"
-              >
-                <span className="material-symbols-outlined text-[20px]">add</span>
-                <span>{language === 'ar' ? 'إضافة منتج جديد' : 'Add Product'}</span>
-              </button>
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <button
+                  type="button"
+                  onClick={handleExportProductsBackup}
+                  disabled={isExportingProducts}
+                  className="flex-1 md:flex-initial bg-white text-[#111111] border border-[#c4c7c7] px-4 py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#f3f4f6] active:bg-[#e5e7eb] transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2 text-[13px] disabled:opacity-60 disabled:cursor-not-allowed"
+                  title={language === 'ar' ? 'تصدير نسخة احتياطية من جميع منتجات Firestore كملف JSON' : 'Export JSON backup of all Firestore products'}
+                >
+                  {isExportingProducts ? (
+                    <RefreshCw className="w-4 h-4 animate-spin text-[#747878]" />
+                  ) : (
+                    <Download className="w-4 h-4 text-[#111111]" />
+                  )}
+                  <span>
+                    {isExportingProducts
+                      ? language === 'ar'
+                        ? 'جارٍ التصدير...'
+                        : 'Exporting...'
+                      : language === 'ar'
+                      ? 'تصدير نسخة احتياطية من المنتجات'
+                      : 'Export Products Backup'}
+                  </span>
+                </button>
+
+                <button
+                  onClick={handleOpenAddModal}
+                  className="flex-1 md:flex-initial bg-[#000000] text-white px-5 py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#2f3131] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 text-[14px]"
+                >
+                  <span className="material-symbols-outlined text-[20px]">add</span>
+                  <span>{language === 'ar' ? 'إضافة منتج جديد' : 'Add Product'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Products Table */}

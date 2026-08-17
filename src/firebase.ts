@@ -1457,6 +1457,29 @@ export const subscribeToProducts = (
   }
 };
 
+/**
+ * Read-only helper to fetch raw products directly from Firestore for backup export.
+ * Does not modify or delete any database records.
+ */
+export const exportFirestoreProductsBackup = async (): Promise<{
+  exportedAt: string;
+  totalProducts: number;
+  products: any[];
+}> => {
+  const productsRef = collection(db, 'products');
+  const snapshot = await fetchWithTimeout(getDocs(productsRef), 15000);
+  const rawProducts: any[] = [];
+  snapshot.forEach((docSnap) => {
+    rawProducts.push({ id: docSnap.id, ...docSnap.data() });
+  });
+
+  return {
+    exportedAt: new Date().toISOString(),
+    totalProducts: rawProducts.length,
+    products: rawProducts,
+  };
+};
+
 export const saveProductAdmin = async (
   productData: Product,
   currentProducts: Product[] = []
