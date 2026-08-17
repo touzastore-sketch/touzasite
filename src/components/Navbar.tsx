@@ -54,24 +54,34 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollTop = Math.max(0, window.pageYOffset || document.documentElement.scrollTop || 0);
       
-      // Always stay visible at the top of the screen (first 150px)
-      if (scrollTop <= 150) {
+      // Always stay visible at the top of the screen (first 100px) and guard against negative elastic bounces
+      if (scrollTop <= 100) {
         setIsVisible(true);
-      } else if (scrollTop > lastScrollTopRef.current + 15) {
+      } else if (scrollTop > lastScrollTopRef.current + 20) {
         // Scrolling down past threshold
         setIsVisible(false);
-      } else if (scrollTop < lastScrollTopRef.current - 15) {
+      } else if (scrollTop < lastScrollTopRef.current - 12) {
         // Scrolling up
         setIsVisible(true);
       }
-      setIsScrolled(scrollTop > 40);
-      lastScrollTopRef.current = Math.max(0, scrollTop);
+      setIsScrolled(scrollTop > 30);
+      lastScrollTopRef.current = scrollTop;
     };
 
+    // Initial check on mount
+    handleScroll();
+
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleScroll, { passive: true });
+    window.addEventListener('orientationchange', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+      window.removeEventListener('orientationchange', handleScroll);
+    };
   }, []);
 
   const navLinks = [
@@ -120,11 +130,11 @@ export const Navbar: React.FC<NavbarProps> = ({
     <>
       <header
         id="navbar"
-        className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 w-full z-[100] transition-all duration-300 ease-in-out pt-[env(safe-area-inset-top,0px)] ${
           isVisible ? 'translate-y-0' : '-translate-y-full'
         } ${
           isTransparent
-            ? 'bg-transparent shadow-none'
+            ? 'bg-gradient-to-b from-black/85 via-black/45 to-transparent shadow-none'
             : 'bg-white/95 backdrop-blur-md shadow-md border-b border-[#000000]/10'
         }`}
       >

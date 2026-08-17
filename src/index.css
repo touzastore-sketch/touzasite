@@ -28,6 +28,15 @@ html, body {
 }
 
 /* Safari WebKit Hardware Acceleration and Backdrop Fixes */
+#navbar {
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
+  isolation: isolate;
+}
+
 video, img {
   -webkit-transform: translate3d(0, 0, 0);
   transform: translate3d(0, 0, 0);
