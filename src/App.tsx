@@ -100,16 +100,26 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Instant smooth brand entry
+  // Loading state: waits until video is buffered & ready, with a graceful max safety fallback
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // If not on home page, dismiss immediately
+    if (currentView !== 'home') {
       setIsInitialLoading(false);
-    }, 200);
+      return;
+    }
 
-    return () => clearTimeout(timer);
-  }, []);
+    const safetyTimer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 4000);
+
+    return () => clearTimeout(safetyTimer);
+  }, [currentView]);
+
+  const handleHeroVideoReady = () => {
+    setIsInitialLoading(false);
+  };
 
   // Dynamic Products state initialized from localStorage
   const [products, setProducts] = useState<Product[]>(() => {
@@ -779,6 +789,7 @@ export const AppContent: React.FC = () => {
             <HeroBanner
               onShopNow={() => handleNavigate('shop', 'All')}
               storeSettings={storeSettings}
+              onVideoReady={handleHeroVideoReady}
             />
 
             {/* Featured Collection Grid */}

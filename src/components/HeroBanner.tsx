@@ -74,19 +74,37 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings
     }
   };
 
+  const handleVideoPlaying = () => {
+    setIsVideoLoaded(true);
+    if (onVideoReady) {
+      onVideoReady();
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current && videoRef.current.currentTime > 0.05) {
+      setIsVideoLoaded(true);
+      if (onVideoReady) {
+        onVideoReady();
+      }
+    }
+  };
+
   const handleReady = () => {
-    // Check if video is sufficiently buffered / ready to play without stutter
     if (videoRef.current) {
       const v = videoRef.current;
-      const isBuffered = v.buffered && v.buffered.length > 0 && v.buffered.end(0) > 0;
-      if (v.readyState >= 2 || isBuffered) {
+      // If video has already buffered and ready to play without stalling
+      if (v.readyState >= 3 && v.currentTime > 0) {
         setIsVideoLoaded(true);
+        if (onVideoReady) {
+          onVideoReady();
+        }
       }
     } else {
       setIsVideoLoaded(true);
-    }
-    if (onVideoReady) {
-      onVideoReady();
+      if (onVideoReady) {
+        onVideoReady();
+      }
     }
   };
 
@@ -117,11 +135,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings
               if (onVideoReady) onVideoReady();
             }
           }).catch((err) => {
-            console.log('Autoplay handled for mobile Safari/power-mode:', err);
-            if (isMounted) {
-              setIsVideoLoaded(true);
-              if (onVideoReady) onVideoReady();
-            }
+            console.log('Autoplay status:', err);
           });
         }
       };
@@ -132,13 +146,13 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings
       } catch {}
       playVideo();
 
-      // Guarantee site proceeds smoothly on slow mobile networks
+      // Graceful fallback for low power mode or restricted background autoplay
       fallbackTimer = setTimeout(() => {
         if (isMounted) {
           setIsVideoLoaded(true);
           if (onVideoReady) onVideoReady();
         }
-      }, 2000);
+      }, 3500);
 
       const handleUserInteraction = () => {
         playVideo();
@@ -187,8 +201,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings
           onLoadedData={handleReady}
           onCanPlay={handleReady}
           onPlay={handleReady}
-          onPlaying={handleReady}
-          onTimeUpdate={handleReady}
+          onPlaying={handleVideoPlaying}
+          onTimeUpdate={handleTimeUpdate}
           onError={(e) => {
             console.error('Hero video load issue for URL:', videoSrc, e);
             if (!videoError && videoSrc !== '/hero-video.mp4') {
