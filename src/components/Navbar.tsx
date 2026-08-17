@@ -33,9 +33,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   user,
 }) => {
   const { language, setLanguage, t } = useLanguage();
-  const [isVisible, setIsVisible] = useState(true);
-  const lastScrollTopRef = React.useRef(0);
-  const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [menuAnimated, setMenuAnimated] = useState(false);
 
@@ -52,37 +49,18 @@ export const Navbar: React.FC<NavbarProps> = ({
     (language === 'ar' ? storeSettings?.storeNameAr : storeSettings?.storeNameEn) ||
     (language === 'ar' ? 'توزا TOUZA' : 'TOUZA CASUAL');
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = Math.max(0, window.pageYOffset || document.documentElement.scrollTop || 0);
-      
-      // Always stay visible at the top of the screen (first 100px) and guard against negative elastic bounces
-      if (scrollTop <= 100) {
-        setIsVisible(true);
-      } else if (scrollTop > lastScrollTopRef.current + 20) {
-        // Scrolling down past threshold
-        setIsVisible(false);
-      } else if (scrollTop < lastScrollTopRef.current - 12) {
-        // Scrolling up
-        setIsVisible(true);
-      }
-      setIsScrolled(scrollTop > 30);
-      lastScrollTopRef.current = scrollTop;
-    };
-
-    // Initial check on mount
-    handleScroll();
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleScroll, { passive: true });
-    window.addEventListener('orientationchange', handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleScroll);
-      window.removeEventListener('orientationchange', handleScroll);
-    };
-  }, []);
+  const isScrolled = React.useSyncExternalStore(
+    (callback) => {
+      window.addEventListener('scroll', callback, { passive: true });
+      window.addEventListener('resize', callback, { passive: true });
+      return () => {
+        window.removeEventListener('scroll', callback);
+        window.removeEventListener('resize', callback);
+      };
+    },
+    () => (typeof window !== 'undefined' ? (window.pageYOffset || document.documentElement.scrollTop || 0) > 30 : false),
+    () => false
+  );
 
   const navLinks = [
     { labelKey: 'nav.home', defaultLabel: 'Home', view: 'home' as ViewMode },
@@ -104,8 +82,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const isTransparent = currentView === 'home' && !isScrolled;
-  const rawTopAnnouncement = language === 'ar' ? storeSettings?.announcementAr : storeSettings?.announcementEn;
-  const showTopAnnouncement = storeSettings?.enableMarqueeBar !== false && Boolean(rawTopAnnouncement?.trim());
+  const rawTopAnnouncement =
+    (language === 'ar' ? storeSettings?.announcementAr : storeSettings?.announcementEn)?.trim() ||
+    storeSettings?.announcementAr?.trim() ||
+    storeSettings?.announcementEn?.trim() ||
+    "TOUZA MEN'S WEAR";
+
+  const showTopAnnouncement = storeSettings?.enableMarqueeBar !== false;
 
   // Parse custom messages cleanly without hardcoded injections
   let announcementItems: string[] = [];
@@ -130,9 +113,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     <>
       <header
         id="navbar"
-        className={`fixed top-0 left-0 w-full z-[100] transition-all duration-300 ease-in-out pt-[env(safe-area-inset-top,0px)] ${
-          isVisible ? 'translate-y-0' : '-translate-y-full'
-        } ${
+        className={`fixed top-0 left-0 w-full z-[100] transition-colors duration-300 ease-in-out pt-[env(safe-area-inset-top,0px)] ${
           isTransparent
             ? 'bg-gradient-to-b from-black/85 via-black/45 to-transparent shadow-none'
             : 'bg-white/95 backdrop-blur-md shadow-md border-b border-[#000000]/10'
@@ -142,7 +123,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {showTopAnnouncement && (
           <div 
             dir="ltr"
-            className="w-full bg-[#111111] text-[#e2c792] text-[11px] sm:text-[12px] font-medium py-1.5 border-b border-[#e2c792]/20 overflow-hidden font-label-caps whitespace-nowrap marquee-container select-none"
+            className="w-full min-h-[26px] bg-[#111111] text-[#e2c792] text-[11px] sm:text-[12px] font-medium py-1.5 border-b border-[#e2c792]/20 overflow-hidden font-label-caps whitespace-nowrap marquee-container select-none shrink-0"
           >
             <div
               className="flex whitespace-nowrap gap-10 animate-marquee"

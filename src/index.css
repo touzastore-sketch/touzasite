@@ -171,6 +171,14 @@ video, img {
   backface-visibility: hidden;
 }
 
+.marquee-container {
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  contain: paint;
+}
+
 .marquee-container:hover .animate-marquee,
 .marquee-container:hover .animate-marquee-rtl {
   animation-play-state: paused;
