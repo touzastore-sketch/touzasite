@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
+import {
+  ShoppingBag,
+  Heart,
+  Maximize2,
+  ChevronDown,
+  ChevronRight,
+  ChevronLeft,
+  Home,
+  Star,
+  Lock,
+  MessageSquare,
+  CheckCircle2,
+} from 'lucide-react';
 import { Product } from '../types';
 import { ProductCard } from './ProductCard';
 import { PRODUCTS, getLocalizedProductName, getLocalizedProductCategory, getLocalizedProductDescription, getLocalizedProductDetails } from '../data/products';
@@ -176,14 +189,18 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             <button
               type="button"
               onClick={() => onNavigate ? onNavigate('home') : null}
-              className="hover:text-[#000000] hover:underline transition-colors cursor-pointer flex items-center gap-1 font-bold"
+              className="hover:text-[#000000] hover:underline transition-colors cursor-pointer flex items-center gap-1.5 font-bold"
             >
-              <span className="material-symbols-outlined text-[15px]">home</span>
+              <Home className="w-3.5 h-3.5" />
               <span>{t('detail.breadcrumbHome', 'Home')}</span>
             </button>
           </li>
           <li className="flex items-center">
-            <span className="material-symbols-outlined text-[14px] mx-1 text-[#c4c7c7]">chevron_right</span>
+            {language === 'ar' ? (
+              <ChevronLeft className="w-3.5 h-3.5 mx-1 text-[#c4c7c7]" />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5 mx-1 text-[#c4c7c7]" />
+            )}
             <button
               type="button"
               onClick={() => onNavigate ? onNavigate('shop', 'All') : null}
@@ -193,7 +210,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             </button>
           </li>
           <li aria-current="page" className="flex items-center">
-            <span className="material-symbols-outlined text-[14px] mx-1 text-[#c4c7c7]">chevron_right</span>
+            {language === 'ar' ? (
+              <ChevronLeft className="w-3.5 h-3.5 mx-1 text-[#c4c7c7]" />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5 mx-1 text-[#c4c7c7]" />
+            )}
             <span className="text-[#000000] font-bold line-clamp-1 max-w-[200px] sm:max-w-xs">{displayName}</span>
           </li>
         </ol>
@@ -251,7 +272,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               className="absolute top-4 right-4 p-2.5 bg-white/80 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-white cursor-pointer shadow-md z-10"
               title="Fullscreen view"
             >
-              <span className="material-symbols-outlined text-[#000000] text-[20px]">fullscreen</span>
+              <Maximize2 className="w-5 h-5 text-[#000000]" />
             </button>
           </div>
         </div>
@@ -374,7 +395,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 onClick={() => onAddToCart(product, selectedColor, selectedSize)}
                 className="flex-1 bg-[#000000] text-white py-3.5 rounded-lg font-label-caps hover:bg-[#2f3131] transition-all cursor-pointer flex justify-center items-center gap-2 shadow-sm active:scale-[0.99] text-[15px]"
               >
-                <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
+                <ShoppingBag className="w-5 h-5 text-white" />
                 {t('detail.addToCart', 'Add to Cart')}
               </button>
               <button
@@ -384,15 +405,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 }`}
                 title={isWishlisted ? t('product.removeFromWishlist', 'Remove') : t('product.addToWishlist', 'Save')}
               >
-                <span
-                  className="material-symbols-outlined group-hover:scale-110 transition-transform text-[20px]"
-                  style={{
-                    fontVariationSettings: isWishlisted ? "'FILL' 1" : "'FILL' 0",
-                    color: isWishlisted ? '#ba1a1a' : '#000000',
-                  }}
-                >
-                  favorite
-                </span>
+                <Heart
+                  className={`w-5 h-5 group-hover:scale-110 transition-transform ${
+                    isWishlisted ? 'text-[#ba1a1a] fill-[#ba1a1a]' : 'text-[#000000]'
+                  }`}
+                />
               </button>
             </div>
             <button
@@ -413,18 +430,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 className="w-full flex justify-between items-center font-label-caps text-[#000000] cursor-pointer text-start select-none"
               >
                 <span className="text-start font-bold">{t('detail.description', 'Description')}</span>
-                <span
-                  className={`material-symbols-outlined text-[20px] transition-transform duration-300 transform-gpu shrink-0 ${
+                <ChevronDown
+                  className={`w-5 h-5 text-[#000000] transition-transform duration-300 transform-gpu shrink-0 ${
                     openAccordions.description ? 'rotate-180' : 'rotate-0'
                   }`}
-                  style={{ transformOrigin: 'center center' }}
-                >
-                  expand_more
-                </span>
+                />
               </button>
               {openAccordions.description && (
                 <div className="pt-3 font-body text-[15px] text-[#444748] leading-relaxed text-start">
-                  {displayDescription}
+                  {displayDescription || (language === 'ar' ? 'قطعة مميزة مصممة بأعلى معايير الجودة والأناقة العصرية من توزا.' : 'An exquisite piece tailored with the finest materials and modern elegance from TOUZA.')}
                 </div>
               )}
             </div>
@@ -437,21 +451,26 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 className="w-full flex justify-between items-center font-label-caps text-[#000000] cursor-pointer text-start select-none"
               >
                 <span className="text-start font-bold">{t('detail.detailsFit', 'Details & Fit')}</span>
-                <span
-                  className={`material-symbols-outlined text-[20px] transition-transform duration-300 transform-gpu shrink-0 ${
+                <ChevronDown
+                  className={`w-5 h-5 text-[#000000] transition-transform duration-300 transform-gpu shrink-0 ${
                     openAccordions.details ? 'rotate-180' : 'rotate-0'
                   }`}
-                  style={{ transformOrigin: 'center center' }}
-                >
-                  expand_more
-                </span>
+                />
               </button>
               {openAccordions.details && (
                 <div className="pt-3 font-body text-[15px] text-[#444748] leading-relaxed text-start">
                   <ul className="list-disc ps-5 space-y-1">
-                    {displayDetails.map((detail, idx) => (
-                      <li key={idx}>{detail}</li>
-                    ))}
+                    {displayDetails && displayDetails.length > 0 ? (
+                      displayDetails.map((detail, idx) => (
+                        <li key={idx}>{detail}</li>
+                      ))
+                    ) : (
+                      <>
+                        <li>{language === 'ar' ? 'خامات فاخرة عالية الجودة مختارة بعناية' : 'Premium curated luxury fabrics'}</li>
+                        <li>{language === 'ar' ? 'تصميم مريح وأنيق يناسب مختلف المناسبات' : 'Tailored fit for versatility and comfort'}</li>
+                        <li>{language === 'ar' ? 'صناعة متقنة وتشطيب فاخر' : 'Master craftsmanship and finishing'}</li>
+                      </>
+                    )}
                   </ul>
                 </div>
               )}
@@ -465,14 +484,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 className="w-full flex justify-between items-center font-label-caps text-[#000000] cursor-pointer text-start select-none"
               >
                 <span className="text-start font-bold">{t('detail.shippingReturns', 'Shipping & Returns')}</span>
-                <span
-                  className={`material-symbols-outlined text-[20px] transition-transform duration-300 transform-gpu shrink-0 ${
+                <ChevronDown
+                  className={`w-5 h-5 text-[#000000] transition-transform duration-300 transform-gpu shrink-0 ${
                     openAccordions.shipping ? 'rotate-180' : 'rotate-0'
                   }`}
-                  style={{ transformOrigin: 'center center' }}
-                >
-                  expand_more
-                </span>
+                />
               </button>
               {openAccordions.shipping && (
                 <div className="pt-3 font-body text-[15px] text-[#444748] leading-relaxed text-start">
@@ -499,9 +515,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           <div className="flex items-center gap-3 bg-[#f9f9f9] px-5 py-2.5 rounded-xl border border-[#c4c7c7]/30">
             <div className="flex text-[#f59e0b]">
               {[1, 2, 3, 4, 5].map((star) => (
-                <span key={star} className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  star
-                </span>
+                <Star key={star} className="w-5 h-5 fill-[#f59e0b] text-[#f59e0b]" />
               ))}
             </div>
             <span className="font-body text-[16px] font-bold text-[#000000]">
@@ -525,7 +539,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             /* Auth Banner when not signed in */
             <div className="p-4 bg-white rounded-lg border border-[#c4c7c7]/30 flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[28px] text-[#000000]">lock</span>
+                <Lock className="w-7 h-7 text-[#000000] shrink-0" />
                 <div>
                   <p className="font-body text-[14px] font-bold text-[#000000]">
                     {language === 'ar' ? 'يتطلب إضافة التقييم تسجيل الدخول بحساب Google' : 'Sign in with Google required to post a review'}
@@ -577,17 +591,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                       type="button"
                       key={star}
                       onClick={() => setNewRating(star)}
-                      className="text-[24px] focus:outline-none transition-transform hover:scale-110 cursor-pointer"
+                      className="focus:outline-none transition-transform hover:scale-110 cursor-pointer p-1"
                     >
-                      <span
-                        className="material-symbols-outlined"
-                        style={{
-                          fontVariationSettings: star <= newRating ? "'FILL' 1" : "'FILL' 0",
-                          color: star <= newRating ? '#f59e0b' : '#d1d5db',
-                        }}
-                      >
-                        star
-                      </span>
+                      <Star
+                        className={`w-6 h-6 ${
+                          star <= newRating ? 'fill-[#f59e0b] text-[#f59e0b]' : 'text-gray-300 fill-transparent'
+                        }`}
+                      />
                     </button>
                   ))}
                 </div>
@@ -627,8 +637,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             </p>
           ) : reviews.length === 0 ? (
             <div className="text-center py-8 bg-[#f9f9f9] rounded-xl border border-[#c4c7c7]/20 p-6">
-              <span className="material-symbols-outlined text-[32px] text-[#c4c7c7]">chat_bubble_outline</span>
-              <p className="font-display text-[16px] font-bold text-[#000000] mt-1">
+              <MessageSquare className="w-8 h-8 text-[#c4c7c7] mx-auto mb-2" />
+              <p className="font-display text-[16px] font-bold text-[#000000]">
                 {language === 'ar' ? 'لا توجد تقييمات لهذا المنتج بعد' : 'No reviews yet for this product'}
               </p>
               <p className="font-body text-[13px] text-[#747878] mt-1">
@@ -654,28 +664,22 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                           {rev.userName || (language === 'ar' ? 'عميل توزا' : 'TOUZA Client')}
                         </h4>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[#2e7d32] text-[11px] font-bold flex items-center gap-0.5">
-                            <span className="material-symbols-outlined text-[13px]">verified</span>
+                          <span className="text-[#2e7d32] text-[11px] font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>{language === 'ar' ? 'مشتري مؤكد' : 'Verified Purchase'}</span>
                           </span>
-                          {rev.orderNumber && (
-                            <span className="text-[#747878] text-[11px] font-mono">
-                              ({rev.orderNumber})
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>
 
                     <div className="flex text-[#f59e0b] shrink-0">
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <span
+                        <Star
                           key={star}
-                          className="material-symbols-outlined text-[18px]"
-                          style={{ fontVariationSettings: star <= rev.rating ? "'FILL' 1" : "'FILL' 0" }}
-                        >
-                          star
-                        </span>
+                          className={`w-4 h-4 ${
+                            star <= rev.rating ? 'fill-[#f59e0b] text-[#f59e0b]' : 'text-gray-300'
+                          }`}
+                        />
                       ))}
                     </div>
                   </div>
