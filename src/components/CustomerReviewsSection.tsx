@@ -10,7 +10,7 @@ interface CustomerReviewsSectionProps {
   onOpenAccount: () => void;
 }
 
-export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
+const CustomerReviewsSectionComponent: React.FC<CustomerReviewsSectionProps> = ({
   user,
   onOpenAccount,
 }) => {
@@ -218,3 +218,6 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
     </section>
   );
 };
+
+export const CustomerReviewsSection = React.memo(CustomerReviewsSectionComponent);
+

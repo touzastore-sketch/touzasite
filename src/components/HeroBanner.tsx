@@ -10,7 +10,7 @@ interface HeroBannerProps {
   onVideoReady?: () => void;
 }
 
-export const HeroBanner: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings, onVideoReady }) => {
+const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings, onVideoReady }) => {
   const { language, t } = useLanguage();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
@@ -196,7 +196,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings
           muted
           loop
           playsInline
-          preload="auto"
+          preload="metadata"
           onEnded={handleVideoEnded}
           onLoadedData={handleReady}
           onCanPlay={handleReady}
@@ -256,3 +256,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings
     </section>
   );
 };
+
+export const HeroBanner = React.memo(HeroBannerComponent);
+

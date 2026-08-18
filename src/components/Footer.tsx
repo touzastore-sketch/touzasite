@@ -9,7 +9,7 @@ interface FooterProps {
   storeSettings?: StoreSettings;
 }
 
-export const Footer: React.FC<FooterProps> = ({
+const FooterComponent: React.FC<FooterProps> = ({
   onOpenPolicyModal,
   storeSettings,
 }) => {
@@ -137,3 +137,6 @@ export const Footer: React.FC<FooterProps> = ({
     </footer>
   );
 };
+
+export const Footer = React.memo(FooterComponent);
+

@@ -16,7 +16,7 @@ interface ProductCardProps {
   priority?: boolean;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({
+const ProductCardComponent: React.FC<ProductCardProps> = ({
   product,
   onSelectProduct,
   isWishlisted,
@@ -40,7 +40,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const rawImg = activeColor?.imageUrl || product.images?.[0];
   const fallbackImage = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
-  const displayImage = getOptimizedImageUrl(rawImg && rawImg.trim() ? rawImg : fallbackImage, { width: 500 });
+  const displayImage = getOptimizedImageUrl(rawImg && rawImg.trim() ? rawImg : fallbackImage, { width: 450, quality: 'auto:good' });
 
   const displayName = getLocalizedProductName(product, language);
   const displaySubtitle = getLocalizedProductSubtitle(product, language);
@@ -106,9 +106,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               className={`w-full h-full object-contain p-1.5 transition-all duration-300 ease-out group-hover:scale-105 ${
                 isLoaded ? 'opacity-100' : 'opacity-90'
               }`}
-              loading="eager"
+              loading={priority ? 'eager' : 'lazy'}
               decoding="async"
-              fetchPriority="high"
+              fetchPriority={priority ? 'high' : 'auto'}
               referrerPolicy="no-referrer"
             />
           )}
@@ -273,3 +273,5 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     </div>
   );
 };
+
+export const ProductCard = React.memo(ProductCardComponent);

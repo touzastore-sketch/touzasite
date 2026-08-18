@@ -15,7 +15,7 @@ interface CategorySectionProps {
   subtitleEn?: string;
 }
 
-export const CategorySection: React.FC<CategorySectionProps> = ({
+const CategorySectionComponent: React.FC<CategorySectionProps> = ({
   categories,
   selectedCategory,
   onSelectCategory,
@@ -158,4 +158,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
     </section>
   );
 };
+
+export const CategorySection = React.memo(CategorySectionComponent);
+
 

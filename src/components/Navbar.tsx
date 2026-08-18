@@ -19,7 +19,7 @@ interface NavbarProps {
   user?: User | null;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({
+const NavbarComponent: React.FC<NavbarProps> = ({
   currentView,
   onNavigate,
   cartCount,
@@ -510,3 +510,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     </>
   );
 };
+
+export const Navbar = React.memo(NavbarComponent);
+

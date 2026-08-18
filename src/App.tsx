@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { Category, Product, CartItem, ViewMode, PromoCode, StoreSettings } from './types';
@@ -9,18 +9,6 @@ import { Footer } from './components/Footer';
 import { HeroBanner } from './components/HeroBanner';
 import { CategorySection } from './components/CategorySection';
 import { ProductCard } from './components/ProductCard';
-import { ProductDetail } from './components/ProductDetail';
-import { CollectionsView } from './components/CollectionsView';
-import { CartDrawer } from './components/CartDrawer';
-import { CheckoutView } from './components/CheckoutView';
-import { SearchModal } from './components/SearchModal';
-import { WishlistModal } from './components/WishlistModal';
-import { ImageModal } from './components/ImageModal';
-import { SizeGuideModal } from './components/SizeGuideModal';
-import { PolicyModal } from './components/PolicyModal';
-import { AccountModal } from './components/AccountModal';
-import { AdminDashboard } from './components/AdminDashboard';
-import { ResetPasswordView } from './components/ResetPasswordView';
 import { CustomerReviewsSection } from './components/CustomerReviewsSection';
 import { PhilosophySection } from './components/PhilosophySection';
 import { LogoMarqueeSection } from './components/LogoMarqueeSection';
@@ -32,18 +20,15 @@ import { getOptimizedImageUrl } from './utils/cloudinary';
 import {
   subscribeToAuth,
   signInWithGoogle,
-  getAllCategories,
   subscribeToCategories,
   saveCategoryAdmin,
   updateCategoryAdmin,
   deleteCategoryAdmin,
   resetDefaultCategoriesAdmin,
   addNewsletterSubscriber,
-  getAllProductsAdmin,
   subscribeToProducts,
   saveProductAdmin,
   deleteProductAdmin,
-  getStoreSettingsAdmin,
   subscribeToStoreSettings,
   saveStoreSettingsAdmin,
   getAllPromoCodesAdmin,
@@ -52,6 +37,23 @@ import {
   incrementPromoCodeUsageAdmin,
   safeJsonStringify,
 } from './firebase';
+
+// Lazy-loaded Views for ultra-fast initial bundle & instant startup
+const ProductDetail = lazy(() => import('./components/ProductDetail').then((m) => ({ default: m.ProductDetail })));
+const CollectionsView = lazy(() => import('./components/CollectionsView').then((m) => ({ default: m.CollectionsView })));
+const CheckoutView = lazy(() => import('./components/CheckoutView').then((m) => ({ default: m.CheckoutView })));
+const ResetPasswordView = lazy(() => import('./components/ResetPasswordView').then((m) => ({ default: m.ResetPasswordView })));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+
+// Lazy-loaded Modals & Drawers (rendered strictly on demand)
+const CartDrawer = lazy(() => import('./components/CartDrawer').then((m) => ({ default: m.CartDrawer })));
+const SearchModal = lazy(() => import('./components/SearchModal').then((m) => ({ default: m.SearchModal })));
+const WishlistModal = lazy(() => import('./components/WishlistModal').then((m) => ({ default: m.WishlistModal })));
+const ImageModal = lazy(() => import('./components/ImageModal').then((m) => ({ default: m.ImageModal })));
+const SizeGuideModal = lazy(() => import('./components/SizeGuideModal').then((m) => ({ default: m.SizeGuideModal })));
+const PolicyModal = lazy(() => import('./components/PolicyModal').then((m) => ({ default: m.PolicyModal })));
+const AccountModal = lazy(() => import('./components/AccountModal').then((m) => ({ default: m.AccountModal })));
+
 
 const getInitialViewState = (): { view: ViewMode; category: string; productId: string | null; oobCode?: string | null } => {
   if (typeof window !== 'undefined') {
@@ -122,27 +124,20 @@ export const AppContent: React.FC = () => {
       console.error('Failed to store products:', err);
     }
 
-    // Preload product images into browser cache immediately in the background
+    // Idle non-blocking image pre-warmer for smooth browsing
     if (typeof window !== 'undefined' && products && products.length > 0) {
-      const preloadList = products.slice(0, 24);
-      preloadList.forEach((prod) => {
-        const rawImg = prod.colors?.[0]?.imageUrl || prod.images?.[0];
-        if (rawImg && rawImg.trim()) {
-          const optimized = getOptimizedImageUrl(rawImg, { width: 500 });
-          const img = new Image();
-          img.src = optimized;
-        }
-        // Also pre-warm secondary color image
-        if (prod.colors && prod.colors.length > 1) {
-          prod.colors.slice(1, 3).forEach((c) => {
-            if (c.imageUrl && c.imageUrl.trim()) {
-              const opt = getOptimizedImageUrl(c.imageUrl, { width: 500 });
-              const cImg = new Image();
-              cImg.src = opt;
-            }
-          });
-        }
-      });
+      const idleTimer = setTimeout(() => {
+        const preloadList = products.slice(0, 4);
+        preloadList.forEach((prod) => {
+          const rawImg = prod.colors?.[0]?.imageUrl || prod.images?.[0];
+          if (rawImg && rawImg.trim()) {
+            const optimized = getOptimizedImageUrl(rawImg, { width: 450, quality: 'auto:good' });
+            const img = new Image();
+            img.src = optimized;
+          }
+        });
+      }, 2000);
+      return () => clearTimeout(idleTimer);
     }
   }, [products]);
 
@@ -356,45 +351,11 @@ export const AppContent: React.FC = () => {
     }
   }, [storeSettings]);
 
-  // Initial Sync Strategy to seamlessly hydrate live Firestore data with zero latency
+  // Streamlined Real-time Firestore synchronization (uses cache-first listener for instantaneous load)
   useEffect(() => {
     let isSubscribed = true;
 
-    // Load products with top priority immediately (non-blocking)
-    getAllProductsAdmin()
-      .then((remoteProducts) => {
-        if (isSubscribed && remoteProducts && remoteProducts.length > 0) {
-          setProducts(remoteProducts);
-        }
-      })
-      .catch(() => {});
-
-    // Load secondary assets concurrently in the background
-    getAllCategories()
-      .then((remoteCats) => {
-        if (isSubscribed && remoteCats && remoteCats.length > 0) {
-          setCategories(remoteCats);
-        }
-      })
-      .catch(() => {});
-
-    getAllPromoCodesAdmin(defaultPromos)
-      .then((remotePromos) => {
-        if (isSubscribed && remotePromos && remotePromos.length > 0) {
-          setPromoCodes(remotePromos);
-        }
-      })
-      .catch(() => {});
-
-    getStoreSettingsAdmin(defaultSettings)
-      .then((remoteSettings) => {
-        if (isSubscribed && remoteSettings) {
-          setStoreSettings(remoteSettings);
-        }
-      })
-      .catch(() => {});
-
-    // Subscribe to live Firestore updates for real-time synchronization
+    // Subscribe to live Firestore updates with instantaneous local cache hydration
     const unsubscribeProducts = subscribeToProducts((liveProducts) => {
       if (isSubscribed && liveProducts && liveProducts.length > 0) {
         setProducts(liveProducts);
@@ -413,8 +374,20 @@ export const AppContent: React.FC = () => {
       }
     });
 
+    // Load promo codes on background idle
+    const promoTimer = setTimeout(() => {
+      getAllPromoCodesAdmin(defaultPromos)
+        .then((remotePromos) => {
+          if (isSubscribed && remotePromos && remotePromos.length > 0) {
+            setPromoCodes(remotePromos);
+          }
+        })
+        .catch(() => {});
+    }, 1500);
+
     return () => {
       isSubscribed = false;
+      clearTimeout(promoTimer);
       unsubscribeProducts();
       unsubscribeCategories();
       unsubscribeSettings();
@@ -798,13 +771,15 @@ export const AppContent: React.FC = () => {
                 {(() => {
                   const homeSelected = products.filter((p) => p.showOnHome !== false && (p.showOnHome || p.isFeatured));
                   const listToDisplay = homeSelected.length > 0 ? homeSelected : products;
+                  const displayList = listToDisplay.slice(0, 12);
 
                   return (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {listToDisplay.map((product) => (
+                      {displayList.map((product, idx) => (
                         <ProductCard
                           key={product.id}
                           product={product}
+                          priority={idx < 4}
                           onSelectProduct={handleSelectProduct}
                           isWishlisted={wishlistIds.includes(product.id)}
                           onToggleWishlist={(p, e) => {
@@ -894,60 +869,62 @@ export const AppContent: React.FC = () => {
           </div>
         )}
 
-        {currentView === 'shop' && (
-          <CollectionsView
-            onSelectProduct={handleSelectProduct}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-            onAddToCart={handleAddToCart}
-            onNavigateHome={() => handleNavigate('home')}
-            initialCategory={categoryFilter}
-            products={products}
-            categories={categories}
-            storeSettings={storeSettings}
-          />
-        )}
+        <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center"><div className="w-8 h-8 rounded-full border-2 border-[#121212]/20 border-t-[#121212] animate-spin" /></div>}>
+          {currentView === 'shop' && (
+            <CollectionsView
+              onSelectProduct={handleSelectProduct}
+              wishlistIds={wishlistIds}
+              onToggleWishlist={handleToggleWishlist}
+              onAddToCart={handleAddToCart}
+              onNavigateHome={() => handleNavigate('home')}
+              initialCategory={categoryFilter}
+              products={products}
+              categories={categories}
+              storeSettings={storeSettings}
+            />
+          )}
 
-        {currentView === 'product' && (
-          <ProductDetail
-            product={selectedProduct}
-            products={products}
-            onAddToCart={handleAddToCart}
-            onBuyNow={handleBuyNow}
-            onSelectProduct={handleSelectProduct}
-            isWishlisted={wishlistIds.includes(selectedProduct.id)}
-            onToggleWishlist={handleToggleWishlist}
-            onOpenImageModal={(img) => setZoomedImage(img)}
-            onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
-            user={user}
-            onSignInGoogle={handleSignInGoogle}
-            onNavigate={(view, category) => handleNavigate(view, category)}
-          />
-        )}
+          {currentView === 'product' && (
+            <ProductDetail
+              product={selectedProduct}
+              products={products}
+              onAddToCart={handleAddToCart}
+              onBuyNow={handleBuyNow}
+              onSelectProduct={handleSelectProduct}
+              isWishlisted={wishlistIds.includes(selectedProduct.id)}
+              onToggleWishlist={handleToggleWishlist}
+              onOpenImageModal={(img) => setZoomedImage(img)}
+              onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
+              user={user}
+              onSignInGoogle={handleSignInGoogle}
+              onNavigate={(view, category) => handleNavigate(view, category)}
+            />
+          )}
 
-        {currentView === 'checkout' && (
-          <CheckoutView
-            cartItems={cartItems}
-            onBackToShop={() => handleNavigate('shop', 'All')}
-            onClearCart={() => setCartItems([])}
-            user={user}
-            onSignInGoogle={handleSignInGoogle}
-            promoCodes={promoCodes}
-            onUsePromoCode={handleUsePromoCode}
-            storeSettings={storeSettings}
-          />
-        )}
+          {currentView === 'checkout' && (
+            <CheckoutView
+              cartItems={cartItems}
+              onBackToShop={() => handleNavigate('shop', 'All')}
+              onClearCart={() => setCartItems([])}
+              user={user}
+              onSignInGoogle={handleSignInGoogle}
+              promoCodes={promoCodes}
+              onUsePromoCode={handleUsePromoCode}
+              storeSettings={storeSettings}
+            />
+          )}
 
-        {currentView === 'reset-password' && (
-          <ResetPasswordView
-            initialOobCode={initialUrlState.oobCode}
-            onOpenLogin={() => {
-              handleNavigate('home');
-              setIsAccountOpen(true);
-            }}
-            onNavigateHome={() => handleNavigate('home')}
-          />
-        )}
+          {currentView === 'reset-password' && (
+            <ResetPasswordView
+              initialOobCode={initialUrlState.oobCode}
+              onOpenLogin={() => {
+                handleNavigate('home');
+                setIsAccountOpen(true);
+              }}
+              onNavigateHome={() => handleNavigate('home')}
+            />
+          )}
+        </Suspense>
       </main>
 
       {/* Footer */}
@@ -959,54 +936,70 @@ export const AppContent: React.FC = () => {
         />
       )}
 
-      {/* Drawers & Modals */}
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        cartItems={cartItems}
-        onUpdateQuantity={handleUpdateCartQuantity}
-        onRemoveItem={handleRemoveCartItem}
-        onProceedToCheckout={() => handleNavigate('checkout')}
-      />
+      {/* Drawers & Modals (Mounted on demand for zero startup overhead) */}
+      <Suspense fallback={null}>
+        {isCartOpen && (
+          <CartDrawer
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            cartItems={cartItems}
+            onUpdateQuantity={handleUpdateCartQuantity}
+            onRemoveItem={handleRemoveCartItem}
+            onProceedToCheckout={() => handleNavigate('checkout')}
+          />
+        )}
 
-      <WishlistModal
-        isOpen={isWishlistOpen}
-        onClose={() => setIsWishlistOpen(false)}
-        wishlistIds={wishlistIds}
-        onSelectProduct={handleSelectProduct}
-        onRemoveWishlist={handleToggleWishlist}
-        onAddToCart={handleAddToCart}
-      />
+        {isWishlistOpen && (
+          <WishlistModal
+            isOpen={isWishlistOpen}
+            onClose={() => setIsWishlistOpen(false)}
+            wishlistIds={wishlistIds}
+            onSelectProduct={handleSelectProduct}
+            onRemoveWishlist={handleToggleWishlist}
+            onAddToCart={handleAddToCart}
+          />
+        )}
 
-      <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onSelectProduct={handleSelectProduct}
-        products={products}
-      />
+        {isSearchOpen && (
+          <SearchModal
+            isOpen={isSearchOpen}
+            onClose={() => setIsSearchOpen(false)}
+            onSelectProduct={handleSelectProduct}
+            products={products}
+          />
+        )}
 
-      <AccountModal
-        isOpen={isAccountOpen}
-        onClose={() => setIsAccountOpen(false)}
-        user={user}
-        onSignInGoogle={handleSignInGoogle}
-      />
+        {isAccountOpen && (
+          <AccountModal
+            isOpen={isAccountOpen}
+            onClose={() => setIsAccountOpen(false)}
+            user={user}
+            onSignInGoogle={handleSignInGoogle}
+          />
+        )}
 
-      <SizeGuideModal
-        isOpen={isSizeGuideOpen}
-        onClose={() => setIsSizeGuideOpen(false)}
-      />
+        {isSizeGuideOpen && (
+          <SizeGuideModal
+            isOpen={isSizeGuideOpen}
+            onClose={() => setIsSizeGuideOpen(false)}
+          />
+        )}
 
-      <ImageModal
-        imageSrc={zoomedImage}
-        onClose={() => setZoomedImage(null)}
-      />
+        {zoomedImage && (
+          <ImageModal
+            imageSrc={zoomedImage}
+            onClose={() => setZoomedImage(null)}
+          />
+        )}
 
-      <PolicyModal
-        title={policyModal?.title || null}
-        content={policyModal?.content || null}
-        onClose={() => setPolicyModal(null)}
-      />
+        {policyModal && (
+          <PolicyModal
+            title={policyModal.title || null}
+            content={policyModal.content || null}
+            onClose={() => setPolicyModal(null)}
+          />
+        )}
+      </Suspense>
 
       {/* Floating Toast Notification for Add to Cart */}
       {toastNotification.show && (

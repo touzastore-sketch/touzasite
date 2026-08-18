@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
 
-export const LogoMarqueeSection: React.FC = () => {
+const LogoMarqueeSectionComponent: React.FC = () => {
   const { language } = useLanguage();
 
   const isRtl = language === 'ar';
@@ -64,3 +64,6 @@ export const LogoMarqueeSection: React.FC = () => {
     </section>
   );
 };
+
+export const LogoMarqueeSection = React.memo(LogoMarqueeSectionComponent);
+

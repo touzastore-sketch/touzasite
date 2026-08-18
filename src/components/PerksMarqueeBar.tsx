@@ -6,7 +6,7 @@ interface PerksMarqueeBarProps {
   storeSettings?: StoreSettings;
 }
 
-export const PerksMarqueeBar: React.FC<PerksMarqueeBarProps> = ({ storeSettings }) => {
+const PerksMarqueeBarComponent: React.FC<PerksMarqueeBarProps> = ({ storeSettings }) => {
   const { language } = useLanguage();
   const isRtl = language === 'ar';
 
@@ -101,3 +101,6 @@ export const PerksMarqueeBar: React.FC<PerksMarqueeBarProps> = ({ storeSettings 
     </div>
   );
 };
+
+export const PerksMarqueeBar = React.memo(PerksMarqueeBarComponent);
+

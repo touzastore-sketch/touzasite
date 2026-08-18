@@ -12,7 +12,7 @@ interface PhilosophySectionProps {
   onExplore?: () => void;
 }
 
-export const PhilosophySection: React.FC<PhilosophySectionProps> = ({
+const PhilosophySectionComponent: React.FC<PhilosophySectionProps> = ({
   imageUrl,
   storeSettings,
   onExplore,
@@ -25,28 +25,42 @@ export const PhilosophySection: React.FC<PhilosophySectionProps> = ({
     storeSettings?.philosophyImageUrl ||
     imageUrl ||
     DEFAULT_MODEL_IMAGE;
-  const activeImageUrl = getOptimizedImageUrl(rawModelImage, { width: 800 });
+  const activeImageUrl = getOptimizedImageUrl(rawModelImage, { width: 800, quality: 'auto:good' });
 
   useEffect(() => {
     const element = sectionRef.current;
-    if (!element) return;
+    if (!element) {
+      setIsVisible(true);
+      return;
+    }
+
+    const safetyTimer = setTimeout(() => {
+      setIsVisible(true);
+    }, 200);
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsVisible(true);
+      return () => clearTimeout(safetyTimer);
+    }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
           observer.unobserve(element);
+          clearTimeout(safetyTimer);
         }
       },
       {
-        threshold: 0.15,
-        rootMargin: '0px 0px -50px 0px',
+        threshold: 0.01,
+        rootMargin: '100px 0px 50px 0px',
       }
     );
 
     observer.observe(element);
 
     return () => {
+      clearTimeout(safetyTimer);
       if (element) {
         observer.unobserve(element);
       }
@@ -208,8 +222,9 @@ export const PhilosophySection: React.FC<PhilosophySectionProps> = ({
                 src={activeImageUrl}
                 alt="Maison Atelier Model"
                 referrerPolicy="no-referrer"
-                loading="eager"
-                fetchPriority="high"
+                loading="lazy"
+                decoding="async"
+                fetchPriority="auto"
                 onError={(e) => {
                   e.currentTarget.src = DEFAULT_MODEL_IMAGE;
                 }}
@@ -225,3 +240,6 @@ export const PhilosophySection: React.FC<PhilosophySectionProps> = ({
     </section>
   );
 };
+
+export const PhilosophySection = React.memo(PhilosophySectionComponent);
+
