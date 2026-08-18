@@ -40,9 +40,8 @@ const CategorySectionComponent: React.FC<CategorySectionProps> = ({
         p.category === categoryNameEn ||
         p.category === categoryNameAr ||
         pCatAr === cAr ||
-        p.categoryAr === categoryNameEn ||
-        (cEn && pCatEn.includes(cEn)) ||
-        (cAr && pCatAr.includes(cAr))
+        p.categoryAr === categoryNameAr ||
+        p.categoryAr === categoryNameEn
       );
     }).length;
   };

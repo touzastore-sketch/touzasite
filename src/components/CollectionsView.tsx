@@ -46,6 +46,55 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
   const { language, formatPrice, t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || 'All');
 
+  // Synchronize category filter whenever initialCategory changes (e.g. navigation from Home or Navbar)
+  useEffect(() => {
+    if (initialCategory) {
+      setSelectedCategory(initialCategory);
+    }
+  }, [initialCategory]);
+
+  // Exact matching helper to ensure ONLY products in the selected category are shown
+  const matchesCategory = (p: Product, catName: string) => {
+    if (!catName || catName === 'All') return true;
+    if (catName === 'New Arrivals') return !!p.isNewArrival;
+
+    const sel = catName.trim();
+    const selLower = sel.toLowerCase();
+
+    const targetCat = categoriesList.find(
+      (c) =>
+        c.id === sel ||
+        c.nameEn?.toLowerCase()?.trim() === selLower ||
+        c.nameAr?.trim() === sel
+    );
+
+    const pCatEn = (p.category || '').trim();
+    const pCatEnLower = pCatEn.toLowerCase();
+    const pCatAr = (p.categoryAr || '').trim();
+
+    if (targetCat) {
+      const tEn = (targetCat.nameEn || '').trim();
+      const tEnLower = tEn.toLowerCase();
+      const tAr = (targetCat.nameAr || '').trim();
+
+      return (
+        (tEnLower && pCatEnLower === tEnLower) ||
+        (tAr && pCatAr === tAr) ||
+        p.category === targetCat.nameEn ||
+        p.category === targetCat.nameAr ||
+        p.categoryAr === targetCat.nameAr ||
+        p.categoryAr === targetCat.nameEn
+      );
+    }
+
+    return (
+      pCatEnLower === selLower ||
+      pCatAr === sel ||
+      p.category === catName ||
+      p.categoryAr === catName
+    );
+  };
+
   // Calculate highest price in catalog dynamically
   const maxCatalogPrice = useMemo(() => {
     if (!allProducts || allProducts.length === 0) return 10000;
@@ -92,50 +141,9 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
   const filteredProducts = useMemo(() => {
     let result = [...allProducts];
 
-    // Category filter
-    if (selectedCategory !== 'All') {
-      if (selectedCategory === 'New Arrivals') {
-        result = result.filter((p) => p.isNewArrival);
-      } else {
-        result = result.filter((p) => {
-          if (!p.category && !p.categoryAr) return false;
-          const pCatEn = p.category?.toLowerCase()?.trim() || '';
-          const pCatAr = p.categoryAr?.trim() || '';
-          const sel = selectedCategory.trim();
-          const selLower = sel.toLowerCase();
-
-          const targetCat = categoriesList.find(
-            (c) =>
-              c.nameEn?.toLowerCase() === selLower ||
-              c.nameAr?.trim() === sel ||
-              c.id === sel
-          );
-
-          if (targetCat) {
-            const tEn = targetCat.nameEn?.toLowerCase()?.trim() || '';
-            const tAr = targetCat.nameAr?.trim() || '';
-            return (
-              p.category === targetCat.nameEn ||
-              p.category === targetCat.nameAr ||
-              p.categoryAr === targetCat.nameAr ||
-              p.categoryAr === targetCat.nameEn ||
-              (tEn && pCatEn === tEn) ||
-              (tAr && pCatAr === tAr) ||
-              (tEn && pCatEn.includes(tEn)) ||
-              (tAr && pCatAr.includes(tAr))
-            );
-          }
-
-          return (
-            p.category === selectedCategory ||
-            p.categoryAr === selectedCategory ||
-            pCatEn === selLower ||
-            pCatAr === sel ||
-            pCatEn.includes(selLower) ||
-            pCatAr.includes(sel)
-          );
-        });
-      }
+    // Category filter: Strictly match only products belonging to selected category
+    if (selectedCategory && selectedCategory !== 'All') {
+      result = result.filter((p) => matchesCategory(p, selectedCategory));
     }
 
     // Price filter
@@ -165,7 +173,7 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
     }
 
     return result;
-  }, [selectedCategory, maxPrice, selectedColor, selectedSize, sortBy]);
+  }, [allProducts, categoriesList, selectedCategory, maxPrice, selectedColor, selectedSize, sortBy]);
 
   const totalItems = filteredProducts.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
@@ -293,12 +301,7 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                   const isSelected =
                     selectedCategory === cat.nameEn ||
                     selectedCategory === cat.nameAr;
-                  const count = allProducts.filter(
-                    (p) =>
-                      p.category === cat.nameEn ||
-                      p.category === cat.nameAr ||
-                      p.categoryAr === cat.nameAr
-                  ).length;
+                  const count = allProducts.filter((p) => matchesCategory(p, cat.nameEn)).length;
 
                   return (
                     <button
@@ -495,12 +498,7 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                 const isSelected =
                   selectedCategory === cat.nameEn ||
                   selectedCategory === cat.nameAr;
-                const count = allProducts.filter(
-                  (p) =>
-                    p.category === cat.nameEn ||
-                    p.category === cat.nameAr ||
-                    p.categoryAr === cat.nameAr
-                ).length;
+                const count = allProducts.filter((p) => matchesCategory(p, cat.nameEn)).length;
 
                 return (
                   <button

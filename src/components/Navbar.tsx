@@ -4,6 +4,7 @@ import { Heart, User as UserIcon, ShoppingBag, Search, X } from 'lucide-react';
 import { ViewMode, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { SocialLinks } from './SocialLinks';
+import { TouzaLogo } from './TouzaLogo';
 
 interface NavbarProps {
   currentView: ViewMode;
@@ -382,13 +383,16 @@ const NavbarComponent: React.FC<NavbarProps> = ({
               <div>
                 {/* Header with Brand & Close button */}
                 <div className="flex items-center justify-between pb-6 mb-6 border-b border-white/10">
-                  <div className="flex flex-col">
-                    <span className="font-display text-[22px] sm:text-[26px] font-light tracking-wide text-[#f5f0eb]">
-                      {displayBrandName}
-                    </span>
-                    <span className="font-label-caps text-[10px] tracking-[0.3em] text-[#c5a059] uppercase mt-0.5">
-                      {language === 'ar' ? 'أزياء رجالية' : "MEN'S WEAR"}
-                    </span>
+                  <div className="flex items-center gap-3">
+                    <TouzaLogo className="w-9 h-14 shrink-0" variant="gold" showFrame={true} />
+                    <div className="flex flex-col">
+                      <span className="font-display text-[20px] sm:text-[24px] font-bold tracking-wide text-[#f5f0eb]">
+                        {displayBrandName}
+                      </span>
+                      <span className="font-label-caps text-[9px] sm:text-[10px] tracking-[0.25em] text-[#c5a059] uppercase mt-0.5">
+                        {language === 'ar' ? 'أزياء رجالية • بورسعيد' : "MEN'S WEAR • PORT SAID"}
+                      </span>
+                    </div>
                   </div>
                   <button
                     onClick={() => setMobileMenuOpen(false)}

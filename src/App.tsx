@@ -15,6 +15,7 @@ import { LogoMarqueeSection } from './components/LogoMarqueeSection';
 import { PerksMarqueeBar } from './components/PerksMarqueeBar';
 import { FloatingContactButtons } from './components/FloatingContactButtons';
 import { ScrollReveal } from './components/ScrollReveal';
+import { StorePreloader } from './components/StorePreloader';
 import { useLanguage } from './context/LanguageContext';
 import { getOptimizedImageUrl } from './utils/cloudinary';
 import {
@@ -561,6 +562,9 @@ export const AppContent: React.FC = () => {
     }
   }, [wishlistIds]);
 
+  // App Loading & Database Sync State
+  const [isSiteLoaded, setIsSiteLoaded] = useState(false);
+
   // Modals / Overlays state
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
@@ -700,6 +704,16 @@ export const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#ffffff] text-[#1a1c1c] relative">
+      {/* Luxury Branded Store Preloader (Runs on initial load until DB & critical assets are ready) */}
+      {!isSiteLoaded && (
+        <StorePreloader
+          products={products}
+          categories={categories}
+          storeSettings={storeSettings}
+          onFinishLoading={() => setIsSiteLoaded(true)}
+        />
+      )}
+
       {/* Top Navigation */}
       {currentView !== 'admin' && (
         <Navbar
