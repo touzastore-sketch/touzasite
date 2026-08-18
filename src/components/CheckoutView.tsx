@@ -317,15 +317,19 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
 
       const savedOrder = await saveUserOrder(user.uid, user.email || '', {
         orderNumber: generatedOrderNum,
-        items: cartItems.map((item) => ({
-          productId: item.product.id,
-          title: getLocalizedProductName(item.product, language),
-          price: item.product.price,
-          quantity: item.quantity,
-          selectedColor: item.selectedColor,
-          selectedSize: item.selectedSize,
-          image: item.product.images[0],
-        })),
+        items: cartItems.map((item) => {
+          const colorObj = item.product.colors?.find((c) => c.name === item.selectedColor);
+          const rawImg = colorObj?.imageUrl || (item.product.images && item.product.images.length > 0 ? item.product.images[0] : '') || 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
+          return {
+            productId: item.product.id,
+            title: getLocalizedProductName(item.product, language),
+            price: item.product.price,
+            quantity: item.quantity,
+            selectedColor: item.selectedColor,
+            selectedSize: item.selectedSize,
+            image: rawImg,
+          };
+        }),
         subtotal,
         discountAmount,
         shipping,

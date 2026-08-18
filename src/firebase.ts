@@ -379,7 +379,7 @@ export const subscribeToOrdersAdmin = (
       (snapshot) => {
         const orders: SavedOrder[] = [];
         snapshot.forEach((docSnap) => {
-          orders.push(cleanOrderObject(docSnap.data()));
+          orders.push(cleanOrderObject({ id: docSnap.id, ...docSnap.data() }));
         });
         orders.sort((a, b) => {
           const timeA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : 0;
@@ -460,12 +460,15 @@ const cleanOrderObject = (data: any): SavedOrder => {
     }
   } else if (createdAtStr && typeof createdAtStr.seconds === 'number') {
     createdAtStr = new Date(createdAtStr.seconds * 1000).toISOString();
-  } else if (!createdAtStr || typeof createdAtStr === 'object') {
+  } else if (typeof createdAtStr === 'string' && createdAtStr.trim()) {
+    createdAtStr = createdAtStr.trim();
+  } else {
     createdAtStr = new Date().toISOString();
   }
 
   return {
     ...data,
+    id: data?.id || data?.orderNumber || 'ord-' + Math.random().toString(36).substring(2, 9),
     createdAt: createdAtStr,
   };
 };
@@ -485,7 +488,7 @@ export const saveUserOrder = async (
   const firestoreOrder = {
     id: orderRef.id,
     userId,
-    userEmail,
+    userEmail: userEmail || orderData.shippingAddress?.phone || 'customer@touza.com',
     ...orderData,
     createdAt: serverTimestamp(),
   };
@@ -493,7 +496,7 @@ export const saveUserOrder = async (
   const returnOrder: SavedOrder = {
     id: orderRef.id,
     userId,
-    userEmail,
+    userEmail: userEmail || orderData.shippingAddress?.phone || 'customer@touza.com',
     ...orderData,
     createdAt: createdAtIso,
   };
@@ -533,7 +536,7 @@ export const getUserOrders = async (userId: string): Promise<SavedOrder[]> => {
 
     const orders: SavedOrder[] = [];
     snapshot.forEach((docSnap) => {
-      orders.push(cleanOrderObject(docSnap.data()));
+      orders.push(cleanOrderObject({ id: docSnap.id, ...docSnap.data() }));
     });
 
     // Merge with user subcollection if any older orders exist
@@ -542,7 +545,7 @@ export const getUserOrders = async (userId: string): Promise<SavedOrder[]> => {
       const userSubSnap = await fetchWithTimeout(getDocs(userSubcollRef));
       const existingIds = new Set(orders.map((o) => o.id));
       userSubSnap.forEach((docSnap) => {
-        const item = cleanOrderObject(docSnap.data());
+        const item = cleanOrderObject({ id: docSnap.id, ...docSnap.data() });
         if (!existingIds.has(item.id)) {
           orders.push(item);
         }
@@ -563,7 +566,7 @@ export const getUserOrders = async (userId: string): Promise<SavedOrder[]> => {
       const snapshot = await fetchWithTimeout(getDocs(userSubcollRef));
       const orders: SavedOrder[] = [];
       snapshot.forEach((docSnap) => {
-        orders.push(cleanOrderObject(docSnap.data()));
+        orders.push(cleanOrderObject({ id: docSnap.id, ...docSnap.data() }));
       });
       orders.sort((a, b) => {
         const timeA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : 0;
@@ -585,7 +588,7 @@ export const getAllOrdersAdmin = async (): Promise<SavedOrder[]> => {
     const snapshot = await fetchWithTimeout(getDocs(ordersRef));
     const orders: SavedOrder[] = [];
     snapshot.forEach((docSnap) => {
-      orders.push(cleanOrderObject(docSnap.data()));
+      orders.push(cleanOrderObject({ id: docSnap.id, ...docSnap.data() }));
     });
 
     // If top-level orders is empty, try collection group query
@@ -594,7 +597,7 @@ export const getAllOrdersAdmin = async (): Promise<SavedOrder[]> => {
         const ordersGroup = collectionGroup(db, 'orders');
         const groupSnap = await fetchWithTimeout(getDocs(ordersGroup));
         groupSnap.forEach((docSnap) => {
-          orders.push(cleanOrderObject(docSnap.data()));
+          orders.push(cleanOrderObject({ id: docSnap.id, ...docSnap.data() }));
         });
       } catch {}
     }

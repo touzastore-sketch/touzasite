@@ -2274,7 +2274,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             {ord.orderNumber}
                           </span>
                           <span className="text-[12px] text-[#747878]">
-                            • {ord.createdAt?.toDate ? new Date(ord.createdAt.toDate()).toLocaleString() : 'Recent'}
+                            • {(() => {
+                              try {
+                                if (!ord.createdAt) return 'Recent';
+                                const d = typeof ord.createdAt === 'string' 
+                                  ? new Date(ord.createdAt) 
+                                  : (ord.createdAt as any)?.toDate 
+                                    ? (ord.createdAt as any).toDate() 
+                                    : (ord.createdAt as any)?.seconds 
+                                      ? new Date((ord.createdAt as any).seconds * 1000) 
+                                      : new Date();
+                                return isNaN(d.getTime()) ? 'Recent' : d.toLocaleString(language === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' });
+                              } catch {
+                                return 'Recent';
+                              }
+                            })()}
                           </span>
                         </div>
 
