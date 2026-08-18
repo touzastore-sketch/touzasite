@@ -896,6 +896,85 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }));
   };
 
+  const handleAddSizesToColor = (colorIdx: number, sizesStr: string) => {
+    const rawSizes = sizesStr
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    setFormData((prev) => {
+      const updatedColors = [...(prev.colors || [])];
+      const existingSizes = updatedColors[colorIdx]?.sizes || [];
+      const existingSizeNames = existingSizes.map((s) => s.size.toLowerCase());
+      const newSizesList = [...existingSizes];
+
+      rawSizes.forEach((sz) => {
+        if (!existingSizeNames.includes(sz.toLowerCase())) {
+          newSizesList.push({ size: sz, inStock: true });
+        }
+      });
+
+      updatedColors[colorIdx] = {
+        ...updatedColors[colorIdx],
+        sizes: newSizesList,
+      };
+
+      return { ...prev, colors: updatedColors };
+    });
+  };
+
+  const handleCopyGeneralSizesToColor = (colorIdx: number) => {
+    setFormData((prev) => {
+      const updatedColors = [...(prev.colors || [])];
+      const generalSizes = prev.sizes ? JSON.parse(JSON.stringify(prev.sizes)) : [];
+      updatedColors[colorIdx] = {
+        ...updatedColors[colorIdx],
+        sizes: generalSizes,
+      };
+      return { ...prev, colors: updatedColors };
+    });
+  };
+
+  const handleClearColorSizes = (colorIdx: number) => {
+    setFormData((prev) => {
+      const updatedColors = [...(prev.colors || [])];
+      if (updatedColors[colorIdx]) {
+        delete updatedColors[colorIdx].sizes;
+      }
+      return { ...prev, colors: updatedColors };
+    });
+  };
+
+  const handleToggleColorSizeStock = (colorIdx: number, sizeIdx: number) => {
+    setFormData((prev) => {
+      const updatedColors = [...(prev.colors || [])];
+      const col = updatedColors[colorIdx];
+      if (col && col.sizes && col.sizes[sizeIdx]) {
+        const newSizes = [...col.sizes];
+        newSizes[sizeIdx] = {
+          ...newSizes[sizeIdx],
+          inStock: !newSizes[sizeIdx].inStock,
+        };
+        updatedColors[colorIdx] = { ...col, sizes: newSizes };
+      }
+      return { ...prev, colors: updatedColors };
+    });
+  };
+
+  const handleRemoveColorSize = (colorIdx: number, sizeIdx: number) => {
+    setFormData((prev) => {
+      const updatedColors = [...(prev.colors || [])];
+      const col = updatedColors[colorIdx];
+      if (col && col.sizes) {
+        updatedColors[colorIdx] = {
+          ...col,
+          sizes: col.sizes.filter((_, i) => i !== sizeIdx),
+        };
+      }
+      return { ...prev, colors: updatedColors };
+    });
+  };
+
   const [customSizeInput, setCustomSizeInput] = useState('');
 
   const handleAddCustomSize = (e?: React.FormEvent) => {
@@ -941,17 +1020,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }));
   };
 
-  const handleAddQuickSizesPreset = (presetType: 'numeric' | 'clothing' | 'shoes') => {
-    let presetList: string[] = [];
-    if (presetType === 'numeric') {
-      presetList = ['36', '38', '40', '42', '44'];
-    } else if (presetType === 'clothing') {
-      presetList = ['S', 'M', 'L', 'XL', 'XXL'];
-    } else if (presetType === 'shoes') {
-      presetList = ['37', '38', '39', '40', '41', '42'];
+  const getPresetSizesList = (presetType: string): string[] => {
+    switch (presetType) {
+      case 'clothing':
+      case 'clothing-standard':
+        return ['S', 'M', 'L', 'XL', 'XXL'];
+      case 'clothing-extended':
+        return ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'];
+      case 'numeric':
+      case 'numeric-clothing':
+        return ['36', '38', '40', '42', '44', '46'];
+      case 'pants':
+        return ['30', '32', '34', '36', '38', '40'];
+      case 'shoes':
+        return ['37', '38', '39', '40', '41', '42', '43', '44', '45'];
+      case 'shoes-women':
+        return ['36', '37', '38', '39', '40', '41'];
+      case 'free-size':
+        return ['Free Size'];
+      case 'oversize':
+        return ['Over Size 1', 'Over Size 2'];
+      default:
+        return [];
     }
+  };
+
+  const handleAddQuickSizesPreset = (presetType: string, overwrite = false) => {
+    const presetList = getPresetSizesList(presetType);
+    if (presetList.length === 0) return;
 
     setFormData((prev) => {
+      if (overwrite) {
+        return {
+          ...prev,
+          sizes: presetList.map((sz) => ({ size: sz, inStock: true })),
+        };
+      }
       const existing = (prev.sizes || []).map((s) => s.size.toLowerCase());
       const newSizes = [...(prev.sizes || [])];
       presetList.forEach((sz) => {
@@ -960,6 +1064,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
       });
       return { ...prev, sizes: newSizes };
+    });
+  };
+
+  const handleAddQuickSizesPresetToColor = (colorIdx: number, presetType: string, overwrite = false) => {
+    const presetList = getPresetSizesList(presetType);
+    if (presetList.length === 0) return;
+
+    setFormData((prev) => {
+      const updatedColors = [...(prev.colors || [])];
+      if (!updatedColors[colorIdx]) return prev;
+
+      if (overwrite) {
+        updatedColors[colorIdx] = {
+          ...updatedColors[colorIdx],
+          sizes: presetList.map((sz) => ({ size: sz, inStock: true })),
+        };
+        return { ...prev, colors: updatedColors };
+      }
+
+      const existingSizes = updatedColors[colorIdx].sizes || [];
+      const existingNames = existingSizes.map((s) => s.size.toLowerCase());
+      const newSizes = [...existingSizes];
+
+      presetList.forEach((sz) => {
+        if (!existingNames.includes(sz.toLowerCase())) {
+          newSizes.push({ size: sz, inStock: true });
+        }
+      });
+
+      updatedColors[colorIdx] = {
+        ...updatedColors[colorIdx],
+        sizes: newSizes,
+      };
+      return { ...prev, colors: updatedColors };
     });
   };
 
@@ -5229,6 +5367,156 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             />
                           )}
                         </div>
+
+                        {/* Color Specific Custom Sizes */}
+                        <div className="mt-2 pt-2 border-t border-[#c4c7c7]/30 bg-white/80 p-2.5 rounded-lg">
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5 mb-2">
+                            <span className="text-[12px] font-bold text-[#000000] flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[16px] text-[#444748]">straighten</span>
+                              <span>مقاسات خاصة بهذا الموديل/اللون (اختياري):</span>
+                            </span>
+                            <span className="text-[11px] text-[#747878]">
+                              {col.sizes && col.sizes.length > 0
+                                ? `(${col.sizes.length} مقاس محدد لهذا الموديل)`
+                                : 'يستخدم المقاسات العامة للمنتج تلقائياً'}
+                            </span>
+                          </div>
+
+                          {/* Quick Preset Buttons for Color */}
+                          <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                            <span className="text-[11px] font-bold text-[#555555] ml-1">تعبئة أوتوماتيكية:</span>
+                            <button
+                              type="button"
+                              onClick={() => handleAddQuickSizesPresetToColor(idx, 'clothing-standard')}
+                              className="px-2 py-0.5 bg-white border border-[#c4c7c7] text-[#000000] rounded-md text-[10px] font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer"
+                              title="إضافة S, M, L, XL, XXL"
+                            >
+                              + حروف (S-XXL)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAddQuickSizesPresetToColor(idx, 'clothing-extended')}
+                              className="px-2 py-0.5 bg-white border border-[#c4c7c7] text-[#000000] rounded-md text-[10px] font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer"
+                              title="إضافة XS, S, M, L, XL, 2XL, 3XL"
+                            >
+                              + حروف (XS-3XL)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAddQuickSizesPresetToColor(idx, 'pants')}
+                              className="px-2 py-0.5 bg-white border border-[#c4c7c7] text-[#000000] rounded-md text-[10px] font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer"
+                              title="إضافة 30, 32, 34, 36, 38, 40"
+                            >
+                              + بناطيل (30-40)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAddQuickSizesPresetToColor(idx, 'numeric-clothing')}
+                              className="px-2 py-0.5 bg-white border border-[#c4c7c7] text-[#000000] rounded-md text-[10px] font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer"
+                              title="إضافة 36, 38, 40, 42, 44, 46"
+                            >
+                              + أرقام (36-46)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAddQuickSizesPresetToColor(idx, 'shoes')}
+                              className="px-2 py-0.5 bg-white border border-[#c4c7c7] text-[#000000] rounded-md text-[10px] font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer"
+                              title="إضافة 37, 38, 39, 40, 41, 42, 43, 44, 45"
+                            >
+                              + أحذية (37-45)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAddQuickSizesPresetToColor(idx, 'free-size')}
+                              className="px-2 py-0.5 bg-white border border-[#c4c7c7] text-[#000000] rounded-md text-[10px] font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer"
+                            >
+                              + مقاس موحد (Free Size)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyGeneralSizesToColor(idx)}
+                              className="px-2 py-0.5 bg-[#f3f3f4] border border-[#c4c7c7] text-[#000000] rounded-md text-[10px] font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer font-bold"
+                              title="نسخ المقاسات العامة للمنتج إلى هذا الموديل"
+                            >
+                              📋 نسخ العامة
+                            </button>
+                            {col.sizes && col.sizes.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleClearColorSizes(idx)}
+                                className="px-2 py-0.5 text-[#ba1a1a] hover:bg-[#ba1a1a]/10 rounded-md text-[10px] font-label-caps transition-colors cursor-pointer"
+                                title="إعادة تعيين للاعتماد على المقاسات العامة للمنتج"
+                              >
+                                ✕ مسح
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap mb-2">
+                            <input
+                              type="text"
+                              placeholder="أو اكتب مقاس يدوي (مثال: S, M, L أو 38, 39, 40)..."
+                              className="flex-1 min-w-[200px] border border-[#c4c7c7] bg-white rounded-lg py-1 px-2.5 text-[12px]"
+                              id={`color-sizes-input-${idx}`}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  const val = (e.currentTarget.value || '').trim();
+                                  if (val) {
+                                    handleAddSizesToColor(idx, val);
+                                    e.currentTarget.value = '';
+                                  }
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const inputEl = document.getElementById(`color-sizes-input-${idx}`) as HTMLInputElement;
+                                if (inputEl && inputEl.value.trim()) {
+                                  handleAddSizesToColor(idx, inputEl.value.trim());
+                                  inputEl.value = '';
+                                }
+                              }}
+                              className="px-2.5 py-1 bg-[#000000] text-white rounded-lg text-[11px] font-label-caps hover:bg-[#2f3131] transition-colors cursor-pointer"
+                            >
+                              + إضافة
+                            </button>
+                          </div>
+
+                          {/* Color sizes badges list */}
+                          {col.sizes && col.sizes.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                              {col.sizes.map((szObj, sIdx) => (
+                                <span
+                                  key={sIdx}
+                                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${
+                                    szObj.inStock
+                                      ? 'bg-white text-black border-[#000000]'
+                                      : 'bg-gray-100 text-gray-400 border-gray-300 line-through'
+                                  }`}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleColorSizeStock(idx, sIdx)}
+                                    title={szObj.inStock ? 'انقر لجعله غير متوفر' : 'انقر لجعله متوفر'}
+                                    className="cursor-pointer"
+                                  >
+                                    {szObj.size} {szObj.inStock ? '✓' : '(نفذ)'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveColorSize(idx, sIdx)}
+                                    className="text-red-500 hover:text-red-700 cursor-pointer font-bold"
+                                    title="حذف هذا المقاس"
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -5241,39 +5529,136 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Product Sizes Management */}
               <div className="space-y-3 p-4 bg-[#f9f9f9] rounded-xl border border-[#c4c7c7]/20">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                  <div>
-                    <label className="block font-label-caps text-[12px] font-bold text-[#000000]">
-                      مقاسات المنتج (Product Sizes e.g. 37, 38, S, M, L)
-                    </label>
-                    <p className="text-[11px] text-[#747878] font-body mt-0.5">
-                      يمكنك إضافة مقاسات بالأرقام (مثل 37, 38, 39) أو بالحروف (S, M, L, XL) والتحكم في توفر كل مقاس.
-                    </p>
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <label className="block font-label-caps text-[13px] font-bold text-[#000000]">
+                        مقاسات المنتج (Product Sizes)
+                      </label>
+                      <p className="text-[11px] text-[#747878] font-body mt-0.5">
+                        اختر مجموعة مقاسات جاهزة بضغطة زر واحدة، أو أضف مقاسات مخصصة يدوياً.
+                      </p>
+                    </div>
+
+                    {formData.sizes && formData.sizes.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, sizes: [] }))}
+                        className="text-[11px] text-[#ba1a1a] hover:bg-[#ba1a1a]/10 px-2 py-1 rounded-md font-label-caps transition-colors cursor-pointer"
+                        title="مسح جميع المقاسات الحالية"
+                      >
+                        ✕ مسح جميع المقاسات
+                      </button>
+                    )}
                   </div>
 
-                  {/* Preset Buttons */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => handleAddQuickSizesPreset('shoes')}
-                      className="px-2 py-1 bg-white border border-[#c4c7c7] text-[#000000] rounded-lg text-[11px] font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer shadow-2xs"
-                    >
-                      + أحذية (37-42)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAddQuickSizesPreset('numeric')}
-                      className="px-2 py-1 bg-white border border-[#c4c7c7] text-[#000000] rounded-lg text-[11px] font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer shadow-2xs"
-                    >
-                      + أرقام (36-44)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAddQuickSizesPreset('clothing')}
-                      className="px-2 py-1 bg-white border border-[#c4c7c7] text-[#000000] rounded-lg text-[11px] font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer shadow-2xs"
-                    >
-                      + حروف (S-XXL)
-                    </button>
+                  {/* Preset Quick Fill Groups */}
+                  <div className="p-2.5 bg-white rounded-lg border border-[#c4c7c7]/30 space-y-2">
+                    <div className="text-[11px] font-bold text-[#333333] flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[15px] text-black">auto_awesome</span>
+                      <span>مجموعات مقاسات جاهزة بنقرة واحدة (تعبئة أوتوماتيكية):</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => handleAddQuickSizesPreset('clothing-standard')}
+                        className="px-2.5 py-1 bg-[#f3f3f4] border border-[#c4c7c7] text-[#000000] rounded-lg text-[11px] font-bold font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer shadow-2xs"
+                        title="إضافة S, M, L, XL, XXL"
+                      >
+                        👕 حروف ملابس (S - XXL)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddQuickSizesPreset('clothing-extended')}
+                        className="px-2.5 py-1 bg-[#f3f3f4] border border-[#c4c7c7] text-[#000000] rounded-lg text-[11px] font-bold font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer shadow-2xs"
+                        title="إضافة XS, S, M, L, XL, 2XL, 3XL"
+                      >
+                        👕 حروف موسعة (XS - 3XL)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddQuickSizesPreset('pants')}
+                        className="px-2.5 py-1 bg-[#f3f3f4] border border-[#c4c7c7] text-[#000000] rounded-lg text-[11px] font-bold font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer shadow-2xs"
+                        title="إضافة 30, 32, 34, 36, 38, 40"
+                      >
+                        👖 أرقام بناطيل (30 - 40)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddQuickSizesPreset('numeric-clothing')}
+                        className="px-2.5 py-1 bg-[#f3f3f4] border border-[#c4c7c7] text-[#000000] rounded-lg text-[11px] font-bold font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer shadow-2xs"
+                        title="إضافة 36, 38, 40, 42, 44, 46"
+                      >
+                        🔢 مقاسات أرقام (36 - 46)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddQuickSizesPreset('shoes')}
+                        className="px-2.5 py-1 bg-[#f3f3f4] border border-[#c4c7c7] text-[#000000] rounded-lg text-[11px] font-bold font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer shadow-2xs"
+                        title="إضافة 37, 38, 39, 40, 41, 42, 43, 44, 45"
+                      >
+                        👟 أحذية وكوتشي (37 - 45)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddQuickSizesPreset('shoes-women')}
+                        className="px-2.5 py-1 bg-[#f3f3f4] border border-[#c4c7c7] text-[#000000] rounded-lg text-[11px] font-bold font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer shadow-2xs"
+                        title="إضافة 36, 37, 38, 39, 40, 41"
+                      >
+                        👠 أحذية حريمي (36 - 41)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddQuickSizesPreset('free-size')}
+                        className="px-2.5 py-1 bg-[#f3f3f4] border border-[#c4c7c7] text-[#000000] rounded-lg text-[11px] font-bold font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer shadow-2xs"
+                        title="إضافة مقاس موحد Free Size"
+                      >
+                        🏷️ مقاس موحد (Free Size)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddQuickSizesPreset('oversize')}
+                        className="px-2.5 py-1 bg-[#f3f3f4] border border-[#c4c7c7] text-[#000000] rounded-lg text-[11px] font-bold font-label-caps hover:bg-black hover:text-white transition-colors cursor-pointer shadow-2xs"
+                        title="إضافة Over Size 1, Over Size 2"
+                      >
+                        🎽 أوفر سايز (Oversize)
+                      </button>
+                    </div>
+
+                    {/* Single Quick-Click Size Chips */}
+                    <div className="pt-2 border-t border-[#f0f0f0]">
+                      <span className="text-[10px] text-[#747878] font-bold block mb-1">
+                        أو اضغط على أي مقاس مفرد لإضافته فوراً:
+                      </span>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '30', '32', '34', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', 'Free Size'].map((szKey) => {
+                          const isAlreadyAdded = formData.sizes?.some((s) => s.size.toLowerCase() === szKey.toLowerCase());
+                          return (
+                            <button
+                              key={szKey}
+                              type="button"
+                              onClick={() => {
+                                if (!isAlreadyAdded) {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    sizes: [...(prev.sizes || []), { size: szKey, inStock: true }],
+                                  }));
+                                }
+                              }}
+                              disabled={isAlreadyAdded}
+                              className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                                isAlreadyAdded
+                                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300'
+                                  : 'bg-white text-black border border-gray-300 hover:border-black hover:bg-black hover:text-white active:scale-95'
+                              }`}
+                            >
+                              +{szKey}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -5289,7 +5674,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         handleAddCustomSize();
                       }
                     }}
-                    placeholder="اكتب المقاس هنا (مثلاً: 37 أو 38 أو عدة مقاسات: 36, 37, 38)..."
+                    placeholder="اكتب مقاس يدوي هنا (مثلاً: 38 أو عدة مقاسات مفصولة بفواصل: 36, 37, 38)..."
                     className="flex-1 border-none py-1 px-2 text-[13px] focus:outline-none"
                   />
                   <button

@@ -13,6 +13,7 @@ export interface ProductColor {
   nameAr?: string;
   hex: string;
   imageUrl?: string;
+  sizes?: ProductSize[];
 }
 
 export interface ProductSize {

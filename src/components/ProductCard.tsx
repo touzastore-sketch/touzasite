@@ -28,8 +28,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const { language, formatPrice, t } = useLanguage();
   const [activeColorIndex, setActiveColorIndex] = useState(0);
+
+  const getAspectClass = () => {
+    if (aspectRatio === 'wide') return 'aspect-[16/9] max-h-[320px]';
+    if (aspectRatio === 'square') return 'aspect-square max-h-[300px]';
+    return 'aspect-[3/4] max-h-[380px] sm:max-h-[360px] w-full';
+  };
+
+  const activeColor = product.colors?.[activeColorIndex];
+  const activeSizes = (activeColor?.sizes && activeColor.sizes.length > 0) ? activeColor.sizes : (product.sizes || []);
+
+  const rawImg = activeColor?.imageUrl || product.images?.[0];
+  const fallbackImage = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
+  const displayImage = getOptimizedImageUrl(rawImg && rawImg.trim() ? rawImg : fallbackImage, { width: 500 });
+
+  const displayName = getLocalizedProductName(product, language);
+  const displaySubtitle = getLocalizedProductSubtitle(product, language);
+
   const [selectedSize, setSelectedSize] = useState<string>(() => {
-    return product.sizes?.find((s) => s.inStock)?.size || product.sizes?.[0]?.size || 'M';
+    return activeSizes.find((s) => s.inStock)?.size || activeSizes[0]?.size || 'M';
   });
   const [isAddedSuccess, setIsAddedSuccess] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -41,19 +58,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     }
   }, []);
 
-  const getAspectClass = () => {
-    if (aspectRatio === 'wide') return 'aspect-[16/9] max-h-[320px]';
-    if (aspectRatio === 'square') return 'aspect-square max-h-[300px]';
-    return 'aspect-[3/4] max-h-[380px] sm:max-h-[360px] w-full';
-  };
-
-  const activeColor = product.colors?.[activeColorIndex];
-  const rawImg = activeColor?.imageUrl || product.images?.[0];
-  const fallbackImage = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
-  const displayImage = getOptimizedImageUrl(rawImg && rawImg.trim() ? rawImg : fallbackImage, { width: 500 });
-
-  const displayName = getLocalizedProductName(product, language);
-  const displaySubtitle = getLocalizedProductSubtitle(product, language);
+  React.useEffect(() => {
+    const currentSizes = (activeColor?.sizes && activeColor.sizes.length > 0) ? activeColor.sizes : (product.sizes || []);
+    if (currentSizes.length > 0 && !currentSizes.some((s) => s.size === selectedSize && s.inStock)) {
+      const firstInStock = currentSizes.find((s) => s.inStock)?.size || currentSizes[0]?.size;
+      if (firstInStock) setSelectedSize(firstInStock);
+    }
+  }, [activeColorIndex, product]);
 
   const handleAddToCartClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -183,7 +194,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* Sizes Selection */}
-        {product.sizes && product.sizes.length > 0 && (
+        {activeSizes && activeSizes.length > 0 && (
           <div className="mt-1.5 pt-1 border-t border-[#f0f0f0]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1 px-0.5">
               <span className="font-body text-[10px] sm:text-[11px] font-bold text-[#555555]">
@@ -194,7 +205,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-1">
-              {product.sizes.map((sObj) => {
+              {activeSizes.map((sObj) => {
                 const isSelected = selectedSize === sObj.size;
                 if (!sObj.inStock) {
                   return (

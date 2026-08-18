@@ -26,6 +26,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 }) => {
   const { language, formatPrice, t, direction } = useLanguage();
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const subtotal = cartItems.reduce(
@@ -36,11 +45,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const totalItemsCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true">
       {/* Backdrop */}
       <div
         onClick={onClose}
-        className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity animate-fade-in"
+        className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-fade-in cursor-pointer"
+        aria-label={language === 'ar' ? 'إغلاق السلة' : 'Close bag'}
       />
 
       {/* Drawer */}
@@ -51,20 +61,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       >
         <div className="w-full h-full bg-[#ffffff] flex flex-col justify-between overflow-hidden">
           {/* Header */}
-          <div className="px-5 sm:px-6 py-4 sm:py-5 border-b border-[#c4c7c7]/30 flex justify-between items-center bg-[#f9f9f9]">
-            <h2 className="font-display text-[20px] sm:text-[22px] md:text-[24px] text-[#000000] font-bold flex items-center gap-2.5">
-              <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-[#000000]" />
+          <div className="px-4 sm:px-6 py-3.5 sm:py-5 border-b border-[#c4c7c7]/30 flex justify-between items-center bg-[#f9f9f9]">
+            <h2 className="font-display text-[19px] sm:text-[22px] md:text-[24px] text-[#000000] font-bold flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-[#000000] shrink-0" />
               <span>{t('cart.title', 'Shopping Bag')}</span>
-              <span className="text-[14px] bg-[#000000] text-white px-2 py-0.5 rounded-full font-sans font-medium">
+              <span className="text-[13px] sm:text-[14px] bg-[#000000] text-white px-2 py-0.5 rounded-full font-sans font-medium">
                 {totalItemsCount}
               </span>
             </h2>
             <button
               onClick={onClose}
-              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-[#000000] hover:bg-[#747878]/15 rounded-full transition-colors cursor-pointer"
+              type="button"
+              className="w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center text-[#000000] bg-[#eeeeee] hover:bg-[#000000] hover:text-white rounded-full transition-all cursor-pointer shrink-0 active:scale-95 z-20 border border-[#c4c7c7]/50 shadow-xs"
               aria-label="Close cart"
+              title={language === 'ar' ? 'إغلاق السلة' : 'Close cart'}
             >
-              <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              <X className="w-5 h-5 stroke-[2.5]" />
             </button>
           </div>
 

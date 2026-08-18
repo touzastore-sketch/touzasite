@@ -41,8 +41,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const [selectedColor, setSelectedColor] = useState(
     product.colors[0]?.name || 'Noir'
   );
+  const activeColorObj = product.colors?.find((c) => c.name === selectedColor) || product.colors?.[0];
+  const activeSizes = (activeColorObj?.sizes && activeColorObj.sizes.length > 0) ? activeColorObj.sizes : (product.sizes || []);
+
   const [selectedSize, setSelectedSize] = useState(
-    product.sizes.find((s) => s.inStock)?.size || product.sizes[0]?.size || '36'
+    activeSizes.find((s) => s.inStock)?.size || activeSizes[0]?.size || '36'
   );
   const [activeColorImage, setActiveColorImage] = useState<string | null>(
     product.colors[0]?.imageUrl || null
@@ -50,16 +53,28 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
   useEffect(() => {
     if (product?.colors && product.colors.length > 0) {
-      setSelectedColor(product.colors[0].name);
-      setActiveColorImage(product.colors[0].imageUrl || null);
+      const firstCol = product.colors[0];
+      setSelectedColor(firstCol.name);
+      setActiveColorImage(firstCol.imageUrl || null);
       setSelectedImageIndex(0);
+      const firstSizes = (firstCol.sizes && firstCol.sizes.length > 0) ? firstCol.sizes : product.sizes;
+      const initialSize = firstSizes?.find((s) => s.inStock)?.size || firstSizes?.[0]?.size || '36';
+      setSelectedSize(initialSize);
     }
   }, [product?.id]);
 
-  const handleSelectColor = (colorObj: { name: string; nameAr?: string; hex: string; imageUrl?: string }) => {
+  const handleSelectColor = (colorObj: { name: string; nameAr?: string; hex: string; imageUrl?: string; sizes?: any[] }) => {
     setSelectedColor(colorObj.name);
     if (colorObj.imageUrl) {
       setActiveColorImage(colorObj.imageUrl);
+    }
+    const colorSizes = (colorObj.sizes && colorObj.sizes.length > 0) ? colorObj.sizes : product.sizes;
+    if (colorSizes && colorSizes.length > 0) {
+      const currentMatch = colorSizes.find((s) => s.size === selectedSize && s.inStock);
+      if (!currentMatch) {
+        const firstInStock = colorSizes.find((s) => s.inStock)?.size || colorSizes[0]?.size;
+        if (firstInStock) setSelectedSize(firstInStock);
+      }
     }
   };
 
@@ -321,7 +336,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               </button>
             </div>
             <div className="grid grid-cols-4 gap-3">
-              {product.sizes.map((s) => {
+              {activeSizes.map((s) => {
                 const isSelected = selectedSize === s.size;
                 if (!s.inStock) {
                   return (
@@ -393,20 +408,22 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             {/* Description */}
             <div className="border-b border-[#c4c7c7]/40 py-3.5">
               <button
+                type="button"
                 onClick={() => toggleAccordion('description')}
-                className="w-full flex justify-between items-center font-label-caps text-[#000000] cursor-pointer text-left"
+                className="w-full flex justify-between items-center font-label-caps text-[#000000] cursor-pointer text-start select-none"
               >
-                <span>{t('detail.description', 'Description')}</span>
+                <span className="text-start font-bold">{t('detail.description', 'Description')}</span>
                 <span
-                  className={`material-symbols-outlined text-[20px] transition-transform duration-300 ${
-                    openAccordions.description ? 'rotate-180' : ''
+                  className={`material-symbols-outlined text-[20px] transition-transform duration-300 transform-gpu shrink-0 ${
+                    openAccordions.description ? 'rotate-180' : 'rotate-0'
                   }`}
+                  style={{ transformOrigin: 'center center' }}
                 >
                   expand_more
                 </span>
               </button>
               {openAccordions.description && (
-                <div className="pt-3 font-body text-[15px] text-[#444748] leading-relaxed">
+                <div className="pt-3 font-body text-[15px] text-[#444748] leading-relaxed text-start">
                   {displayDescription}
                 </div>
               )}
@@ -415,21 +432,23 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             {/* Details & Fit */}
             <div className="border-b border-[#c4c7c7]/40 py-3.5">
               <button
+                type="button"
                 onClick={() => toggleAccordion('details')}
-                className="w-full flex justify-between items-center font-label-caps text-[#000000] cursor-pointer text-left"
+                className="w-full flex justify-between items-center font-label-caps text-[#000000] cursor-pointer text-start select-none"
               >
-                <span>{t('detail.detailsFit', 'Details & Fit')}</span>
+                <span className="text-start font-bold">{t('detail.detailsFit', 'Details & Fit')}</span>
                 <span
-                  className={`material-symbols-outlined text-[20px] transition-transform duration-300 ${
-                    openAccordions.details ? 'rotate-180' : ''
+                  className={`material-symbols-outlined text-[20px] transition-transform duration-300 transform-gpu shrink-0 ${
+                    openAccordions.details ? 'rotate-180' : 'rotate-0'
                   }`}
+                  style={{ transformOrigin: 'center center' }}
                 >
                   expand_more
                 </span>
               </button>
               {openAccordions.details && (
-                <div className="pt-3 font-body text-[15px] text-[#444748] leading-relaxed">
-                  <ul className="list-disc pl-5 rtl:pr-5 space-y-1">
+                <div className="pt-3 font-body text-[15px] text-[#444748] leading-relaxed text-start">
+                  <ul className="list-disc ps-5 space-y-1">
                     {displayDetails.map((detail, idx) => (
                       <li key={idx}>{detail}</li>
                     ))}
@@ -441,20 +460,22 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             {/* Shipping & Returns */}
             <div className="border-b border-[#c4c7c7]/40 py-3.5">
               <button
+                type="button"
                 onClick={() => toggleAccordion('shipping')}
-                className="w-full flex justify-between items-center font-label-caps text-[#000000] cursor-pointer text-left"
+                className="w-full flex justify-between items-center font-label-caps text-[#000000] cursor-pointer text-start select-none"
               >
-                <span>{t('detail.shippingReturns', 'Shipping & Returns')}</span>
+                <span className="text-start font-bold">{t('detail.shippingReturns', 'Shipping & Returns')}</span>
                 <span
-                  className={`material-symbols-outlined text-[20px] transition-transform duration-300 ${
-                    openAccordions.shipping ? 'rotate-180' : ''
+                  className={`material-symbols-outlined text-[20px] transition-transform duration-300 transform-gpu shrink-0 ${
+                    openAccordions.shipping ? 'rotate-180' : 'rotate-0'
                   }`}
+                  style={{ transformOrigin: 'center center' }}
                 >
                   expand_more
                 </span>
               </button>
               {openAccordions.shipping && (
-                <div className="pt-3 font-body text-[15px] text-[#444748] leading-relaxed">
+                <div className="pt-3 font-body text-[15px] text-[#444748] leading-relaxed text-start">
                   {t('detail.shippingPolicy', 'Complimentary express delivery across Egypt within 2-4 business days. Returns accepted within 14 days.')}
                 </div>
               )}
