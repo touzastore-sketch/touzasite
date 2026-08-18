@@ -145,7 +145,7 @@ export const AppContent: React.FC = () => {
 
     // Preload product images into browser cache immediately in the background
     if (typeof window !== 'undefined' && products && products.length > 0) {
-      const preloadList = products.slice(0, 12);
+      const preloadList = products.slice(0, 24);
       preloadList.forEach((prod) => {
         const rawImg = prod.colors?.[0]?.imageUrl || prod.images?.[0];
         if (rawImg && rawImg.trim()) {
@@ -377,39 +377,43 @@ export const AppContent: React.FC = () => {
     }
   }, [storeSettings]);
 
-  // Initial Sync Strategy to seamlessly hydrate live Firestore data
+  // Initial Sync Strategy to seamlessly hydrate live Firestore data with zero latency
   useEffect(() => {
     let isSubscribed = true;
 
-    const loadData = async () => {
-      try {
-        const [remoteProducts, remoteCats, remotePromos, remoteSettings] = await Promise.all([
-          getAllProductsAdmin().catch(() => null),
-          getAllCategories().catch(() => null),
-          getAllPromoCodesAdmin(defaultPromos).catch(() => null),
-          getStoreSettingsAdmin(defaultSettings).catch(() => null),
-        ]);
-
-        if (isSubscribed) {
-          if (remoteProducts && remoteProducts.length > 0) {
-            setProducts(remoteProducts);
-          }
-          if (remoteCats && remoteCats.length > 0) {
-            setCategories(remoteCats);
-          }
-          if (remotePromos && remotePromos.length > 0) {
-            setPromoCodes(remotePromos);
-          }
-          if (remoteSettings) {
-            setStoreSettings(remoteSettings);
-          }
+    // Load products with top priority immediately (non-blocking)
+    getAllProductsAdmin()
+      .then((remoteProducts) => {
+        if (isSubscribed && remoteProducts && remoteProducts.length > 0) {
+          setProducts(remoteProducts);
         }
-      } catch (err) {
-        console.warn('Initial data load notice:', err);
-      }
-    };
+      })
+      .catch(() => {});
 
-    loadData();
+    // Load secondary assets concurrently in the background
+    getAllCategories()
+      .then((remoteCats) => {
+        if (isSubscribed && remoteCats && remoteCats.length > 0) {
+          setCategories(remoteCats);
+        }
+      })
+      .catch(() => {});
+
+    getAllPromoCodesAdmin(defaultPromos)
+      .then((remotePromos) => {
+        if (isSubscribed && remotePromos && remotePromos.length > 0) {
+          setPromoCodes(remotePromos);
+        }
+      })
+      .catch(() => {});
+
+    getStoreSettingsAdmin(defaultSettings)
+      .then((remoteSettings) => {
+        if (isSubscribed && remoteSettings) {
+          setStoreSettings(remoteSettings);
+        }
+      })
+      .catch(() => {});
 
     // Subscribe to live Firestore updates for real-time synchronization
     const unsubscribeProducts = subscribeToProducts((liveProducts) => {

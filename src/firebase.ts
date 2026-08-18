@@ -31,6 +31,8 @@ import {
   where,
   orderBy,
   serverTimestamp,
+  persistentLocalCache,
+  persistentMultipleTabManager,
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import { DEFAULT_REVIEWS } from './data/defaultReviews';
@@ -62,8 +64,12 @@ try {
   setLogLevel('error');
 } catch {}
 
-// Initialize Firestore with standard default settings
-const firestoreSettings = {};
+// Initialize Firestore with high-performance persistent local cache (IndexedDB)
+const firestoreSettings = {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  }),
+};
 
 export const db = (() => {
   try {
@@ -1368,10 +1374,43 @@ const sanitizeProduct = (p: Product): Product => {
 };
 
 export const getAllProductsAdmin = async (): Promise<Product[]> => {
+  // 1. Instant Cache-First: If cached products exist in localStorage, return them immediately
+  let cached: Product[] | null = null;
+  try {
+    const saved = localStorage.getItem('maison_products');
+    if (saved) {
+      const parsed: Product[] = JSON.parse(saved);
+      if (parsed.length > 0) {
+        cached = parsed.map(sanitizeProduct);
+      }
+    }
+  } catch {}
+
   try {
     const productsRef = collection(db, 'products');
-    const snapshot = await fetchWithTimeout(getDocs(productsRef));
+    // Fetch with low timeout so it never hangs
+    const snapshotPromise = fetchWithTimeout(getDocs(productsRef), 4000);
     
+    // If we have cache, resolve in background; otherwise await
+    if (cached && cached.length > 0) {
+      snapshotPromise
+        .then((snapshot) => {
+          if (!snapshot.empty) {
+            const firestoreProducts: Product[] = [];
+            snapshot.forEach((docSnap) => {
+              const data = docSnap.data();
+              firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
+            });
+            if (firestoreProducts.length > 0) {
+              localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
+            }
+          }
+        })
+        .catch(() => {});
+      return cached;
+    }
+
+    const snapshot = await snapshotPromise;
     const firestoreProducts: Product[] = [];
     snapshot.forEach((docSnap) => {
       const data = docSnap.data();
@@ -1383,7 +1422,7 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
       return firestoreProducts;
     }
 
-    // If Firestore is empty, seed initial products
+    // If Firestore is genuinely empty, seed initial products
     const initialProducts = PRODUCTS.map(sanitizeProduct);
     for (const prod of initialProducts) {
       setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true }).catch(() => {});
@@ -1392,6 +1431,7 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
     return initialProducts;
   } catch (error) {
     console.warn('Using offline cached products:', error);
+    if (cached && cached.length > 0) return cached;
     try {
       const saved = localStorage.getItem('maison_products');
       if (saved) {
@@ -1408,22 +1448,16 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
 export const subscribeToProducts = (
   callback: (products: Product[]) => void
 ): (() => void) => {
-  // Immediately emit cached products from localStorage if available
+  // Immediately emit cached products from localStorage if available without waiting for network
   try {
     const saved = localStorage.getItem('maison_products');
     if (saved) {
       const parsed: Product[] = JSON.parse(saved);
       if (parsed.length > 0) {
         callback(parsed.map(sanitizeProduct));
-      } else {
-        callback(PRODUCTS.map(sanitizeProduct));
       }
-    } else {
-      callback(PRODUCTS.map(sanitizeProduct));
     }
-  } catch {
-    callback(PRODUCTS.map(sanitizeProduct));
-  }
+  } catch {}
 
   try {
     const productsRef = collection(db, 'products');
