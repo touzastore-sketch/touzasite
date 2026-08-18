@@ -64,22 +64,25 @@ try {
   setLogLevel('error');
 } catch {}
 
-// Initialize Firestore with high-performance persistent local cache (IndexedDB)
-const firestoreSettings = {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager(),
-  }),
-};
-
+// Initialize Firestore with high-performance persistent local cache (IndexedDB) with graceful fallback for Safari / Private browsing
 export const db = (() => {
   try {
+    const firestoreSettings = {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    };
     return resolvedFirebaseConfig.firestoreDatabaseId
       ? initializeFirestore(app, firestoreSettings, resolvedFirebaseConfig.firestoreDatabaseId)
       : initializeFirestore(app, firestoreSettings);
   } catch (_err) {
-    return resolvedFirebaseConfig.firestoreDatabaseId
-      ? getFirestore(app, resolvedFirebaseConfig.firestoreDatabaseId)
-      : getFirestore(app);
+    try {
+      return resolvedFirebaseConfig.firestoreDatabaseId
+        ? getFirestore(app, resolvedFirebaseConfig.firestoreDatabaseId)
+        : getFirestore(app);
+    } catch {
+      return getFirestore(app);
+    }
   }
 })();
 
@@ -1368,6 +1371,7 @@ const sanitizeProduct = (p: Product): Product => {
 
   return {
     ...p,
+    showOnHome: p.showOnHome !== false,
     images,
     colors: colors.length > 0 ? colors : [{ name: 'Default', nameAr: 'افتراضي', hex: '#2e5a44', imageUrl: images[0] || '/images/touza_green_shirt.jpg' }]
   };

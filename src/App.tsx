@@ -101,27 +101,6 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Loading state: waits until video is buffered & ready, with a graceful max safety fallback
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-
-  useEffect(() => {
-    // If not on home page, dismiss immediately
-    if (currentView !== 'home') {
-      setIsInitialLoading(false);
-      return;
-    }
-
-    const safetyTimer = setTimeout(() => {
-      setIsInitialLoading(false);
-    }, 4000);
-
-    return () => clearTimeout(safetyTimer);
-  }, [currentView]);
-
-  const handleHeroVideoReady = () => {
-    setIsInitialLoading(false);
-  };
-
   // Dynamic Products state initialized from localStorage
   const [products, setProducts] = useState<Product[]>(() => {
     try {
@@ -748,29 +727,6 @@ export const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#ffffff] text-[#1a1c1c] relative">
-      {/* Luxury Loading Screen Overlay */}
-      <div
-        className={`fixed inset-0 z-[9999] bg-[#0a0a0a] flex flex-col items-center justify-center text-white px-4 select-none transition-opacity duration-700 ease-out ${
-          isInitialLoading ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        <div className="relative flex flex-col items-center text-center animate-fade-in">
-          {/* Animated Gold Ring */}
-          <div className="w-16 h-16 rounded-full border-2 border-[#c5a059]/30 border-t-[#c5a059] animate-spin mb-6" />
-
-          {/* Brand Identity */}
-          <h1 className="font-display text-2xl md:text-3xl font-bold tracking-[0.25em] text-[#c5a059] mb-2 uppercase">
-            {storeSettings?.storeNameEn || 'TOUZA'}
-          </h1>
-          <p className="font-label-caps text-[11px] md:text-xs tracking-[0.2em] text-neutral-400 uppercase mb-2">
-            {language === 'ar' ? 'أزياء كاجوال فاخرة • بورسعيد' : 'CASUAL MENSWEAR • PORTSAID'}
-          </p>
-          <div className="flex items-center gap-2 text-[12px] font-mono tracking-[0.3em] text-[#c5a059] mt-2 animate-pulse">
-            <span>LOADING ...</span>
-          </div>
-        </div>
-      </div>
-
       {/* Top Navigation */}
       {currentView !== 'admin' && (
         <Navbar
@@ -817,7 +773,6 @@ export const AppContent: React.FC = () => {
             <HeroBanner
               onShopNow={() => handleNavigate('shop', 'All')}
               storeSettings={storeSettings}
-              onVideoReady={handleHeroVideoReady}
             />
 
             {/* Featured Collection Grid */}

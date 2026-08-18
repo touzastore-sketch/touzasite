@@ -12,33 +12,47 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
   children,
   className = '',
   delay = 0,
-  distance = '25px',
-  duration = 0.7,
+  distance = '20px',
+  duration = 0.5,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const element = ref.current;
-    if (!element) return;
+    if (!element) {
+      setIsVisible(true);
+      return;
+    }
 
-    // Use IntersectionObserver for performant single-trigger reveal
+    // Safety fallback so content is NEVER stuck invisible on Safari / Mobile
+    const safetyTimer = setTimeout(() => {
+      setIsVisible(true);
+    }, 150);
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsVisible(true);
+      return () => clearTimeout(safetyTimer);
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
           observer.unobserve(element);
+          clearTimeout(safetyTimer);
         }
       },
       {
-        threshold: 0.1,
-        rootMargin: '0px 0px -40px 0px',
+        threshold: 0.01,
+        rootMargin: '120px 0px 50px 0px',
       }
     );
 
     observer.observe(element);
 
     return () => {
+      clearTimeout(safetyTimer);
       if (element) {
         observer.unobserve(element);
       }
