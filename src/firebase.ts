@@ -61,7 +61,7 @@ googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // Suppress verbose backend connection warnings
 try {
-  setLogLevel('error');
+  setLogLevel('silent');
 } catch {}
 
 // Initialize Firestore with high-performance persistent local cache (IndexedDB) with graceful fallback for Safari / Private browsing
@@ -71,6 +71,7 @@ export const db = (() => {
       localCache: persistentLocalCache({
         tabManager: persistentMultipleTabManager(),
       }),
+      experimentalAutoDetectLongPolling: true,
     };
     return resolvedFirebaseConfig.firestoreDatabaseId
       ? initializeFirestore(app, firestoreSettings, resolvedFirebaseConfig.firestoreDatabaseId)

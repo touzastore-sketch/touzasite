@@ -783,9 +783,8 @@ export const AppContent: React.FC = () => {
                 </div>
 
                 {(() => {
-                  const homeSelected = products.filter((p) => p.showOnHome !== false && (p.showOnHome || p.isFeatured));
-                  const listToDisplay = homeSelected.length > 0 ? homeSelected : products;
-                  const displayList = listToDisplay.slice(0, 12);
+                  const homeSelected = products.filter((p) => p.showOnHome === true || (p.showOnHome !== false && p.isFeatured));
+                  const displayList = homeSelected.length > 0 ? homeSelected : products;
 
                   return (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

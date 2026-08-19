@@ -39,10 +39,15 @@ const NavbarComponent: React.FC<NavbarProps> = ({
 
   useEffect(() => {
     if (mobileMenuOpen) {
-      const timer = setTimeout(() => setMenuAnimated(true), 30);
-      return () => clearTimeout(timer);
+      document.body.style.overflow = 'hidden';
+      const timer = setTimeout(() => setMenuAnimated(true), 20);
+      return () => {
+        clearTimeout(timer);
+        document.body.style.overflow = '';
+      };
     } else {
       setMenuAnimated(false);
+      document.body.style.overflow = '';
     }
   }, [mobileMenuOpen]);
 
@@ -153,19 +158,23 @@ const NavbarComponent: React.FC<NavbarProps> = ({
         <div className={`max-w-[1440px] mx-auto px-3 sm:px-6 md:px-16 flex items-center justify-between gap-2 sm:gap-4 relative ${
           isTransparent ? 'py-2 md:py-3.5 border-b border-white/15' : 'py-2 md:py-3'
         }`}>
-          {/* Menu Button (Frameless, Minimalist & Luxury with 44x44px Touch Target) */}
-          <div className="shrink-0 z-20 flex items-center">
+          {/* Menu Button (Frameless, Minimalist & Luxury with 48x48px Touch Target) */}
+          <div className="shrink-0 z-30 flex items-center">
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`group flex items-center justify-center gap-2 sm:gap-3 transition-colors duration-300 focus:outline-none cursor-pointer min-h-[44px] min-w-[44px] px-2 rounded-xl ${
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMobileMenuOpen((prev) => !prev);
+              }}
+              className={`group flex items-center justify-center gap-2 sm:gap-3 transition-colors duration-300 focus:outline-none cursor-pointer min-h-[48px] min-w-[48px] px-2.5 rounded-xl active:scale-95 ${
                 isTransparent
                   ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)] hover:text-[#e2c792] hover:bg-white/10'
                   : 'text-[#000000] hover:text-[#8c734b] hover:bg-black/5'
               }`}
-              aria-label="Toggle menu"
+              aria-label={language === 'ar' ? 'فتح القائمة' : 'Toggle menu'}
             >
               {/* Custom Ultra-Thin 3-Line Animated Hamburger Icon (~24px wide) */}
-              <div className="relative w-[22px] sm:w-[26px] h-3.5 flex flex-col justify-between items-start py-[1px]">
+              <div className="relative w-[22px] sm:w-[26px] h-3.5 flex flex-col justify-between items-start py-[1px] pointer-events-none">
                 <span
                   className={`block h-[1.5px] bg-current transition-all duration-300 ease-out origin-center ${
                     mobileMenuOpen
@@ -188,7 +197,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                   }`}
                 />
               </div>
-              <span className="hidden sm:inline font-label-caps text-[11px] sm:text-[12px] font-medium tracking-[0.18em] sm:tracking-[0.28em] uppercase transition-colors">
+              <span className="hidden sm:inline font-label-caps text-[11px] sm:text-[12px] font-medium tracking-[0.18em] sm:tracking-[0.28em] uppercase transition-colors pointer-events-none">
                 {language === 'ar' ? 'القائمة' : 'MENU'}
               </span>
             </button>
@@ -364,22 +373,21 @@ const NavbarComponent: React.FC<NavbarProps> = ({
 
       {/* Side Drawer Navigation (Mobile & Desktop) */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 overflow-hidden">
+        <div className="fixed inset-0 z-[99999] overflow-hidden" role="dialog" aria-modal="true">
           {/* Backdrop */}
           <div
             onClick={() => setMobileMenuOpen(false)}
-            className={`absolute inset-0 bg-black/75 backdrop-blur-md transition-opacity duration-500 ${
-              menuAnimated ? 'opacity-100' : 'opacity-0'
-            }`}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity duration-300 cursor-pointer z-40"
+            aria-label={language === 'ar' ? 'إغلاق القائمة' : 'Close menu'}
           />
 
           {/* Side Drawer */}
           <aside
-            className={`absolute inset-y-0 ${
+            className={`fixed top-0 bottom-0 ${
               language === 'ar' ? 'right-0' : 'left-0'
-            } max-w-full flex transition-transform duration-500 ease-out`}
+            } max-w-full flex z-50 transition-transform duration-300 ease-out h-[100dvh] max-h-[100dvh]`}
           >
-            <div className="w-screen max-w-xs sm:max-w-md bg-[#0a0a0b] text-[#f5f0eb] border-r border-white/10 rtl:border-l rtl:border-r-0 shadow-2xl flex flex-col justify-between h-full py-8 px-6 sm:px-10 overflow-y-auto">
+            <div className="w-screen max-w-xs sm:max-w-md bg-[#0a0a0b] text-[#f5f0eb] border-r border-white/10 rtl:border-l rtl:border-r-0 shadow-2xl flex flex-col justify-between h-full pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] px-6 sm:px-10 overflow-y-auto">
               <div>
                 {/* Header with Brand & Close button */}
                 <div className="flex items-center justify-between pb-6 mb-6 border-b border-white/10">
@@ -395,8 +403,9 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/70 hover:text-[#c5a059] hover:bg-white/10 rounded-full transition-all duration-300 cursor-pointer"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center text-white/70 hover:text-[#c5a059] hover:bg-white/10 rounded-full transition-all duration-300 cursor-pointer active:scale-95"
                     aria-label="Close menu"
                   >
                     <X className="w-6 h-6" />
@@ -410,19 +419,20 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                     return (
                       <button
                         key={link.labelKey}
+                        type="button"
                         onClick={() => {
                           setMobileMenuOpen(false);
                           handleNavClick(link);
                         }}
                         style={{
-                          transitionDelay: `${index * 80 + 100}ms`,
+                          transitionDelay: `${index * 50 + 50}ms`,
                         }}
-                        className={`group relative py-3.5 sm:py-5 border-b border-white/10 flex items-baseline gap-4 text-start cursor-pointer transition-all duration-500 ease-out min-h-[48px] ${
+                        className={`group relative py-3.5 sm:py-5 border-b border-white/10 flex items-baseline gap-4 text-start cursor-pointer transition-all duration-300 ease-out min-h-[48px] ${
                           menuAnimated
                             ? 'translate-x-0 opacity-100'
                             : language === 'ar'
-                            ? 'translate-x-8 opacity-0'
-                            : '-translate-x-8 opacity-0'
+                            ? 'translate-x-6 opacity-0'
+                            : '-translate-x-6 opacity-0'
                         }`}
                       >
                         {/* Refined Gold Number */}
@@ -447,11 +457,12 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                 {/* Minimalist Language Switcher EN / عربي with 44px min touch height */}
                 <div className="flex items-center justify-center gap-3 py-1">
                   <button
+                    type="button"
                     onClick={() => {
                       setLanguage('ar');
                       setMobileMenuOpen(false);
                     }}
-                    className={`min-h-[44px] min-w-[100px] px-4 py-2 rounded-xl font-label-caps text-[12px] font-bold tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    className={`min-h-[44px] min-w-[100px] px-4 py-2 rounded-xl font-label-caps text-[12px] font-bold tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95 ${
                       language === 'ar'
                         ? 'bg-[#c5a059] text-black shadow-md'
                         : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
@@ -460,11 +471,12 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                     <span>العربية</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
                       setLanguage('en');
                       setMobileMenuOpen(false);
                     }}
-                    className={`min-h-[44px] min-w-[100px] px-4 py-2 rounded-xl font-label-caps text-[12px] font-bold tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    className={`min-h-[44px] min-w-[100px] px-4 py-2 rounded-xl font-label-caps text-[12px] font-bold tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95 ${
                       language === 'en'
                         ? 'bg-[#c5a059] text-black shadow-md'
                         : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
@@ -477,22 +489,24 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                 {/* Outline Buttons for Saved Items & Account */}
                 <div className="grid grid-cols-2 gap-3">
                   <button
+                    type="button"
                     onClick={() => {
                       setMobileMenuOpen(false);
                       onOpenWishlist();
                     }}
-                    className="flex items-center justify-center gap-2 min-h-[48px] py-2.5 px-3 border border-white/20 hover:border-[#c5a059] text-white hover:text-[#c5a059] transition-all duration-300 font-label-caps text-[12px] tracking-wider cursor-pointer bg-white/5 hover:bg-white/10 rounded-xl"
+                    className="flex items-center justify-center gap-2 min-h-[48px] py-2.5 px-3 border border-white/20 hover:border-[#c5a059] text-white hover:text-[#c5a059] transition-all duration-300 font-label-caps text-[12px] tracking-wider cursor-pointer bg-white/5 hover:bg-white/10 rounded-xl active:scale-95"
                   >
                     <Heart className={`w-5 h-5 ${wishlistCount > 0 ? 'text-red-400 fill-red-400' : 'text-[#c5a059]'}`} />
                     <span>{t('nav.wishlist', 'المفضلة')} ({wishlistCount})</span>
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => {
                       setMobileMenuOpen(false);
                       onOpenAccount();
                     }}
-                    className="flex items-center justify-center gap-2 min-h-[48px] py-2.5 px-3 border border-white/20 hover:border-[#c5a059] text-white hover:text-[#c5a059] transition-all duration-300 font-label-caps text-[12px] tracking-wider cursor-pointer bg-white/5 hover:bg-white/10 rounded-xl"
+                    className="flex items-center justify-center gap-2 min-h-[48px] py-2.5 px-3 border border-white/20 hover:border-[#c5a059] text-white hover:text-[#c5a059] transition-all duration-300 font-label-caps text-[12px] tracking-wider cursor-pointer bg-white/5 hover:bg-white/10 rounded-xl active:scale-95"
                   >
                     <UserIcon className="w-5 h-5 text-[#c5a059]" />
                     <span>{t('nav.account', 'الحساب')}</span>

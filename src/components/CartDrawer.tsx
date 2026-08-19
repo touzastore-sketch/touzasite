@@ -28,11 +28,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   React.useEffect(() => {
     if (!isOpen) return;
+    document.body.style.overflow = 'hidden';
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -45,12 +49,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const totalItemsCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <div id="cart-drawer-modal" className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true">
+    <div id="cart-drawer-modal" className="fixed inset-0 z-[99999] overflow-hidden" role="dialog" aria-modal="true">
       {/* Backdrop */}
       <div
         id="cart-drawer-backdrop"
         onClick={onClose}
-        className="fixed inset-0 bg-black/65 backdrop-blur-xs transition-opacity animate-fade-in cursor-pointer z-40"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300 cursor-pointer z-40"
         aria-label={language === 'ar' ? 'إغلاق السلة' : 'Close bag'}
       />
 
@@ -62,7 +66,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         } w-full sm:w-[460px] max-w-full flex flex-col z-50 shadow-2xl h-[100dvh] max-h-[100dvh] bg-[#ffffff] transition-transform duration-300 ease-out`}
       >
         <div className="w-full h-full flex flex-col justify-between overflow-hidden">
-          {/* Header */}
+          {/* Header with Back to Store & Close Button */}
           <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[#c4c7c7]/30 flex justify-between items-center bg-[#f9f9f9] shrink-0 pt-[max(0.875rem,env(safe-area-inset-top))]">
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6 text-[#000000] shrink-0" />
@@ -74,17 +78,28 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </span>
             </div>
 
-            {/* Prominent High-Contrast Close Button */}
-            <button
-              id="cart-drawer-close-btn"
-              onClick={onClose}
-              type="button"
-              className="w-11 h-11 min-w-[44px] min-h-[44px] sm:w-10 sm:h-10 sm:min-w-[40px] sm:min-h-[40px] flex items-center justify-center text-[#000000] bg-[#e8e8e8] hover:bg-[#000000] hover:text-white rounded-full transition-all cursor-pointer shrink-0 active:scale-90 z-30 border border-[#c4c7c7] shadow-sm ml-2 rtl:ml-0 rtl:mr-2"
-              aria-label="Close cart"
-              title={language === 'ar' ? 'إغلاق السلة' : 'Close cart'}
-            >
-              <X className="w-5 h-5 stroke-[2.5]" />
-            </button>
+            {/* Quick "Back to Store" header button + Close X Button */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="hidden xs:flex items-center gap-1 text-[12px] font-label-caps font-bold text-[#555555] hover:text-[#000000] bg-white border border-[#c4c7c7] px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer shadow-2xs"
+              >
+                {direction === 'rtl' ? <ArrowRight className="w-3.5 h-3.5" /> : <ArrowLeft className="w-3.5 h-3.5" />}
+                <span>{language === 'ar' ? 'العودة للمتجر' : 'Back to Store'}</span>
+              </button>
+
+              <button
+                id="cart-drawer-close-btn"
+                onClick={onClose}
+                type="button"
+                className="w-11 h-11 min-w-[44px] min-h-[44px] sm:w-10 sm:h-10 sm:min-w-[40px] sm:min-h-[40px] flex items-center justify-center text-[#000000] bg-[#e8e8e8] hover:bg-[#000000] hover:text-white rounded-full transition-all cursor-pointer shrink-0 active:scale-90 z-30 border border-[#c4c7c7] shadow-sm"
+                aria-label="Close cart"
+                title={language === 'ar' ? 'إغلاق السلة والعودة للمتجر' : 'Close cart & Return to store'}
+              >
+                <X className="w-5 h-5 stroke-[2.5]" />
+              </button>
+            </div>
           </div>
 
           {/* Cart Items List */}
@@ -102,10 +117,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </p>
                 <button
                   id="cart-empty-explore-btn"
+                  type="button"
                   onClick={onClose}
-                  className="bg-[#000000] text-white py-3.5 px-8 font-label-caps rounded-lg hover:bg-[#2f3131] transition-all cursor-pointer shadow-sm active:scale-[0.99] text-[13px] sm:text-[14px] font-bold"
+                  className="bg-[#000000] text-white py-3.5 px-8 font-label-caps rounded-xl hover:bg-[#2f3131] transition-all cursor-pointer shadow-md active:scale-[0.98] text-[14px] font-bold flex items-center gap-2"
                 >
-                  {t('cart.explore', 'Explore Collections')}
+                  <span>{language === 'ar' ? 'العودة للمتجر وتصفح المنتجات' : 'Return to Store & Browse'}</span>
+                  {direction === 'rtl' ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
                 </button>
               </div>
             ) : (
@@ -118,7 +135,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 return (
                   <div
                     key={item.id}
-                    className="flex gap-3.5 sm:gap-4 pb-3.5 sm:pb-4 border-b border-[#c4c7c7]/30 items-start bg-white rounded-lg p-2.5 sm:p-0"
+                    className="flex gap-3.5 sm:gap-4 pb-3.5 sm:pb-4 border-b border-[#c4c7c7]/30 items-start bg-white rounded-xl p-2.5 sm:p-2 border border-[#c4c7c7]/20 shadow-2xs"
                   >
                     {/* Product Thumbnail Image */}
                     <div className="relative w-20 sm:w-24 h-24 sm:h-28 bg-[#f3f3f4] shrink-0 rounded-lg overflow-hidden border border-[#000000]/10 shadow-2xs">
@@ -144,6 +161,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                             {name}
                           </h3>
                           <button
+                            type="button"
                             onClick={() => onRemoveItem(item.id)}
                             className="text-[#747878] hover:text-[#ba1a1a] p-1.5 cursor-pointer shrink-0 rounded-md hover:bg-red-50 transition-colors"
                             title={t('cart.remove', 'Remove')}
@@ -182,6 +200,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       {/* Quantity Stepper */}
                       <div className="flex items-center gap-3 mt-2 sm:mt-3">
                         <button
+                          type="button"
                           onClick={() =>
                             onUpdateQuantity(item.id, Math.max(1, item.quantity - 1))
                           }
@@ -194,6 +213,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                           {item.quantity}
                         </span>
                         <button
+                          type="button"
                           onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
                           className="w-8 h-8 sm:w-8 sm:h-8 border border-[#c4c7c7] rounded-md flex items-center justify-center hover:border-[#000000] hover:bg-black hover:text-white transition-all cursor-pointer text-[13px] font-bold active:scale-95 bg-white"
                           aria-label="Increase quantity"
@@ -230,6 +250,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <div className="space-y-2 pt-1">
                 <button
                   id="cart-drawer-checkout-btn"
+                  type="button"
                   onClick={() => {
                     onClose();
                     onProceedToCheckout();
@@ -246,10 +267,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
                 <button
                   id="cart-drawer-continue-shopping-btn"
+                  type="button"
                   onClick={onClose}
-                  className="w-full bg-transparent text-[#555555] hover:text-[#000000] py-2 rounded-lg font-body text-[13px] transition-colors cursor-pointer text-center"
+                  className="w-full bg-white text-[#111111] hover:bg-[#f0f0f0] border border-[#c4c7c7] py-3 rounded-xl font-label-caps text-[13px] font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-2 shadow-2xs active:scale-[0.99]"
                 >
-                  {language === 'ar' ? '← متابعة التسوق في المتجر' : '← Continue Shopping'}
+                  {direction === 'rtl' ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+                  <span>{language === 'ar' ? 'العودة للمتجر ومتابعة التسوق' : 'Return to Store & Continue Shopping'}</span>
                 </button>
               </div>
             </div>
