@@ -65,6 +65,7 @@ import {
   deleteNewsletterSubscriberAdmin,
   saveNewsletterCampaignAdmin,
   getNewsletterCampaignsAdmin,
+  subscribeToNewsletterCampaigns,
   exportFirestoreProductsBackup,
 } from '../firebase';
 
@@ -538,14 +539,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setLoadingSubscribers(false);
       });
 
-      // Fetch campaign broadcast history
-      getNewsletterCampaignsAdmin().then((camps) => setCampaigns(camps)).catch(() => {});
+      // Real-time listener for campaign broadcast history
+      const unsubCampaigns = subscribeToNewsletterCampaigns((camps) => {
+        setCampaigns(camps);
+      });
 
       return () => {
         unsubOrders();
         unsubUsers();
         unsubReviews();
         unsubNewsletter();
+        unsubCampaigns();
       };
     }
   }, [isAuthenticated]);

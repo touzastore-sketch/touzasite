@@ -36,8 +36,8 @@ import {
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import { DEFAULT_REVIEWS } from './data/defaultReviews';
-import { DEFAULT_CATEGORIES } from './data/defaultCategories';
-import { PRODUCTS } from './data/products';
+import { DEFAULT_CATEGORIES, CATEGORIES_VERSION } from './data/defaultCategories';
+import { PRODUCTS, CATALOG_VERSION } from './data/products';
 import { Category, Product, StoreSettings, PromoCode, TouzaUser } from './types';
 export type { TouzaUser };
 
@@ -1040,14 +1040,25 @@ export const subscribeToCategories = (
   callback: (categories: Category[]) => void
 ): (() => void) => {
   try {
-    const saved = localStorage.getItem('maison_categories');
-    if (saved) {
-      const parsed: Category[] = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        callback(parsed);
+    const currentCatVersion = localStorage.getItem('maison_categories_version');
+    if (currentCatVersion !== CATEGORIES_VERSION) {
+      localStorage.setItem('maison_categories_version', CATEGORIES_VERSION);
+      localStorage.setItem('maison_categories', safeJsonStringify(DEFAULT_CATEGORIES));
+      callback(DEFAULT_CATEGORIES);
+    } else {
+      const saved = localStorage.getItem('maison_categories');
+      if (saved) {
+        const parsed: Category[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          callback(parsed);
+        }
+      } else {
+        callback(DEFAULT_CATEGORIES);
       }
     }
-  } catch {}
+  } catch {
+    callback(DEFAULT_CATEGORIES);
+  }
 
   try {
     const catsRef = collection(db, 'categories');
@@ -1058,6 +1069,17 @@ export const subscribeToCategories = (
         snapshot.forEach((docSnap) => {
           firestoreCats.push({ id: docSnap.id, ...docSnap.data() } as Category);
         });
+
+        const syncedFirestoreVer = localStorage.getItem('maison_categories_synced_firestore');
+        if (syncedFirestoreVer !== CATEGORIES_VERSION || snapshot.empty) {
+          localStorage.setItem('maison_categories_synced_firestore', CATEGORIES_VERSION);
+          for (const c of DEFAULT_CATEGORIES) {
+            setDoc(doc(db, 'categories', c.id), c, { merge: true }).catch(() => {});
+          }
+          localStorage.setItem('maison_categories', safeJsonStringify(DEFAULT_CATEGORIES));
+          callback(DEFAULT_CATEGORIES);
+          return;
+        }
 
         if (firestoreCats.length > 0) {
           localStorage.setItem('maison_categories', safeJsonStringify(firestoreCats));
@@ -1451,6 +1473,43 @@ export const getNewsletterCampaignsAdmin = async (): Promise<NewsletterCampaign[
   return localCampaigns;
 };
 
+/**
+ * Real-time Newsletter Campaigns Listener for Admin Dashboard
+ */
+export const subscribeToNewsletterCampaigns = (
+  callback: (campaigns: NewsletterCampaign[]) => void
+): (() => void) => {
+  try {
+    const local = localStorage.getItem('maison_campaigns');
+    if (local) {
+      callback(JSON.parse(local));
+    }
+  } catch {}
+
+  try {
+    const campaignsRef = collection(db, 'newsletterCampaigns');
+    const unsubscribe = onSnapshot(
+      campaignsRef,
+      (snapshot) => {
+        const firestoreList: NewsletterCampaign[] = [];
+        snapshot.forEach((docSnap) => {
+          firestoreList.push({ id: docSnap.id, ...docSnap.data() } as NewsletterCampaign);
+        });
+        firestoreList.sort((a, b) => (b.sentAt || '').localeCompare(a.sentAt || ''));
+        localStorage.setItem('maison_campaigns', safeJsonStringify(firestoreList));
+        callback(firestoreList);
+      },
+      (err) => {
+        console.warn('Realtime campaigns listener notice:', err);
+      }
+    );
+    return unsubscribe;
+  } catch (error) {
+    console.warn('Could not initialize realtime campaigns listener:', error);
+    return () => {};
+  }
+};
+
 // ==========================================
 // PRODUCTS FIRESTORE PERSISTENCE
 // ==========================================
@@ -1576,18 +1635,24 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
 export const subscribeToProducts = (
   callback: (products: Product[]) => void
 ): (() => void) => {
-  // Immediately emit full products catalog if cache is empty or incomplete
   try {
-    const saved = localStorage.getItem('maison_products');
-    if (saved) {
-      const parsed: Product[] = JSON.parse(saved);
-      if (parsed.length >= PRODUCTS.length) {
-        callback(parsed.map(sanitizeProduct));
+    const currentVersion = localStorage.getItem('maison_catalog_version');
+    if (currentVersion !== CATALOG_VERSION) {
+      localStorage.setItem('maison_catalog_version', CATALOG_VERSION);
+      localStorage.setItem('maison_products', safeJsonStringify(PRODUCTS));
+      callback(PRODUCTS.map(sanitizeProduct));
+    } else {
+      const saved = localStorage.getItem('maison_products');
+      if (saved) {
+        const parsed: Product[] = JSON.parse(saved);
+        if (parsed.length >= PRODUCTS.length) {
+          callback(parsed.map(sanitizeProduct));
+        } else {
+          callback(PRODUCTS.map(sanitizeProduct));
+        }
       } else {
         callback(PRODUCTS.map(sanitizeProduct));
       }
-    } else {
-      callback(PRODUCTS.map(sanitizeProduct));
     }
   } catch {
     callback(PRODUCTS.map(sanitizeProduct));
@@ -1604,24 +1669,22 @@ export const subscribeToProducts = (
           firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
         });
 
-        // Ensure all products from static catalogue are present
-        const existingIds = new Set(firestoreProducts.map((p) => p.id));
-        const mergedList = [...firestoreProducts];
-        let hasMissing = false;
-
-        for (const prod of PRODUCTS) {
-          if (!existingIds.has(prod.id)) {
-            mergedList.push(sanitizeProduct(prod));
-            hasMissing = true;
+        const currentFirestoreSynced = localStorage.getItem('maison_catalog_synced_firestore');
+        if (currentFirestoreSynced !== CATALOG_VERSION || snapshot.empty) {
+          localStorage.setItem('maison_catalog_synced_firestore', CATALOG_VERSION);
+          for (const prod of PRODUCTS) {
             setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true }).catch(() => {});
           }
+          const initialProducts = PRODUCTS.map(sanitizeProduct);
+          localStorage.setItem('maison_products', safeJsonStringify(initialProducts));
+          callback(initialProducts);
+          return;
         }
 
-        if (mergedList.length > 0) {
-          localStorage.setItem('maison_products', safeJsonStringify(mergedList));
-          callback(mergedList);
+        if (firestoreProducts.length > 0) {
+          localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
+          callback(firestoreProducts);
         } else if (snapshot.empty) {
-          // If Firestore is genuinely empty, seed default products once
           const initialProducts = PRODUCTS.map(sanitizeProduct);
           for (const prod of initialProducts) {
             setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true }).catch(() => {});
@@ -1941,12 +2004,11 @@ export const saveStoreSettingsAdmin = async (
   try {
     const settingsDocRef = doc(db, 'settings', 'store');
     await setDoc(settingsDocRef, sanitizeForFirestore(newSettings), { merge: true });
-    localStorage.setItem('maison_settings', safeJsonStringify(newSettings));
+    localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(newSettings));
     return newSettings;
   } catch (error) {
     console.warn('Failed to save store settings in Firestore, using localStorage fallback:', error);
-    // fallback to local storage
-    localStorage.setItem('maison_settings', safeJsonStringify(newSettings));
+    localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(newSettings));
     return newSettings;
   }
 };

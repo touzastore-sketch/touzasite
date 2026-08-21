@@ -2,8 +2,8 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { Category, Product, CartItem, ViewMode, PromoCode, StoreSettings } from './types';
-import { PRODUCTS } from './data/products';
-import { DEFAULT_CATEGORIES } from './data/defaultCategories';
+import { PRODUCTS, CATALOG_VERSION } from './data/products';
+import { DEFAULT_CATEGORIES, CATEGORIES_VERSION } from './data/defaultCategories';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { HeroBanner } from './components/HeroBanner';
@@ -108,6 +108,12 @@ export const AppContent: React.FC = () => {
   // Dynamic Products state initialized from localStorage or catalog
   const [products, setProducts] = useState<Product[]>(() => {
     try {
+      const storedVersion = localStorage.getItem('maison_catalog_version');
+      if (storedVersion !== CATALOG_VERSION) {
+        localStorage.setItem('maison_catalog_version', CATALOG_VERSION);
+        localStorage.setItem('maison_products', safeJsonStringify(PRODUCTS));
+        return PRODUCTS;
+      }
       const saved = localStorage.getItem('maison_products');
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
@@ -146,6 +152,12 @@ export const AppContent: React.FC = () => {
   // Dynamic Categories state
   const [categories, setCategories] = useState<Category[]>(() => {
     try {
+      const storedCatVer = localStorage.getItem('maison_categories_version');
+      if (storedCatVer !== CATEGORIES_VERSION) {
+        localStorage.setItem('maison_categories_version', CATEGORIES_VERSION);
+        localStorage.setItem('maison_categories', safeJsonStringify(DEFAULT_CATEGORIES));
+        return DEFAULT_CATEGORIES;
+      }
       const saved = localStorage.getItem('maison_categories');
       return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
     } catch {
