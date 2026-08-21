@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { MessageSquarePlus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { useLanguage } from '../context/LanguageContext';
-import { getAllReviews, SavedReview } from '../firebase';
+import { subscribeToReviews, SavedReview } from '../firebase';
 
 interface CustomerReviewsSectionProps {
   user: User | null;
@@ -21,9 +21,10 @@ const CustomerReviewsSectionComponent: React.FC<CustomerReviewsSectionProps> = (
   const [canScrollRight, setCanScrollRight] = useState(true);
 
   useEffect(() => {
-    getAllReviews()
-      .then((data) => setReviews(data))
-      .catch((err) => console.error('Error loading homepage reviews:', err));
+    const unsubscribe = subscribeToReviews((data) => {
+      setReviews(data);
+    });
+    return () => unsubscribe();
   }, []);
 
   const updateScrollButtons = () => {

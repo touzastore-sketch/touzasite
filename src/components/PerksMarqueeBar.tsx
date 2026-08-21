@@ -75,28 +75,51 @@ const PerksMarqueeBarComponent: React.FC<PerksMarqueeBarProps> = ({ storeSetting
 
       {/* Marquee Track */}
       <div
-        className="flex whitespace-nowrap animate-marquee"
+        className="flex whitespace-nowrap animate-marquee w-max"
         style={{ animationDuration: duration }}
       >
-        {marqueeItems.map((perk, idx) => (
-          <div
-            key={`perk-${idx}`}
-            className="flex items-center gap-6 sm:gap-10 px-4 sm:px-6 shrink-0"
-          >
-            <span
-              className="font-label-caps text-[12px] sm:text-[13px] font-medium tracking-[0.18em] uppercase whitespace-nowrap transition-colors duration-300"
-              style={{ color: textColor }}
+        <div className="flex items-center shrink-0">
+          {marqueeItems.map((perk, idx) => (
+            <div
+              key={`perk-1-${idx}`}
+              className="flex items-center gap-6 sm:gap-10 px-4 sm:px-6 shrink-0"
             >
-              {perk}
-            </span>
-            <span
-              className="text-[10px] sm:text-[11px] select-none font-serif opacity-80"
-              style={{ color: textColor === '#f3f3f3' || textColor === '#ffffff' ? '#c5a059' : textColor }}
+              <span
+                className="font-label-caps text-[12px] sm:text-[13px] font-medium tracking-[0.18em] uppercase whitespace-nowrap transition-colors duration-300"
+                style={{ color: textColor }}
+              >
+                {perk}
+              </span>
+              <span
+                className="text-[10px] sm:text-[11px] select-none font-serif opacity-80"
+                style={{ color: textColor === '#f3f3f3' || textColor === '#ffffff' ? '#c5a059' : textColor }}
+              >
+                {symbol}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center shrink-0" aria-hidden="true">
+          {marqueeItems.map((perk, idx) => (
+            <div
+              key={`perk-2-${idx}`}
+              className="flex items-center gap-6 sm:gap-10 px-4 sm:px-6 shrink-0"
             >
-              {symbol}
-            </span>
-          </div>
-        ))}
+              <span
+                className="font-label-caps text-[12px] sm:text-[13px] font-medium tracking-[0.18em] uppercase whitespace-nowrap transition-colors duration-300"
+                style={{ color: textColor }}
+              >
+                {perk}
+              </span>
+              <span
+                className="text-[10px] sm:text-[11px] select-none font-serif opacity-80"
+                style={{ color: textColor === '#f3f3f3' || textColor === '#ffffff' ? '#c5a059' : textColor }}
+              >
+                {symbol}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

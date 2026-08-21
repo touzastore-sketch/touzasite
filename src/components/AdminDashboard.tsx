@@ -35,12 +35,14 @@ import {
   XCircle,
   TrendingUp,
   Download,
+  Code2,
 } from 'lucide-react';
 import { Category, Product, ProductColor, ProductSize, PromoCode, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { DEFAULT_CATEGORIES } from '../data/defaultCategories';
 import { compressImageFile } from '../utils/imageCompressor';
 import { uploadToCloudinary, uploadVideoToCloudinary, getOptimizedVideoUrl } from '../utils/cloudinary';
+import { AiStudioSyncTab } from './AiStudioSyncTab';
 import {
   SavedOrder,
   getAllOrdersAdmin,
@@ -51,6 +53,7 @@ import {
   deleteOrderAdmin,
   SavedReview,
   getAllReviews,
+  subscribeToReviews,
   deleteReviewAdmin,
   addReviewAdmin,
   updateReviewAdmin,
@@ -58,6 +61,7 @@ import {
   NewsletterSubscriber,
   NewsletterCampaign,
   getNewsletterSubscribers,
+  subscribeToNewsletterSubscribers,
   deleteNewsletterSubscriberAdmin,
   saveNewsletterCampaignAdmin,
   getNewsletterCampaignsAdmin,
@@ -116,7 +120,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newPin, setNewPin] = useState('');
 
   // Admin Navigation state
-  const [activeTab, setActiveTab] = useState<'overview' | 'categories' | 'products' | 'orders' | 'users' | 'promos' | 'reviews' | 'newsletter' | 'settings' | 'payment_settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'categories' | 'products' | 'orders' | 'users' | 'promos' | 'reviews' | 'newsletter' | 'settings' | 'payment_settings' | 'ai_studio_sync'>('overview');
 
   // Firestore Live Users
   const [users, setUsers] = useState<TouzaUser[]>([]);
@@ -522,12 +526,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setLoadingUsers(false);
       });
 
-      fetchReviewsData();
-      fetchNewsletterData();
+      // Real-time listener for Reviews
+      const unsubReviews = subscribeToReviews((latestReviews) => {
+        setReviews(latestReviews);
+        setLoadingReviews(false);
+      });
+
+      // Real-time listener for Newsletter subscribers
+      const unsubNewsletter = subscribeToNewsletterSubscribers((latestSubs) => {
+        setSubscribers(latestSubs);
+        setLoadingSubscribers(false);
+      });
+
+      // Fetch campaign broadcast history
+      getNewsletterCampaignsAdmin().then((camps) => setCampaigns(camps)).catch(() => {});
 
       return () => {
         unsubOrders();
         unsubUsers();
+        unsubReviews();
+        unsubNewsletter();
       };
     }
   }, [isAuthenticated]);
@@ -1553,6 +1571,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             { id: 'newsletter', Icon: Mail, labelAr: `النشرة البريدية (${subscribers.length})`, labelEn: `Newsletter (${subscribers.length})` },
             { id: 'settings', Icon: Settings, labelAr: 'إعدادات البنرات', labelEn: 'Store Settings' },
             { id: 'payment_settings', Icon: CreditCard, labelAr: 'إعدادات طرق الدفع', labelEn: 'Payment Settings' },
+            { id: 'ai_studio_sync', Icon: Code2, labelAr: 'مزامنة Google AI Studio', labelEn: 'AI Studio Sync' },
           ].map((tab) => {
             const TabIcon = tab.Icon;
             return (
@@ -2010,6 +2029,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               <div className="flex items-center gap-3 w-full md:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('ai_studio_sync')}
+                  className="flex-1 md:flex-initial bg-[#1e1e1e] text-white hover:bg-black px-4 py-2.5 rounded-xl font-label-caps font-bold transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2 text-[13px]"
+                  title={language === 'ar' ? 'مزامنة وتصدير كود TypeScript لـ Google AI Studio' : 'Export & Sync TypeScript Code for Google AI Studio'}
+                >
+                  <Code2 className="w-4 h-4 text-[#c5a059]" />
+                  <span>{language === 'ar' ? 'مزامنة كود AI Studio' : 'AI Studio Sync'}</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={handleExportProductsBackup}
@@ -5031,6 +5060,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             )}
           </div>
+        )}
+
+        {/* GOOGLE AI STUDIO CODE SYNC TAB */}
+        {activeTab === 'ai_studio_sync' && (
+          <AiStudioSyncTab
+            products={products}
+            categories={categories}
+            storeSettings={storeSettings}
+            promoCodes={promoCodes}
+            language={language}
+          />
         )}
       </main>
 

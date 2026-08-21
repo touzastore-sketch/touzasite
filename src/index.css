@@ -149,33 +149,40 @@ video, img {
 /* ==========================================
    INFINITE MARQUEE ANIMATIONS
    ========================================== */
+@-webkit-keyframes marquee {
+  0% {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    -webkit-transform: translate3d(-50%, 0, 0);
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
 @keyframes marquee {
   0% {
+    -webkit-transform: translate3d(0, 0, 0);
     transform: translate3d(0, 0, 0);
   }
   100% {
+    -webkit-transform: translate3d(-50%, 0, 0);
     transform: translate3d(-50%, 0, 0);
   }
 }
 
-@keyframes marquee-rtl {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  100% {
-    transform: translate3d(-50%, 0, 0);
-  }
-}
-
-.animate-marquee,
-.animate-marquee-rtl {
-  display: flex;
-  width: max-content;
-  animation: marquee 26s linear infinite;
-  -webkit-animation: marquee 26s linear infinite;
+.animate-marquee {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  width: max-content !important;
+  animation: marquee 28s linear infinite !important;
+  -webkit-animation: marquee 28s linear infinite !important;
   will-change: transform;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
 }
 
 .marquee-container {
@@ -184,11 +191,14 @@ video, img {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   contain: paint;
+  overflow: hidden;
 }
 
-.marquee-container:hover .animate-marquee,
-.marquee-container:hover .animate-marquee-rtl {
-  animation-play-state: paused;
+@media (hover: hover) and (pointer: fine) {
+  .marquee-container:hover .animate-marquee {
+    animation-play-state: paused;
+    -webkit-animation-play-state: paused;
+  }
 }
 
 

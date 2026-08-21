@@ -32,6 +32,7 @@ import {
   deleteProductAdmin,
   subscribeToStoreSettings,
   saveStoreSettingsAdmin,
+  subscribeToPromoCodes,
   getAllPromoCodesAdmin,
   savePromoCodeAdmin,
   deletePromoCodeAdmin,
@@ -104,13 +105,13 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Dynamic Products state initialized from localStorage
+  // Dynamic Products state initialized from localStorage or catalog
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem('maison_products');
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
-        if (parsed.length > 0) return parsed;
+        if (parsed.length >= PRODUCTS.length) return parsed;
       }
       return PRODUCTS;
     } catch {
@@ -375,23 +376,18 @@ export const AppContent: React.FC = () => {
       }
     });
 
-    // Load promo codes on background idle
-    const promoTimer = setTimeout(() => {
-      getAllPromoCodesAdmin(defaultPromos)
-        .then((remotePromos) => {
-          if (isSubscribed && remotePromos && remotePromos.length > 0) {
-            setPromoCodes(remotePromos);
-          }
-        })
-        .catch(() => {});
-    }, 1500);
+    const unsubscribePromoCodes = subscribeToPromoCodes(defaultPromos, (livePromos) => {
+      if (isSubscribed && livePromos && livePromos.length > 0) {
+        setPromoCodes(livePromos);
+      }
+    });
 
     return () => {
       isSubscribed = false;
-      clearTimeout(promoTimer);
       unsubscribeProducts();
       unsubscribeCategories();
       unsubscribeSettings();
+      unsubscribePromoCodes();
     };
   }, []);
 

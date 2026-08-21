@@ -932,6 +932,78 @@ export const resetDefaultReviewsAdmin = async (): Promise<SavedReview[]> => {
   }
 };
 
+/**
+ * Real-time Reviews Listener for Homepage, Product Detail, and Admin Dashboard
+ * Uses onSnapshot so any newly added, edited, or deleted reviews reflect immediately.
+ */
+export const subscribeToReviews = (
+  callback: (reviews: SavedReview[]) => void
+): (() => void) => {
+  try {
+    const reviewsRef = collection(db, 'reviews');
+    const unsubscribe = onSnapshot(
+      reviewsRef,
+      (snapshot) => {
+        const reviews: SavedReview[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          let createdAt = data?.createdAt;
+          if (createdAt && typeof createdAt.toDate === 'function') {
+            try { createdAt = createdAt.toDate().toISOString(); } catch { createdAt = new Date().toISOString(); }
+          } else if (createdAt && typeof createdAt.seconds === 'number') {
+            createdAt = new Date(createdAt.seconds * 1000).toISOString();
+          } else if (!createdAt || typeof createdAt === 'object') {
+            createdAt = new Date().toISOString();
+          }
+          reviews.push({ ...data, createdAt, id: docSnap.id } as SavedReview);
+        });
+
+        const defaultIds = new Set(DEFAULT_REVIEWS.map((dr) => dr.id));
+        const femaleNames = ['نور', 'فريدة', 'يارا', 'سلمى', 'رحمة'];
+        const customUserReviews = reviews.filter((r) => {
+          if (defaultIds.has(r.id)) return false;
+          if (r.userName && femaleNames.some((fn) => r.userName.includes(fn))) return false;
+          if (r.comment && (r.comment.includes('فستان') || r.comment.includes('حذاء الميول') || r.comment.includes('بوهيمي'))) return false;
+          return true;
+        });
+
+        const combined = [...DEFAULT_REVIEWS, ...customUserReviews];
+        combined.sort((a, b) => {
+          const timeA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : 0;
+          const timeB = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : 0;
+          return timeB - timeA;
+        });
+
+        try {
+          localStorage.setItem('maison_reviews_cache', safeJsonStringify(combined));
+        } catch {}
+
+        callback(combined);
+      },
+      (err) => {
+        console.warn('Realtime reviews listener notice:', err);
+      }
+    );
+    return unsubscribe;
+  } catch (error) {
+    console.warn('Could not initialize realtime reviews listener:', error);
+    return () => {};
+  }
+};
+
+/**
+ * Real-time Product Reviews Listener for a specific product
+ */
+export const subscribeToProductReviews = (
+  productId: string,
+  callback: (reviews: SavedReview[]) => void
+): (() => void) => {
+  return subscribeToReviews((allReviews) => {
+    const matched = allReviews.filter((r) => r.productId === productId);
+    callback(matched);
+  });
+};
+
 // ==========================================
 // CATEGORY FIRESTORE FUNCTIONS
 // ==========================================
@@ -1215,6 +1287,36 @@ export const getNewsletterSubscribers = async (): Promise<NewsletterSubscriber[]
   return activeLocal;
 };
 
+/**
+ * Real-time Newsletter Subscribers Listener for Admin Dashboard
+ */
+export const subscribeToNewsletterSubscribers = (
+  callback: (subscribers: NewsletterSubscriber[]) => void
+): (() => void) => {
+  try {
+    const subscribersRef = collection(db, 'subscribers');
+    const unsubscribe = onSnapshot(
+      subscribersRef,
+      (snapshot) => {
+        const firestoreList: NewsletterSubscriber[] = [];
+        snapshot.forEach((docSnap) => {
+          firestoreList.push({ id: docSnap.id, ...docSnap.data() } as NewsletterSubscriber);
+        });
+        firestoreList.sort((a, b) => (b.subscribedAt || '').localeCompare(a.subscribedAt || ''));
+        localStorage.setItem('maison_subscribers', safeJsonStringify(firestoreList));
+        callback(firestoreList);
+      },
+      (err) => {
+        console.warn('Realtime subscribers listener error:', err);
+      }
+    );
+    return unsubscribe;
+  } catch (error) {
+    console.warn('Could not initialize realtime subscribers listener:', error);
+    return () => {};
+  }
+};
+
 export const deleteNewsletterSubscriberAdmin = async (
   idOrEmail: string,
   targetEmail?: string
@@ -1367,25 +1469,27 @@ const sanitizeProduct = (p: Product): Product => {
     ...c,
     imageUrl: (c.imageUrl && typeof c.imageUrl === 'string' && c.imageUrl.trim() !== '')
       ? c.imageUrl.trim()
-      : images[0] || '/images/touza_green_shirt.jpg'
+      : images[0] || '/images/touza_green_shirt.jpg',
+    sizes: Array.isArray(c.sizes) ? c.sizes : undefined,
   }));
 
   return {
     ...p,
-    showOnHome: p.showOnHome !== false,
+    showOnHome: typeof p.showOnHome === 'boolean' ? p.showOnHome : (p.isFeatured ?? true),
     images,
-    colors: colors.length > 0 ? colors : [{ name: 'Default', nameAr: 'افتراضي', hex: '#2e5a44', imageUrl: images[0] || '/images/touza_green_shirt.jpg' }]
+    colors: colors.length > 0 ? colors : [{ name: 'Default', nameAr: 'افتراضي', hex: '#2e5a44', imageUrl: images[0] || '/images/touza_green_shirt.jpg' }],
+    sizes: Array.isArray(p.sizes) ? p.sizes : [],
   };
 };
 
 export const getAllProductsAdmin = async (): Promise<Product[]> => {
-  // 1. Instant Cache-First: If cached products exist in localStorage, return them immediately
+  // 1. Instant Cache-First: If cached products exist in localStorage and match at least the full catalog size
   let cached: Product[] | null = null;
   try {
     const saved = localStorage.getItem('maison_products');
     if (saved) {
       const parsed: Product[] = JSON.parse(saved);
-      if (parsed.length > 0) {
+      if (parsed.length >= PRODUCTS.length) {
         cached = parsed.map(sanitizeProduct);
       }
     }
@@ -1393,11 +1497,10 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
 
   try {
     const productsRef = collection(db, 'products');
-    // Fetch with low timeout so it never hangs
     const snapshotPromise = fetchWithTimeout(getDocs(productsRef), 4000);
     
-    // If we have cache, resolve in background; otherwise await
-    if (cached && cached.length > 0) {
+    // If we have valid cache of full products, resolve in background; otherwise await
+    if (cached && cached.length >= PRODUCTS.length) {
       snapshotPromise
         .then((snapshot) => {
           if (!snapshot.empty) {
@@ -1406,8 +1509,18 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
               const data = docSnap.data();
               firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
             });
-            if (firestoreProducts.length > 0) {
-              localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
+            
+            // Merge with static catalog to ensure no product is ever lost
+            const existingIds = new Set(firestoreProducts.map((p) => p.id));
+            const merged = [...firestoreProducts];
+            for (const p of PRODUCTS) {
+              if (!existingIds.has(p.id)) {
+                merged.push(sanitizeProduct(p));
+                setDoc(doc(db, 'products', p.id), sanitizeForFirestore(p), { merge: true }).catch(() => {});
+              }
+            }
+            if (merged.length > 0) {
+              localStorage.setItem('maison_products', safeJsonStringify(merged));
             }
           }
         })
@@ -1422,9 +1535,19 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
       firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
     });
 
-    if (firestoreProducts.length > 0) {
-      localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
-      return firestoreProducts;
+    // Merge any missing products from static catalogue into Firestore
+    const existingIds = new Set(firestoreProducts.map((p) => p.id));
+    const mergedList = [...firestoreProducts];
+    for (const p of PRODUCTS) {
+      if (!existingIds.has(p.id)) {
+        mergedList.push(sanitizeProduct(p));
+        setDoc(doc(db, 'products', p.id), sanitizeForFirestore(p), { merge: true }).catch(() => {});
+      }
+    }
+
+    if (mergedList.length > 0) {
+      localStorage.setItem('maison_products', safeJsonStringify(mergedList));
+      return mergedList;
     }
 
     // If Firestore is genuinely empty, seed initial products
@@ -1436,12 +1559,12 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
     return initialProducts;
   } catch (error) {
     console.warn('Using offline cached products:', error);
-    if (cached && cached.length > 0) return cached;
+    if (cached && cached.length >= PRODUCTS.length) return cached;
     try {
       const saved = localStorage.getItem('maison_products');
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
-        if (parsed.length > 0) return parsed.map(sanitizeProduct);
+        if (parsed.length >= PRODUCTS.length) return parsed.map(sanitizeProduct);
       }
       return PRODUCTS.map(sanitizeProduct);
     } catch {
@@ -1453,16 +1576,22 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
 export const subscribeToProducts = (
   callback: (products: Product[]) => void
 ): (() => void) => {
-  // Immediately emit cached products from localStorage if available without waiting for network
+  // Immediately emit full products catalog if cache is empty or incomplete
   try {
     const saved = localStorage.getItem('maison_products');
     if (saved) {
       const parsed: Product[] = JSON.parse(saved);
-      if (parsed.length > 0) {
+      if (parsed.length >= PRODUCTS.length) {
         callback(parsed.map(sanitizeProduct));
+      } else {
+        callback(PRODUCTS.map(sanitizeProduct));
       }
+    } else {
+      callback(PRODUCTS.map(sanitizeProduct));
     }
-  } catch {}
+  } catch {
+    callback(PRODUCTS.map(sanitizeProduct));
+  }
 
   try {
     const productsRef = collection(db, 'products');
@@ -1475,9 +1604,22 @@ export const subscribeToProducts = (
           firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
         });
 
-        if (firestoreProducts.length > 0) {
-          localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
-          callback(firestoreProducts);
+        // Ensure all products from static catalogue are present
+        const existingIds = new Set(firestoreProducts.map((p) => p.id));
+        const mergedList = [...firestoreProducts];
+        let hasMissing = false;
+
+        for (const prod of PRODUCTS) {
+          if (!existingIds.has(prod.id)) {
+            mergedList.push(sanitizeProduct(prod));
+            hasMissing = true;
+            setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true }).catch(() => {});
+          }
+        }
+
+        if (mergedList.length > 0) {
+          localStorage.setItem('maison_products', safeJsonStringify(mergedList));
+          callback(mergedList);
         } else if (snapshot.empty) {
           // If Firestore is genuinely empty, seed default products once
           const initialProducts = PRODUCTS.map(sanitizeProduct);
@@ -1843,6 +1985,44 @@ export const getAllPromoCodesAdmin = async (
     } catch {
       return defaultPromos;
     }
+  }
+};
+
+/**
+ * Real-time Promo Codes Listener
+ */
+export const subscribeToPromoCodes = (
+  defaultPromos: PromoCode[],
+  callback: (promos: PromoCode[]) => void
+): (() => void) => {
+  try {
+    const promosRef = collection(db, 'promoCodes');
+    const unsubscribe = onSnapshot(
+      promosRef,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const firestorePromos: PromoCode[] = [];
+          snapshot.forEach((docSnap) => {
+            firestorePromos.push({ id: docSnap.id, ...docSnap.data() } as PromoCode);
+          });
+          localStorage.setItem('maison_promos', safeJsonStringify(firestorePromos));
+          callback(firestorePromos);
+        } else {
+          // If empty, seed initial promos
+          for (const p of defaultPromos) {
+            setDoc(doc(db, 'promoCodes', p.id), sanitizeForFirestore(p), { merge: true }).catch(() => {});
+          }
+          callback(defaultPromos);
+        }
+      },
+      (err) => {
+        console.warn('Realtime promo codes listener error:', err);
+      }
+    );
+    return unsubscribe;
+  } catch (error) {
+    console.warn('Could not initialize realtime promo codes listener:', error);
+    return () => {};
   }
 };
 

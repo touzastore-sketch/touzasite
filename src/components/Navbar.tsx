@@ -52,8 +52,9 @@ const NavbarComponent: React.FC<NavbarProps> = ({
   }, [mobileMenuOpen]);
 
   const displayBrandName =
-    (language === 'ar' ? storeSettings?.storeNameAr : storeSettings?.storeNameEn) ||
-    (language === 'ar' ? 'توزا TOUZA' : 'TOUZA CASUAL');
+    (storeSettings?.storeNameEn && storeSettings.storeNameEn.trim() !== 'TOUZA CASUAL'
+      ? storeSettings.storeNameEn
+      : 'TOUZA');
 
   const isScrolled = React.useSyncExternalStore(
     (callback) => {
@@ -132,7 +133,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
             className="w-full min-h-[26px] bg-[#111111] text-[#e2c792] text-[11px] sm:text-[12px] font-medium py-1.5 border-b border-[#e2c792]/20 overflow-hidden font-label-caps whitespace-nowrap marquee-container select-none shrink-0"
           >
             <div
-              className="flex whitespace-nowrap gap-10 animate-marquee"
+              className="flex whitespace-nowrap gap-10 animate-marquee w-max"
               style={{ animationDuration: '24s' }}
             >
               <div className="flex items-center gap-10 shrink-0">
@@ -207,13 +208,13 @@ const NavbarComponent: React.FC<NavbarProps> = ({
           <div className="flex-1 min-w-0 flex items-center justify-center px-1 sm:px-2 z-10 text-center">
             <button
               onClick={() => onNavigate('home')}
-              className={`font-display text-[18px] xs:text-[21px] sm:text-[28px] md:text-[36px] tracking-tighter truncate text-center transition-all cursor-pointer max-w-full min-h-[44px] flex items-center justify-center ${
+              className={`font-display text-[20px] xs:text-[22px] sm:text-[28px] md:text-[34px] font-bold tracking-[0.14em] sm:tracking-[0.20em] uppercase truncate text-center transition-all cursor-pointer max-w-full min-h-[44px] flex items-center justify-center ${
                 isTransparent
                   ? 'text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] hover:text-white/90'
                   : 'text-[#000000] hover:opacity-90'
               }`}
             >
-              {displayBrandName}
+              TOUZA
             </button>
           </div>
 
@@ -394,8 +395,8 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                   <div className="flex items-center gap-3">
                     <TouzaLogo className="w-9 h-14 shrink-0" variant="gold" showFrame={true} />
                     <div className="flex flex-col">
-                      <span className="font-display text-[20px] sm:text-[24px] font-bold tracking-wide text-[#f5f0eb]">
-                        {displayBrandName}
+                      <span className="font-display text-[22px] sm:text-[24px] font-bold tracking-[0.12em] uppercase text-[#f5f0eb]">
+                        TOUZA
                       </span>
                       <span className="font-label-caps text-[9px] sm:text-[10px] tracking-[0.25em] text-[#c5a059] uppercase mt-0.5">
                         {language === 'ar' ? 'أزياء رجالية • بورسعيد' : "MEN'S WEAR • PORT SAID"}

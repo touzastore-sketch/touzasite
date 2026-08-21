@@ -17,7 +17,7 @@ import { Product } from '../types';
 import { ProductCard } from './ProductCard';
 import { PRODUCTS, getLocalizedProductName, getLocalizedProductCategory, getLocalizedProductDescription, getLocalizedProductDetails } from '../data/products';
 import { useLanguage } from '../context/LanguageContext';
-import { getProductReviews, saveProductReview, SavedReview } from '../firebase';
+import { subscribeToProductReviews, saveProductReview, SavedReview } from '../firebase';
 import { getOptimizedImageUrl } from '../utils/cloudinary';
 
 interface ProductDetailProps {
@@ -108,10 +108,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   useEffect(() => {
     if (product?.id) {
       setLoadingReviews(true);
-      getProductReviews(product.id)
-        .then((data) => setReviews(data))
-        .catch((err) => console.error('Error fetching product reviews:', err))
-        .finally(() => setLoadingReviews(false));
+      const unsubscribe = subscribeToProductReviews(product.id, (data) => {
+        setReviews(data);
+        setLoadingReviews(false);
+      });
+      return () => unsubscribe();
     }
   }, [product?.id]);
 
