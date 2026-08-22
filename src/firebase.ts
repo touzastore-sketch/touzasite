@@ -767,51 +767,37 @@ export const getAllReviews = async (): Promise<SavedReview[]> => {
       } else if (!createdAt || typeof createdAt === 'object') {
         createdAt = new Date().toISOString();
       }
-      reviews.push({ ...data, createdAt } as SavedReview);
+      reviews.push({ ...data, createdAt, id: docSnap.id } as SavedReview);
     });
 
-    const defaultIds = new Set(DEFAULT_REVIEWS.map((dr) => dr.id));
-    // Filter out old default reviews and any female legacy reviews from database
-    const femaleNames = ['نور', 'فريدة', 'يارا', 'سلمى', 'رحمة'];
-    const customUserReviews = reviews.filter((r) => {
-      if (defaultIds.has(r.id)) return false;
-      if (r.userName && femaleNames.some((fn) => r.userName.includes(fn))) return false;
-      if (r.comment && (r.comment.includes('فستان') || r.comment.includes('حذاء الميول') || r.comment.includes('بوهيمي'))) return false;
-      return true;
-    });
-
-    const combined = [...DEFAULT_REVIEWS, ...customUserReviews];
-
-    // Sync default reviews in background
-    for (const dr of DEFAULT_REVIEWS) {
-      setDoc(doc(db, 'reviews', dr.id), dr).catch(() => {});
+    if (reviews.length === 0) {
+      // Seed default reviews if Firestore is completely empty
+      for (const dr of DEFAULT_REVIEWS) {
+        await setDoc(doc(db, 'reviews', dr.id), dr, { merge: true }).catch(() => {});
+      }
+      try {
+        localStorage.setItem('maison_reviews_cache', safeJsonStringify(DEFAULT_REVIEWS));
+      } catch {}
+      return DEFAULT_REVIEWS;
     }
 
-    combined.sort((a, b) => {
+    reviews.sort((a, b) => {
       const timeA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : 0;
       const timeB = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : 0;
       return timeB - timeA;
     });
 
     try {
-      localStorage.setItem('maison_reviews_cache', safeJsonStringify(combined));
+      localStorage.setItem('maison_reviews_cache', safeJsonStringify(reviews));
     } catch {}
 
-    return combined;
+    return reviews;
   } catch (error) {
     console.warn('Using offline fallback for all reviews:', error);
     try {
       const cached = JSON.parse(localStorage.getItem('maison_reviews_cache') || '[]');
       if (Array.isArray(cached) && cached.length > 0) {
-        const femaleNames = ['نور', 'فريدة', 'يارا', 'سلمى', 'رحمة'];
-        const cleanCached = cached.filter((c) => {
-          if (c.userName && femaleNames.some((fn) => c.userName.includes(fn))) return false;
-          if (c.comment && (c.comment.includes('فستان') || c.comment.includes('حذاء الميول') || c.comment.includes('بوهيمي'))) return false;
-          return true;
-        });
-        const defaultIds = new Set(cleanCached.map((r: SavedReview) => r.id));
-        const missingDefaults = DEFAULT_REVIEWS.filter((dr) => !defaultIds.has(dr.id));
-        return [...missingDefaults, ...cleanCached];
+        return cached;
       }
       return DEFAULT_REVIEWS;
     } catch {
@@ -841,6 +827,13 @@ export const deleteReviewAdmin = async (
       const reviewDocRef = doc(db, 'reviews', reviewId);
       await deleteDoc(reviewDocRef);
     }
+
+    try {
+      const cached = JSON.parse(localStorage.getItem('maison_reviews_cache') || '[]');
+      const updated = cached.filter((r: SavedReview) => r.id !== reviewId);
+      localStorage.setItem('maison_reviews_cache', safeJsonStringify(updated));
+    } catch {}
+
     return true;
   } catch (error) {
     console.error('Failed to delete review:', error);
@@ -865,11 +858,17 @@ export const updateReviewAdmin = async (
         const dataToSave = r.id === reviewId ? { ...r, ...updatedData } : r;
         await setDoc(docRef, dataToSave, { merge: true });
       }
-      return true;
+    } else {
+      const reviewDocRef = doc(db, 'reviews', reviewId);
+      await setDoc(reviewDocRef, updatedData, { merge: true });
     }
 
-    const reviewDocRef = doc(db, 'reviews', reviewId);
-    await setDoc(reviewDocRef, updatedData, { merge: true });
+    try {
+      const cached = JSON.parse(localStorage.getItem('maison_reviews_cache') || '[]');
+      const updated = cached.map((r: SavedReview) => r.id === reviewId ? { ...r, ...updatedData } : r);
+      localStorage.setItem('maison_reviews_cache', safeJsonStringify(updated));
+    } catch {}
+
     return true;
   } catch (error) {
     console.error('Failed to update review:', error);
@@ -902,10 +901,17 @@ export const addReviewAdmin = async (
     userName: reviewData.userName || 'عميل توزا',
     userPhoto: reviewData.userPhoto || 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg',
     orderNumber: reviewData.orderNumber || 'TOUZA-VIP',
-    createdAt: serverTimestamp(),
+    createdAt: new Date().toISOString(),
   };
 
   await setDoc(reviewRef, fullReview);
+
+  try {
+    const cached = JSON.parse(localStorage.getItem('maison_reviews_cache') || '[]');
+    cached.unshift(fullReview);
+    localStorage.setItem('maison_reviews_cache', safeJsonStringify(cached));
+  } catch {}
+
   return fullReview;
 };
 
@@ -925,6 +931,11 @@ export const resetDefaultReviewsAdmin = async (): Promise<SavedReview[]> => {
     for (const r of DEFAULT_REVIEWS) {
       await setDoc(doc(db, 'reviews', r.id), r);
     }
+
+    try {
+      localStorage.setItem('maison_reviews_cache', safeJsonStringify(DEFAULT_REVIEWS));
+    } catch {}
+
     return DEFAULT_REVIEWS;
   } catch (error) {
     console.error('Failed to reset default reviews:', error);
@@ -939,46 +950,55 @@ export const resetDefaultReviewsAdmin = async (): Promise<SavedReview[]> => {
 export const subscribeToReviews = (
   callback: (reviews: SavedReview[]) => void
 ): (() => void) => {
+  // Immediately serve cached reviews for instant rendering
+  try {
+    const cached = JSON.parse(localStorage.getItem('maison_reviews_cache') || '[]');
+    if (Array.isArray(cached) && cached.length > 0) {
+      callback(cached);
+    }
+  } catch {}
+
   try {
     const reviewsRef = collection(db, 'reviews');
     const unsubscribe = onSnapshot(
       reviewsRef,
       (snapshot) => {
-        const reviews: SavedReview[] = [];
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          let createdAt = data?.createdAt;
-          if (createdAt && typeof createdAt.toDate === 'function') {
-            try { createdAt = createdAt.toDate().toISOString(); } catch { createdAt = new Date().toISOString(); }
-          } else if (createdAt && typeof createdAt.seconds === 'number') {
-            createdAt = new Date(createdAt.seconds * 1000).toISOString();
-          } else if (!createdAt || typeof createdAt === 'object') {
-            createdAt = new Date().toISOString();
+        if (!snapshot.empty) {
+          const reviews: SavedReview[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            let createdAt = data?.createdAt;
+            if (createdAt && typeof createdAt.toDate === 'function') {
+              try { createdAt = createdAt.toDate().toISOString(); } catch { createdAt = new Date().toISOString(); }
+            } else if (createdAt && typeof createdAt.seconds === 'number') {
+              createdAt = new Date(createdAt.seconds * 1000).toISOString();
+            } else if (!createdAt || typeof createdAt === 'object') {
+              createdAt = new Date().toISOString();
+            }
+            reviews.push({ ...data, createdAt, id: docSnap.id } as SavedReview);
+          });
+
+          reviews.sort((a, b) => {
+            const timeA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : 0;
+            const timeB = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : 0;
+            return timeB - timeA;
+          });
+
+          try {
+            localStorage.setItem('maison_reviews_cache', safeJsonStringify(reviews));
+          } catch {}
+
+          callback(reviews);
+        } else {
+          // If Firestore is empty, seed defaults and notify
+          for (const dr of DEFAULT_REVIEWS) {
+            setDoc(doc(db, 'reviews', dr.id), dr, { merge: true }).catch(() => {});
           }
-          reviews.push({ ...data, createdAt, id: docSnap.id } as SavedReview);
-        });
-
-        const defaultIds = new Set(DEFAULT_REVIEWS.map((dr) => dr.id));
-        const femaleNames = ['نور', 'فريدة', 'يارا', 'سلمى', 'رحمة'];
-        const customUserReviews = reviews.filter((r) => {
-          if (defaultIds.has(r.id)) return false;
-          if (r.userName && femaleNames.some((fn) => r.userName.includes(fn))) return false;
-          if (r.comment && (r.comment.includes('فستان') || r.comment.includes('حذاء الميول') || r.comment.includes('بوهيمي'))) return false;
-          return true;
-        });
-
-        const combined = [...DEFAULT_REVIEWS, ...customUserReviews];
-        combined.sort((a, b) => {
-          const timeA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : 0;
-          const timeB = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : 0;
-          return timeB - timeA;
-        });
-
-        try {
-          localStorage.setItem('maison_reviews_cache', safeJsonStringify(combined));
-        } catch {}
-
-        callback(combined);
+          try {
+            localStorage.setItem('maison_reviews_cache', safeJsonStringify(DEFAULT_REVIEWS));
+          } catch {}
+          callback(DEFAULT_REVIEWS);
+        }
       },
       (err) => {
         console.warn('Realtime reviews listener notice:', err);
@@ -1768,109 +1788,10 @@ export const resetDefaultProductsAdmin = async (): Promise<Product[]> => {
 // STORE SETTINGS FIRESTORE PERSISTENCE
 // ==========================================
 
-function sanitizeSettings(settings: StoreSettings, defaultSettings: StoreSettings): StoreSettings {
-  const sanitized = { ...settings };
-  if (!sanitized.heroBadgeEn || !sanitized.heroBadgeEn.trim()) {
-    sanitized.heroBadgeEn = defaultSettings.heroBadgeEn;
-  }
-  if (!sanitized.heroBadgeAr || !sanitized.heroBadgeAr.trim()) {
-    sanitized.heroBadgeAr = defaultSettings.heroBadgeAr;
-  }
-  if (!sanitized.heroTitleEn || !sanitized.heroTitleEn.trim()) {
-    sanitized.heroTitleEn = defaultSettings.heroTitleEn;
-  }
-  if (!sanitized.heroTitleAr || !sanitized.heroTitleAr.trim()) {
-    sanitized.heroTitleAr = defaultSettings.heroTitleAr;
-  }
-  if (!sanitized.heroImageUrl || !sanitized.heroImageUrl.trim() || sanitized.heroImageUrl.includes('unsplash') || sanitized.heroImageUrl.includes('photo-1490481651871')) {
-    sanitized.heroImageUrl = defaultSettings.heroImageUrl;
-  }
-  if (!sanitized.philosophyImageUrl || !sanitized.philosophyImageUrl.trim()) {
-    sanitized.philosophyImageUrl = '/images/philosophy_model.jpg';
-  }
-  if (!sanitized.defaultLanguage) {
-    sanitized.defaultLanguage = defaultSettings.defaultLanguage || 'ar';
-  }
-  // Sanitize announcement text to prevent empty or broken announcements
-  if (!sanitized.announcementAr || !sanitized.announcementAr.trim()) {
-    sanitized.announcementAr = defaultSettings.announcementAr || "TOUZA MEN'S WEAR";
-  }
-  if (!sanitized.announcementEn || !sanitized.announcementEn.trim()) {
-    sanitized.announcementEn = defaultSettings.announcementEn || "TOUZA MEN'S WEAR";
-  }
-  if (sanitized.enableMarqueeBar === undefined) {
-    sanitized.enableMarqueeBar = defaultSettings.enableMarqueeBar ?? true;
-  }
-  if (!sanitized.marqueeSpeed) {
-    sanitized.marqueeSpeed = defaultSettings.marqueeSpeed || 'normal';
-  }
-  if (!sanitized.marqueeBgColor) {
-    sanitized.marqueeBgColor = defaultSettings.marqueeBgColor || '#121212';
-  }
-  if (!sanitized.marqueeTextColor) {
-    sanitized.marqueeTextColor = defaultSettings.marqueeTextColor || '#f3f3f3';
-  }
-  if (!sanitized.marqueeSymbol) {
-    sanitized.marqueeSymbol = defaultSettings.marqueeSymbol || '✦';
-  }
-  if (sanitized.enableVodafoneCash === undefined) {
-    sanitized.enableVodafoneCash = defaultSettings.enableVodafoneCash ?? true;
-  }
-  if (sanitized.vodafoneCashNumber === undefined || sanitized.vodafoneCashNumber === null) {
-    sanitized.vodafoneCashNumber = defaultSettings.vodafoneCashNumber || '';
-  }
-  if (sanitized.vodafoneCashInstructionsAr === undefined || sanitized.vodafoneCashInstructionsAr === null) {
-    sanitized.vodafoneCashInstructionsAr = defaultSettings.vodafoneCashInstructionsAr || 'يرجى تحويل المبلغ المطلوب إلى رقم محفظة فودافون كاش الموضح أعلاه، ثم إدخال رقم الموبايل المحول منه لتأكيد الطلب.';
-  }
-  if (sanitized.vodafoneCashInstructionsEn === undefined || sanitized.vodafoneCashInstructionsEn === null) {
-    sanitized.vodafoneCashInstructionsEn = defaultSettings.vodafoneCashInstructionsEn || 'Please transfer the exact total amount to the Vodafone Cash number above, then enter your sender phone number to confirm your order.';
-  }
-  if (sanitized.enableOrangeCash === undefined) {
-    sanitized.enableOrangeCash = defaultSettings.enableOrangeCash ?? true;
-  }
-  if (sanitized.orangeCashNumber === undefined || sanitized.orangeCashNumber === null) {
-    sanitized.orangeCashNumber = defaultSettings.orangeCashNumber || '';
-  }
-  if (sanitized.orangeCashInstructionsAr === undefined || sanitized.orangeCashInstructionsAr === null) {
-    sanitized.orangeCashInstructionsAr = defaultSettings.orangeCashInstructionsAr || 'يرجى تحويل المبلغ المطلوب إلى رقم محفظة أورانج كاش الموضح أعلاه، ثم إدخال رقم الموبايل المحول منه لتأكيد الطلب.';
-  }
-  if (sanitized.orangeCashInstructionsEn === undefined || sanitized.orangeCashInstructionsEn === null) {
-    sanitized.orangeCashInstructionsEn = defaultSettings.orangeCashInstructionsEn || 'Please transfer the exact total amount to the Orange Cash number above, then enter your sender phone number to confirm your order.';
-  }
-  if (sanitized.enableInstaPay === undefined) {
-    sanitized.enableInstaPay = defaultSettings.enableInstaPay ?? true;
-  }
-  if (sanitized.instaPayAccount === undefined || sanitized.instaPayAccount === null) {
-    sanitized.instaPayAccount = sanitized.instaPayAddress || defaultSettings.instaPayAccount || '';
-  }
-  if (sanitized.instaPayAddress === undefined || sanitized.instaPayAddress === null) {
-    sanitized.instaPayAddress = sanitized.instaPayAccount || defaultSettings.instaPayAddress || '';
-  }
-  if (sanitized.instaPayPhone === undefined || sanitized.instaPayPhone === null) {
-    sanitized.instaPayPhone = defaultSettings.instaPayPhone || '';
-  }
-  if (sanitized.instaPayInstructionsAr === undefined || sanitized.instaPayInstructionsAr === null) {
-    sanitized.instaPayInstructionsAr = defaultSettings.instaPayInstructionsAr || 'يرجى تحويل المبلغ عبر تطبيق InstaPay إلى عنوان IPA أو رقم الهاتف الموضح أعلاه، ثم أدخل رقم الموبايل أو رقم مرجع العملية.';
-  }
-  if (sanitized.instaPayInstructionsEn === undefined || sanitized.instaPayInstructionsEn === null) {
-    sanitized.instaPayInstructionsEn = defaultSettings.instaPayInstructionsEn || 'Please transfer the exact amount via InstaPay to the IPA handle or phone number above, then enter your sender number or reference ID.';
-  }
-  if (sanitized.enableCashOnDelivery === undefined) {
-    sanitized.enableCashOnDelivery = defaultSettings.enableCashOnDelivery ?? true;
-  }
-  if (!sanitized.collectionsTitleAr || !sanitized.collectionsTitleAr.trim()) {
-    sanitized.collectionsTitleAr = defaultSettings.collectionsTitleAr || 'استايلك يبدأ من هنا';
-  }
-  if (!sanitized.collectionsTitleEn || !sanitized.collectionsTitleEn.trim()) {
-    sanitized.collectionsTitleEn = defaultSettings.collectionsTitleEn || 'Your Style Starts Here';
-  }
-  if (!sanitized.collectionsSubtitleAr || !sanitized.collectionsSubtitleAr.trim()) {
-    sanitized.collectionsSubtitleAr = defaultSettings.collectionsSubtitleAr || 'تشكيلة راقية صُممت بعناية فائقة لتمنحك إطلالة جذابة تناسب جميع المناسبات في مصر.';
-  }
-  if (!sanitized.collectionsSubtitleEn || !sanitized.collectionsSubtitleEn.trim()) {
-    sanitized.collectionsSubtitleEn = defaultSettings.collectionsSubtitleEn || 'A curated selection of luxury pieces tailored with precision and unhurried elegance.';
-  }
-  return sanitized;
+function sanitizeSettings(settings: Partial<StoreSettings>, defaultSettings: StoreSettings): StoreSettings {
+  if (!settings) return defaultSettings;
+  const merged = { ...defaultSettings, ...settings };
+  return merged;
 }
 
 const SETTINGS_STORAGE_KEY = 'maison_settings_v4';

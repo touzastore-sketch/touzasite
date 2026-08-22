@@ -38,9 +38,9 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
     setVideoError(false);
   }, [rawMedia]);
 
-  // Default to hero video if rawMedia is missing or an old unsplash fallback
+  // Default to hero video if rawMedia is missing
   let mediaUrl = '/hero-video.mp4';
-  if (rawMedia && !rawMedia.includes('unsplash') && !rawMedia.includes('photo-1490481651871')) {
+  if (rawMedia) {
     mediaUrl = getOptimizedVideoUrl(rawMedia);
   }
 
