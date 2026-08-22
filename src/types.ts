@@ -63,6 +63,8 @@ export interface PromoCode {
   usedCount?: number;                    // Times used so far
   isActive: boolean;
   expiryNote?: string;
+  description?: string;
+  descriptionAr?: string;
 }
 
 export interface StoreSettings {

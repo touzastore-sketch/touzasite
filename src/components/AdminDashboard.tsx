@@ -2067,7 +2067,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
 
                 <button
-                  onClick={handleOpenAddModal}
+                  onClick={() => handleOpenAddModal()}
                   className="flex-1 md:flex-initial bg-[#000000] text-white px-5 py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#2f3131] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 text-[14px]"
                 >
                   <span className="material-symbols-outlined text-[20px]">add</span>

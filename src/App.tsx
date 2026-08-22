@@ -105,19 +105,13 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Dynamic Products state initialized from localStorage or catalog
+  // Dynamic Products state initialized from local cache or fallback
   const [products, setProducts] = useState<Product[]>(() => {
     try {
-      const storedVersion = localStorage.getItem('maison_catalog_version');
-      if (storedVersion !== CATALOG_VERSION) {
-        localStorage.setItem('maison_catalog_version', CATALOG_VERSION);
-        localStorage.setItem('maison_products', safeJsonStringify(PRODUCTS));
-        return PRODUCTS;
-      }
       const saved = localStorage.getItem('maison_products');
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
-        if (parsed.length >= PRODUCTS.length) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
       return PRODUCTS;
     } catch {
@@ -129,7 +123,7 @@ export const AppContent: React.FC = () => {
     try {
       localStorage.setItem('maison_products', safeJsonStringify(products));
     } catch (err) {
-      console.error('Failed to store products:', err);
+      console.error('Failed to store products in local cache:', err);
     }
 
     // Idle non-blocking image pre-warmer for smooth browsing
@@ -152,14 +146,12 @@ export const AppContent: React.FC = () => {
   // Dynamic Categories state
   const [categories, setCategories] = useState<Category[]>(() => {
     try {
-      const storedCatVer = localStorage.getItem('maison_categories_version');
-      if (storedCatVer !== CATEGORIES_VERSION) {
-        localStorage.setItem('maison_categories_version', CATEGORIES_VERSION);
-        localStorage.setItem('maison_categories', safeJsonStringify(DEFAULT_CATEGORIES));
-        return DEFAULT_CATEGORIES;
-      }
       const saved = localStorage.getItem('maison_categories');
-      return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
+      if (saved) {
+        const parsed: Category[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return DEFAULT_CATEGORIES;
     } catch {
       return DEFAULT_CATEGORIES;
     }
@@ -169,28 +161,44 @@ export const AppContent: React.FC = () => {
     try {
       localStorage.setItem('maison_categories', safeJsonStringify(categories));
     } catch (err) {
-      console.error('Failed to store categories:', err);
+      console.error('Failed to store categories in local cache:', err);
     }
   }, [categories]);
 
   const handleAddCategory = async (catData: Omit<Category, 'id'>) => {
-    const updated = await saveCategoryAdmin(catData, categories);
-    setCategories(updated);
+    try {
+      const updated = await saveCategoryAdmin(catData, categories);
+      setCategories(updated);
+    } catch (err) {
+      console.error('Failed to save category:', err);
+    }
   };
 
   const handleUpdateCategory = async (catId: string, updatedData: Partial<Category>) => {
-    const updated = await updateCategoryAdmin(catId, updatedData, categories);
-    setCategories(updated);
+    try {
+      const updated = await updateCategoryAdmin(catId, updatedData, categories);
+      setCategories(updated);
+    } catch (err) {
+      console.error('Failed to update category:', err);
+    }
   };
 
   const handleDeleteCategory = async (catId: string) => {
-    const updated = await deleteCategoryAdmin(catId, categories);
-    setCategories(updated);
+    try {
+      const updated = await deleteCategoryAdmin(catId, categories);
+      setCategories(updated);
+    } catch (err) {
+      console.error('Failed to delete category:', err);
+    }
   };
 
   const handleResetCategories = async () => {
-    const updated = await resetDefaultCategoriesAdmin();
-    setCategories(updated);
+    try {
+      const updated = await resetDefaultCategoriesAdmin();
+      setCategories(updated);
+    } catch (err) {
+      console.error('Failed to reset categories:', err);
+    }
   };
 
   // Dynamic Promo Codes state
@@ -437,31 +445,33 @@ export const AppContent: React.FC = () => {
 
   // Admin Handlers
   const handleAddProduct = async (newProduct: Product) => {
-    setProducts((prev) => {
-      const newList = [newProduct, ...prev.filter((p) => p.id !== newProduct.id)];
-      saveProductAdmin(newProduct, newList);
-      return newList;
-    });
+    setProducts((prev) => [newProduct, ...prev.filter((p) => p.id !== newProduct.id)]);
+    try {
+      await saveProductAdmin(newProduct, products);
+    } catch (err) {
+      console.error('Failed to save product in Firestore:', err);
+    }
   };
 
   const handleUpdateProduct = async (updatedProduct: Product) => {
-    setProducts((prev) => {
-      const newList = prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
-      saveProductAdmin(updatedProduct, newList);
-      return newList;
-    });
+    setProducts((prev) => prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)));
     if (selectedProduct && selectedProduct.id === updatedProduct.id) {
       setSelectedProduct(updatedProduct);
+    }
+    try {
+      await saveProductAdmin(updatedProduct, products);
+    } catch (err) {
+      console.error('Failed to update product in Firestore:', err);
     }
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    setProducts((prev) => {
-      const newList = prev.filter((p) => p.id !== productId);
-      localStorage.setItem('maison_products', safeJsonStringify(newList));
-      deleteProductAdmin(productId);
-      return newList;
-    });
+    setProducts((prev) => prev.filter((p) => p.id !== productId));
+    try {
+      await deleteProductAdmin(productId);
+    } catch (err) {
+      console.error('Failed to delete product from Firestore:', err);
+    }
   };
 
   const handleAddPromoCode = async (promo: PromoCode) => {
