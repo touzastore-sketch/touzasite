@@ -166,6 +166,11 @@ export const AppContent: React.FC = () => {
   }, [categories]);
 
   const handleAddCategory = async (catData: Omit<Category, 'id'>) => {
+    const tempCat: Category = {
+      id: 'cat-' + Date.now(),
+      ...catData,
+    };
+    setCategories((prev) => [...prev, tempCat]);
     try {
       const updated = await saveCategoryAdmin(catData, categories);
       setCategories(updated);
@@ -175,6 +180,7 @@ export const AppContent: React.FC = () => {
   };
 
   const handleUpdateCategory = async (catId: string, updatedData: Partial<Category>) => {
+    setCategories((prev) => prev.map((c) => (c.id === catId ? { ...c, ...updatedData } : c)));
     try {
       const updated = await updateCategoryAdmin(catId, updatedData, categories);
       setCategories(updated);
@@ -184,6 +190,7 @@ export const AppContent: React.FC = () => {
   };
 
   const handleDeleteCategory = async (catId: string) => {
+    setCategories((prev) => prev.filter((c) => c.id !== catId));
     try {
       const updated = await deleteCategoryAdmin(catId, categories);
       setCategories(updated);
