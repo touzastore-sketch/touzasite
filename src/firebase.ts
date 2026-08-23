@@ -1704,6 +1704,43 @@ export const exportFirestoreProductsBackup = async (): Promise<{
   };
 };
 
+export const syncAllProductsToFirestore = async (
+  productsToSync: Product[] = []
+): Promise<{ success: boolean; count: number }> => {
+  try {
+    let listToUpload = productsToSync;
+    if (!listToUpload || listToUpload.length === 0) {
+      try {
+        const saved = localStorage.getItem('maison_products');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            listToUpload = parsed;
+          }
+        }
+      } catch {}
+    }
+    if (!listToUpload || listToUpload.length === 0) {
+      listToUpload = PRODUCTS;
+    }
+
+    const batchPromises = listToUpload.map((prod) => {
+      const sanitized = sanitizeProduct(prod);
+      return setDoc(doc(db, 'products', sanitized.id), sanitizeForFirestore(sanitized), { merge: true });
+    });
+    await Promise.all(batchPromises);
+
+    try {
+      localStorage.setItem('maison_products', safeJsonStringify(listToUpload.map(sanitizeProduct)));
+    } catch {}
+
+    return { success: true, count: listToUpload.length };
+  } catch (err) {
+    console.error('Failed to sync all products to Firestore:', err);
+    throw err;
+  }
+};
+
 export const saveProductAdmin = async (
   productData: Product,
   currentProducts: Product[] = []

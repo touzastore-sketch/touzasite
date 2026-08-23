@@ -67,6 +67,7 @@ import {
   getNewsletterCampaignsAdmin,
   subscribeToNewsletterCampaigns,
   exportFirestoreProductsBackup,
+  syncAllProductsToFirestore,
 } from '../firebase';
 
 interface AdminDashboardProps {
@@ -229,6 +230,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isExportingProducts, setIsExportingProducts] = useState(false);
+  const [isSyncingProducts, setIsSyncingProducts] = useState(false);
+
+  const handleSyncAllProducts = async () => {
+    try {
+      setIsSyncingProducts(true);
+      const res = await syncAllProductsToFirestore(products);
+      alert(
+        language === 'ar'
+          ? `✅ تمت مزامنة ${res.count} منتج بنجاح مع قاعدة بيانات Firestore السحابية!`
+          : `✅ Successfully synced ${res.count} products to Cloud Firestore!`
+      );
+    } catch (err) {
+      console.error('Failed to sync products to Firestore:', err);
+      alert(
+        language === 'ar'
+          ? 'حدث خطأ أثناء مزامنة المنتجات مع السحابة. تأكد من اتصال الإنترنت.'
+          : 'Failed to sync products to cloud. Please check your connection.'
+      );
+    } finally {
+      setIsSyncingProducts(false);
+    }
+  };
 
   // New/Edit Product Form state
   const [formData, setFormData] = useState<Partial<Product>>({
@@ -2041,6 +2064,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 >
                   <Code2 className="w-4 h-4 text-[#c5a059]" />
                   <span>{language === 'ar' ? 'مزامنة كود AI Studio' : 'AI Studio Sync'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSyncAllProducts}
+                  disabled={isSyncingProducts}
+                  className="flex-1 md:flex-initial bg-[#2e7d32] text-white px-4 py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#1b5e20] active:bg-[#1b5e20] transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2 text-[13px] disabled:opacity-60 disabled:cursor-not-allowed"
+                  title={language === 'ar' ? 'مزامنة وحفظ جميع المنتجات مباشرة في قاعدة بيانات Firestore السحابية' : 'Sync all products directly to Cloud Firestore'}
+                >
+                  <RefreshCw className={`w-4 h-4 text-white ${isSyncingProducts ? 'animate-spin' : ''}`} />
+                  <span>
+                    {isSyncingProducts
+                      ? language === 'ar'
+                        ? 'جارٍ المزامنة...'
+                        : 'Syncing...'
+                      : language === 'ar'
+                      ? 'مزامنة المنتجات مع السحابة ☁️'
+                      : 'Sync to Cloud ☁️'}
+                  </span>
                 </button>
 
                 <button
