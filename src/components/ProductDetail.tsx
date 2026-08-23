@@ -19,6 +19,7 @@ import { PRODUCTS, getLocalizedProductName, getLocalizedProductCategory, getLoca
 import { useLanguage } from '../context/LanguageContext';
 import { subscribeToProductReviews, saveProductReview, SavedReview } from '../firebase';
 import { getOptimizedImageUrl } from '../utils/cloudinary';
+import { trackTikTokViewContent } from '../utils/tiktokPixel';
 
 interface ProductDetailProps {
   product: Product;
@@ -73,6 +74,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       const firstSizes = (firstCol.sizes && firstCol.sizes.length > 0) ? firstCol.sizes : product.sizes;
       const initialSize = firstSizes?.find((s) => s.inStock)?.size || firstSizes?.[0]?.size || '36';
       setSelectedSize(initialSize);
+    }
+    // Track TikTok Pixel ViewContent event with real product data
+    if (product) {
+      trackTikTokViewContent(product, 1, 'EGP');
     }
   }, [product?.id]);
 

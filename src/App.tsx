@@ -39,6 +39,12 @@ import {
   incrementPromoCodeUsageAdmin,
   safeJsonStringify,
 } from './firebase';
+import {
+  initTikTokPixel,
+  trackTikTokPageView,
+  trackTikTokAddToCart,
+  trackTikTokViewContent,
+} from './utils/tiktokPixel';
 
 // Lazy-loaded Views for ultra-fast initial bundle & instant startup
 const ProductDetail = lazy(() => import('./components/ProductDetail').then((m) => ({ default: m.ProductDetail })));
@@ -435,6 +441,16 @@ export const AppContent: React.FC = () => {
   // Firebase User state
   const [user, setUser] = useState<User | null>(null);
 
+  // Initialize TikTok Pixel once
+  useEffect(() => {
+    initTikTokPixel();
+  }, []);
+
+  // Track PageView on view change
+  useEffect(() => {
+    trackTikTokPageView(currentView);
+  }, [currentView]);
+
   useEffect(() => {
     const unsubscribe = subscribeToAuth((currentUser) => {
       setUser(currentUser);
@@ -666,6 +682,13 @@ export const AppContent: React.FC = () => {
         },
       ];
     });
+
+    // Track TikTok Pixel AddToCart event with real product data
+    try {
+      trackTikTokAddToCart(product, 1, color, size, 'EGP');
+    } catch (ttErr) {
+      console.debug('TikTok Pixel AddToCart error:', ttErr);
+    }
 
     if (openCart) {
       setIsCartOpen(true);

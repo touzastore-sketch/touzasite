@@ -19,6 +19,7 @@ import { CartItem, ShippingAddress, StoreSettings, PromoCode } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getLocalizedProductName } from '../data/products';
 import { saveUserOrder, safeJsonStringify, signInWithEmail, signUpWithEmail } from '../firebase';
+import { trackTikTokInitiateCheckout, trackTikTokPurchase } from '../utils/tiktokPixel';
 
 interface CheckoutViewProps {
   cartItems: CartItem[];
@@ -134,6 +135,13 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     : (subtotal * discountPercent) / 100;
   const shipping = 0; // Express complimentary
   const total = Math.max(0, subtotal - discountAmount + shipping);
+
+  // Trigger TikTok InitiateCheckout event once on mounting CheckoutView
+  useEffect(() => {
+    if (cartItems && cartItems.length > 0) {
+      trackTikTokInitiateCheckout(cartItems, total, 'EGP');
+    }
+  }, []);
 
   const handleApplyPromo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -356,6 +364,23 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
         localStorage.setItem(cacheKey, safeJsonStringify([savedOrder, ...existingOrders]));
       } catch (cacheErr) {
         console.warn('Failed to save order to local cache:', cacheErr);
+      }
+
+      // Track TikTok Purchase / CompletePayment Event with actual order data
+      try {
+        trackTikTokPurchase({
+          orderNumber: generatedOrderNum,
+          items: cartItems.map((item) => ({
+            productId: item.product.id,
+            title: getLocalizedProductName(item.product, language),
+            price: item.product.price,
+            quantity: item.quantity,
+          })),
+          total: total,
+          currency: 'EGP',
+        });
+      } catch (ttErr) {
+        console.debug('TikTok Pixel purchase error:', ttErr);
       }
 
       setOrderNumber(generatedOrderNum);

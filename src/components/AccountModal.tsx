@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
+import {
+  X,
+  AlertCircle,
+  CheckCircle2,
+  Camera,
+  ShoppingBag,
+  Star,
+  Trash2,
+  LogOut as LogOutIcon,
+  Crown,
+  Upload,
+  XCircle,
+} from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import {
   getUserOrders,
@@ -328,6 +341,16 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleGoogleAuth = async () => {
@@ -391,7 +414,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div className="bg-[#ffffff] max-w-xl w-full rounded-2xl p-6 md:p-8 relative shadow-2xl space-y-6 fade-in-up border border-[#c4c7c7]/30">
         {/* Header */}
         <div className="flex justify-between items-center border-b border-[#c4c7c7]/30 pb-4">
@@ -399,15 +429,18 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             <span className="font-label-caps text-[11px] text-[#747878]">
               {language === 'ar' ? 'حساب العميل' : 'TOUZA STORE Client Portal'}
             </span>
-            <h2 className="font-display text-[26px] text-[#000000] font-bold">
+            <h2 className="font-display text-[24px] sm:text-[26px] text-[#000000] font-bold">
               {language === 'ar' ? 'حساب TOUZA STORE' : 'TOUZA STORE Account'}
             </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 text-[#000000] hover:bg-[#f3f3f4] rounded-full transition-colors cursor-pointer"
+            className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full bg-[#f3f4f6] hover:bg-[#e5e7eb] text-[#111111] hover:text-[#000000] flex items-center justify-center transition-all cursor-pointer border border-[#d1d5db] shadow-xs active:scale-95 group"
+            title={language === 'ar' ? 'إغلاق ومتابعة التصفح (X)' : 'Close and continue browsing (X)'}
+            aria-label={language === 'ar' ? 'إغلاق ومتابعة التصفح' : 'Close and continue browsing'}
           >
-            <span className="material-symbols-outlined text-[24px]">close</span>
+            <X className="w-5 h-5 text-[#111111] group-hover:scale-110 transition-transform stroke-[2.5]" />
           </button>
         </div>
 
@@ -439,14 +472,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
             {authError && (
               <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl flex items-center gap-2">
-                <span className="material-symbols-outlined text-base shrink-0">error</span>
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
                 <span>{authError}</span>
               </div>
             )}
 
             {authSuccess && (
               <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl flex items-center gap-2">
-                <span className="material-symbols-outlined text-base shrink-0">check_circle</span>
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                 <span>{authSuccess}</span>
               </div>
             )}
@@ -522,6 +555,16 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   </svg>
                   <span>{isSigningIn ? (language === 'ar' ? 'جاري الاتصال...' : 'Connecting...') : (language === 'ar' ? 'متابعة باستخدام Google' : 'Continue with Google')}</span>
                 </button>
+
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="text-xs text-[#747878] hover:text-[#000000] hover:underline cursor-pointer font-medium"
+                  >
+                    {language === 'ar' ? '← متابعة التصفح كزائر بدون تسجيل' : '← Continue browsing as guest'}
+                  </button>
+                </div>
               </form>
             )}
 
@@ -1046,10 +1089,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   {language === 'ar' ? 'تقييم المنتج' : 'Review Product'}
                 </h3>
                 <button
+                  type="button"
                   onClick={() => setReviewItem(null)}
-                  className="p-1 rounded-full text-[#747878] hover:bg-[#f3f3f4]"
+                  className="w-8 h-8 rounded-full text-[#747878] hover:text-[#000000] hover:bg-[#f3f3f4] flex items-center justify-center transition-colors cursor-pointer"
+                  title={language === 'ar' ? 'إغلاق' : 'Close'}
+                  aria-label={language === 'ar' ? 'إغلاق' : 'Close'}
                 >
-                  <span className="material-symbols-outlined text-[20px]">close</span>
+                  <X className="w-5 h-5 stroke-[2]" />
                 </button>
               </div>
 

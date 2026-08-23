@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 
 interface SizeGuideModalProps {
   isOpen: boolean;
@@ -9,12 +10,23 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-[#ffffff] max-w-xl w-full rounded-2xl p-6 md:p-8 relative shadow-2xl space-y-6 fade-in-up">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-[#ffffff] max-w-xl w-full rounded-2xl p-6 md:p-8 relative shadow-2xl space-y-6 fade-in-up border border-[#c4c7c7]/30">
         <div className="flex justify-between items-center border-b border-[#c4c7c7]/30 pb-4">
-          <h2 className="font-display text-[26px] text-[#000000]">Size &amp; Fit Guide</h2>
-          <button onClick={onClose} className="p-2 text-[#000000] hover:opacity-70 cursor-pointer">
-            <span className="material-symbols-outlined text-[24px]">close</span>
+          <h2 className="font-display text-[26px] text-[#000000] font-bold">Size &amp; Fit Guide</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-10 h-10 rounded-full bg-[#f3f4f6] hover:bg-[#e5e7eb] text-[#111111] flex items-center justify-center transition-all cursor-pointer border border-[#d1d5db] shadow-xs active:scale-95"
+            title="Close (X)"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5 stroke-[2.5]" />
           </button>
         </div>
 
