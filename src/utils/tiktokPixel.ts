@@ -1,6 +1,6 @@
 import { Product, CartItem } from '../types';
 
-export const TIKTOK_PIXEL_ID = 'DASHJR3C7TUES9731TTO';
+export const TIKTOK_PIXEL_ID = 'DA5HJR3C77UES973TTT0';
 
 declare global {
   interface Window {
@@ -11,16 +11,22 @@ declare global {
 }
 
 /**
- * Initialize TikTok Pixel safely and idempotently (only once).
+ * Ensures TikTok Pixel is initialized safely and idempotently (only once).
  */
 export const initTikTokPixel = (): void => {
   if (typeof window === 'undefined') return;
 
-  if (window.__tiktok_pixel_initialized && window.ttq) {
+  // If ttq is already defined and loaded by index.html, we don't need to re-initialize
+  if (window.ttq && window.TiktokAnalyticsObject) {
+    window.__tiktok_pixel_initialized = true;
     return;
   }
 
-  /* TikTok Pixel Base Code */
+  if (window.__tiktok_pixel_initialized) {
+    return;
+  }
+
+  /* Official TikTok Pixel Base Code Fallback */
   (function (w: any, d: any, t: string) {
     w.TiktokAnalyticsObject = t;
     const ttq = (w[t] = w[t] || []);
@@ -66,7 +72,7 @@ export const initTikTokPixel = (): void => {
       ttq._t[pixelId] = +new Date();
       ttq._o = ttq._o || {};
       ttq._o[pixelId] = options || {};
-      
+
       const existingScript = d.querySelector(`script[src*="analytics.tiktok.com"]`);
       if (!existingScript) {
         const scriptElem = d.createElement('script');
@@ -82,11 +88,9 @@ export const initTikTokPixel = (): void => {
       }
     };
 
-    if (!window.__tiktok_pixel_initialized) {
-      ttq.load(TIKTOK_PIXEL_ID);
-      ttq.page();
-      window.__tiktok_pixel_initialized = true;
-    }
+    ttq.load(TIKTOK_PIXEL_ID);
+    ttq.page();
+    window.__tiktok_pixel_initialized = true;
   })(window, document, 'ttq');
 };
 

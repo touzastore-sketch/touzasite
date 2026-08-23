@@ -19,16 +19,48 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=block" rel="stylesheet" />
 
-    <!-- TikTok Pixel Code -->
+    <!-- TikTok Pixel Code Start -->
     <script>
       !function (w, d, t) {
-        w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var a=document.createElement("script");a.type="text/javascript",a.async=!0,a.src=r+"?sdkid="+e+"&lib="+t;var c=document.getElementsByTagName("script")[0];c.parentNode.insertBefore(a,c)};
-        ttq.load('DASHJR3C7TUES9731TTO');
+        w.TiktokAnalyticsObject = t;
+        var ttq = w[t] = w[t] || [];
+        ttq.methods = ["page", "track", "identify", "instances", "debug", "on", "off", "once", "ready", "alias", "group", "enableCookie", "disableCookie", "holdConsent", "revokeConsent", "grantConsent"];
+        ttq.setAndDefer = function (t, e) {
+          t[e] = function () {
+            t.push([e].concat(Array.prototype.slice.call(arguments, 0)));
+          };
+        };
+        for (var i = 0; i < ttq.methods.length; i++) {
+          ttq.setAndDefer(ttq, ttq.methods[i]);
+        }
+        ttq.instance = function (t) {
+          for (var e = ttq._i[t] || [], n = 0; n < ttq.methods.length; n++) {
+            ttq.setAndDefer(e, ttq.methods[n]);
+          }
+          return e;
+        };
+        ttq.load = function (e, n) {
+          var r = "https://analytics.tiktok.com/i18n/pixel/events.js", o = n && n.partner;
+          ttq._i = ttq._i || {};
+          ttq._i[e] = [];
+          ttq._i[e]._u = r;
+          ttq._t = ttq._t || {};
+          ttq._t[e] = +new Date;
+          ttq._o = ttq._o || {};
+          ttq._o[e] = n || {};
+          var a = document.createElement("script");
+          a.type = "text/javascript";
+          a.async = !0;
+          a.src = r + "?sdkid=" + e + "&lib=" + t;
+          var c = document.getElementsByTagName("script")[0];
+          c.parentNode.insertBefore(a, c);
+        };
+
+        ttq.load('DA5HJR3C77UES973TTT0');
         ttq.page();
-        window.__tiktok_pixel_initialized = true;
       }(window, document, 'ttq');
     </script>
-    <!-- End TikTok Pixel Code -->
+    <!-- TikTok Pixel Code End -->
   </head>
   <body class="bg-[#f9f9f9] text-[#1a1c1c] antialiased selection:bg-[#1c1b1b] selection:text-[#ffffff]">
     <div id="root"></div>
