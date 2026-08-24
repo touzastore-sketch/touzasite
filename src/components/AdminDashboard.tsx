@@ -287,6 +287,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [settingsForm, setSettingsForm] = useState<StoreSettings>(storeSettings);
   const [paymentSaveSuccess, setPaymentSaveSuccess] = useState('');
   const [paymentSaveError, setPaymentSaveError] = useState('');
+  const [isSavingShipping, setIsSavingShipping] = useState(false);
+  const [shippingSaveMsg, setShippingSaveMsg] = useState('');
+
+  const handleSaveShippingSettings = async () => {
+    setIsSavingShipping(true);
+    setShippingSaveMsg('');
+    try {
+      await onUpdateStoreSettings(settingsForm);
+      setShippingSaveMsg(
+        language === 'ar'
+          ? 'تم حفظ وتحديث إعدادات وتكلفة الشحن بنجاح!'
+          : 'Shipping settings & fees updated successfully!'
+      );
+      setTimeout(() => {
+        setShippingSaveMsg('');
+      }, 4000);
+    } catch (err) {
+      setShippingSaveMsg(
+        language === 'ar'
+          ? 'حدث خطأ أثناء حفظ خيارات الشحن'
+          : 'Failed to update shipping settings'
+      );
+    } finally {
+      setIsSavingShipping(false);
+    }
+  };
 
   // Header Video Upload state
   const [headerVideoFile, setHeaderVideoFile] = useState<File | null>(null);
@@ -4271,6 +4297,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <p className="text-[11px] text-[#747878] font-body px-1">
                     {settingsForm.shippingNoteAr || (language === 'ar' ? 'شامل جميع الرسوم والتوصيل للمحافظات.' : 'All duties & delivery across Egypt included.')}
                   </p>
+                </div>
+
+                {/* 5. Direct Save Button for Shipping Settings */}
+                <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-[#c4c7c7]/20">
+                  <button
+                    type="button"
+                    onClick={handleSaveShippingSettings}
+                    disabled={isSavingShipping}
+                    className="bg-[#000000] hover:bg-[#222222] text-white px-5 py-3 rounded-xl font-label-caps text-[13px] font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-all active:scale-[0.99] disabled:opacity-50"
+                  >
+                    {isSavingShipping ? (
+                      <>
+                        <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
+                        <span>{language === 'ar' ? 'جاري الحفظ والتطبيق...' : 'Saving Changes...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[18px]">save</span>
+                        <span>{language === 'ar' ? 'حفظ إعدادات وتكلفة الشحن الآن' : 'Save Shipping Settings Now'}</span>
+                      </>
+                    )}
+                  </button>
+
+                  {shippingSaveMsg && (
+                    <div className="flex items-center gap-2 text-[13px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3.5 py-2 rounded-xl">
+                      <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                      <span>{shippingSaveMsg}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

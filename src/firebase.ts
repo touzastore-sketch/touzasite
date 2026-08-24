@@ -1806,7 +1806,17 @@ export const resetDefaultProductsAdmin = async (): Promise<Product[]> => {
 
 function sanitizeSettings(settings: Partial<StoreSettings>, defaultSettings: StoreSettings): StoreSettings {
   if (!settings) return defaultSettings;
-  const merged = { ...defaultSettings, ...settings };
+  const merged: StoreSettings = {
+    ...defaultSettings,
+    ...settings,
+    // Ensure boolean and numeric shipping fields are preserved properly
+    shippingFree: settings.shippingFree !== undefined ? settings.shippingFree : (defaultSettings.shippingFree ?? true),
+    shippingFee: settings.shippingFee !== undefined ? Number(settings.shippingFee) : (defaultSettings.shippingFee ?? 0),
+    shippingLabelAr: settings.shippingLabelAr || defaultSettings.shippingLabelAr || 'الشحن داخل مصر',
+    shippingLabelEn: settings.shippingLabelEn || defaultSettings.shippingLabelEn || 'Express Delivery',
+    shippingNoteAr: settings.shippingNoteAr || defaultSettings.shippingNoteAr || 'شامل جميع الرسوم والتوصيل للمحافظات.',
+    shippingNoteEn: settings.shippingNoteEn || defaultSettings.shippingNoteEn || 'All duties & delivery across Egypt included.',
+  };
   return merged;
 }
 
@@ -1833,11 +1843,13 @@ export const getStoreSettingsAdmin = async (
 
       await setDoc(settingsDocRef, sanitizeForFirestore(settingsToSeed), { merge: true });
       localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(settingsToSeed));
+      localStorage.setItem('maison_settings', safeJsonStringify(settingsToSeed));
       return settingsToSeed;
     }
 
     const remoteData = sanitizeSettings({ ...defaultSettings, ...(docSnap.data() as StoreSettings) }, defaultSettings);
     localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(remoteData));
+    localStorage.setItem('maison_settings', safeJsonStringify(remoteData));
     return remoteData;
   } catch (error) {
     console.warn('Using offline fallback for store settings:', error);
@@ -1873,6 +1885,7 @@ export const subscribeToStoreSettings = (
         if (docSnap.exists()) {
           const remoteData = sanitizeSettings({ ...defaultSettings, ...(docSnap.data() as StoreSettings) }, defaultSettings);
           localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(remoteData));
+          localStorage.setItem('maison_settings', safeJsonStringify(remoteData));
           callback(remoteData);
         }
       },
@@ -1890,14 +1903,20 @@ export const subscribeToStoreSettings = (
 export const saveStoreSettingsAdmin = async (
   newSettings: StoreSettings
 ): Promise<StoreSettings> => {
+  // 1. Immediately cache locally so UI updates synchronously
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(newSettings));
+    localStorage.setItem('maison_settings', safeJsonStringify(newSettings));
+    window.dispatchEvent(new CustomEvent('touza_settings_updated', { detail: newSettings }));
+  } catch {}
+
+  // 2. Persist to Firestore
   try {
     const settingsDocRef = doc(db, 'settings', 'store');
     await setDoc(settingsDocRef, sanitizeForFirestore(newSettings), { merge: true });
-    localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(newSettings));
     return newSettings;
   } catch (error) {
-    console.warn('Failed to save store settings in Firestore, using localStorage fallback:', error);
-    localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(newSettings));
+    console.warn('Failed to save store settings in Firestore, saved locally:', error);
     return newSettings;
   }
 };

@@ -13,7 +13,7 @@ import {
   MessageSquare,
   CheckCircle2,
 } from 'lucide-react';
-import { Product } from '../types';
+import { Product, StoreSettings } from '../types';
 import { ProductCard } from './ProductCard';
 import { PRODUCTS, getLocalizedProductName, getLocalizedProductCategory, getLocalizedProductDescription, getLocalizedProductDetails } from '../data/products';
 import { useLanguage } from '../context/LanguageContext';
@@ -24,6 +24,7 @@ import { trackTikTokViewContent } from '../utils/tiktokPixel';
 interface ProductDetailProps {
   product: Product;
   products?: Product[];
+  storeSettings?: StoreSettings;
   onAddToCart: (product: Product, color: string, size: string) => void;
   onBuyNow: (product: Product, color: string, size: string) => void;
   onSelectProduct: (product: Product) => void;
@@ -39,6 +40,7 @@ interface ProductDetailProps {
 export const ProductDetail: React.FC<ProductDetailProps> = ({
   product,
   products = [],
+  storeSettings,
   onAddToCart,
   onBuyNow,
   onSelectProduct,
@@ -497,8 +499,21 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 />
               </button>
               {openAccordions.shipping && (
-                <div className="pt-3 font-body text-[15px] text-[#444748] leading-relaxed text-start">
-                  {t('detail.shippingPolicy', 'Complimentary express delivery across Egypt within 2-4 business days. Returns accepted within 14 days.')}
+                <div className="pt-3 font-body text-[15px] text-[#444748] leading-relaxed text-start space-y-2">
+                  <p>
+                    {language === 'ar'
+                      ? (storeSettings?.shippingAr || 'نوفر خدمة التوصيل السريع لجميع محافظات مصر.')
+                      : (storeSettings?.shippingEn || 'Express delivery nationwide across Egypt.')}
+                  </p>
+                  <p className="text-[13px] text-[#747878] font-medium">
+                    {language === 'ar'
+                      ? (storeSettings?.shippingFree !== false && (Number(storeSettings?.shippingFee) <= 0 || storeSettings?.shippingFee === undefined)
+                          ? '✓ الشحن مجاني لكافة المحافظات'
+                          : `✓ تكلفة الشحن: ${storeSettings?.shippingFee || 0} ج.م`)
+                      : (storeSettings?.shippingFree !== false && (Number(storeSettings?.shippingFee) <= 0 || storeSettings?.shippingFee === undefined)
+                          ? '✓ Free delivery across Egypt'
+                          : `✓ Delivery fee: ${storeSettings?.shippingFee || 0} EGP`)}
+                  </p>
                 </div>
               )}
             </div>

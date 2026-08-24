@@ -88,10 +88,28 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'instapay' | 'vodafone_cash' | 'orange_cash'>('cod');
   const [transferRef, setTransferRef] = useState('');
 
+  const [liveSettings, setLiveSettings] = useState<StoreSettings | undefined>(storeSettings);
+
+  useEffect(() => {
+    if (storeSettings) {
+      setLiveSettings(storeSettings);
+    }
+  }, [storeSettings]);
+
+  useEffect(() => {
+    const handleSettingsUpdate = (e: any) => {
+      if (e.detail) {
+        setLiveSettings(e.detail);
+      }
+    };
+    window.addEventListener('touza_settings_updated', handleSettingsUpdate);
+    return () => window.removeEventListener('touza_settings_updated', handleSettingsUpdate);
+  }, []);
+
   // Fallback to cached local settings if storeSettings prop is momentarily pending
-  const activeSettings = storeSettings || (() => {
+  const activeSettings = liveSettings || (() => {
     try {
-      const saved = localStorage.getItem('maison_settings');
+      const saved = localStorage.getItem('maison_settings_v4') || localStorage.getItem('maison_settings');
       return saved ? JSON.parse(saved) : undefined;
     } catch {
       return undefined;

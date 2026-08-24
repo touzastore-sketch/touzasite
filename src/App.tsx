@@ -965,6 +965,7 @@ export const AppContent: React.FC = () => {
             <ProductDetail
               product={selectedProduct}
               products={products}
+              storeSettings={storeSettings}
               onAddToCart={handleAddToCart}
               onBuyNow={handleBuyNow}
               onSelectProduct={handleSelectProduct}

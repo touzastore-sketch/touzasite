@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingBag, X, Trash2, Plus, Minus, ArrowRight, ArrowLeft } from 'lucide-react';
 import { CartItem, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
@@ -41,7 +41,34 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     };
   }, [isOpen, onClose]);
 
+  const [liveSettings, setLiveSettings] = useState<StoreSettings | undefined>(storeSettings);
+
+  useEffect(() => {
+    if (storeSettings) {
+      setLiveSettings(storeSettings);
+    }
+  }, [storeSettings]);
+
+  useEffect(() => {
+    const handleSettingsUpdate = (e: any) => {
+      if (e.detail) {
+        setLiveSettings(e.detail);
+      }
+    };
+    window.addEventListener('touza_settings_updated', handleSettingsUpdate);
+    return () => window.removeEventListener('touza_settings_updated', handleSettingsUpdate);
+  }, []);
+
   if (!isOpen) return null;
+
+  const activeSettings = liveSettings || (() => {
+    try {
+      const saved = localStorage.getItem('maison_settings_v4') || localStorage.getItem('maison_settings');
+      return saved ? JSON.parse(saved) : undefined;
+    } catch {
+      return undefined;
+    }
+  })();
 
   const subtotal = cartItems.reduce(
     (acc, item) => acc + item.product.price * item.quantity,
@@ -50,8 +77,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   const totalItemsCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
-  const isFreeShipping = storeSettings?.shippingFree !== false && (Number(storeSettings?.shippingFee) <= 0 || storeSettings?.shippingFee === undefined);
-  const shippingCost = isFreeShipping ? 0 : (Number(storeSettings?.shippingFee) || 0);
+  const isFreeShipping = activeSettings?.shippingFree !== false && (Number(activeSettings?.shippingFee) <= 0 || activeSettings?.shippingFee === undefined);
+  const shippingCost = isFreeShipping ? 0 : (Number(activeSettings?.shippingFee) || 0);
+  const finalTotal = subtotal + shippingCost;
 
   return (
     <div id="cart-drawer-modal" className="fixed inset-0 z-[99999] overflow-hidden" role="dialog" aria-modal="true">
@@ -246,8 +274,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 <div className="flex justify-between font-label-caps text-[#444748] text-[11px] sm:text-[12px]">
                   <span>
                     {language === 'ar'
-                      ? (storeSettings?.shippingLabelAr || t('cart.delivery', 'الشحن داخل مصر'))
-                      : (storeSettings?.shippingLabelEn || t('cart.delivery', 'Express Delivery'))}
+                      ? (activeSettings?.shippingLabelAr || t('cart.delivery', 'الشحن داخل مصر'))
+                      : (activeSettings?.shippingLabelEn || t('cart.delivery', 'Express Delivery'))}
                   </span>
                   {isFreeShipping || shippingCost === 0 ? (
                     <span className="text-[#2e7d32] font-bold">{t('cart.free', 'مجاني')}</span>
@@ -257,9 +285,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </div>
                 <p className="text-[11px] sm:text-[12px] text-[#747878] font-body">
                   {language === 'ar'
-                    ? (storeSettings?.shippingNoteAr || t('cart.taxInfo', 'شامل جميع الرسوم والتوصيل للمحافظات.'))
-                    : (storeSettings?.shippingNoteEn || t('cart.taxInfo', 'All duties & delivery across Egypt included.'))}
+                    ? (activeSettings?.shippingNoteAr || t('cart.taxInfo', 'شامل جميع الرسوم والتوصيل للمحافظات.'))
+                    : (activeSettings?.shippingNoteEn || t('cart.taxInfo', 'All duties & delivery across Egypt included.'))}
                 </p>
+                {shippingCost > 0 && (
+                  <div className="flex justify-between font-label-caps text-[#000000] text-[14px] sm:text-[15px] pt-1.5 border-t border-[#c4c7c7]/30 font-bold">
+                    <span>{language === 'ar' ? 'الإجمالي النهائي' : 'Estimated Total'}</span>
+                    <span className="dir-ltr">{formatPrice(finalTotal)}</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2 pt-1">
