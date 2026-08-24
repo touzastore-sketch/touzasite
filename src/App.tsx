@@ -398,13 +398,13 @@ export const AppContent: React.FC = () => {
 
     // Subscribe to live Firestore updates with instantaneous local cache hydration
     const unsubscribeProducts = subscribeToProducts((liveProducts) => {
-      if (isSubscribed && liveProducts && liveProducts.length > 0) {
+      if (isSubscribed && Array.isArray(liveProducts)) {
         setProducts(liveProducts);
       }
     });
 
     const unsubscribeCategories = subscribeToCategories((liveCats) => {
-      if (isSubscribed && liveCats && liveCats.length > 0) {
+      if (isSubscribed && Array.isArray(liveCats)) {
         setCategories(liveCats);
       }
     });
@@ -416,7 +416,7 @@ export const AppContent: React.FC = () => {
     });
 
     const unsubscribePromoCodes = subscribeToPromoCodes(defaultPromos, (livePromos) => {
-      if (isSubscribed && livePromos && livePromos.length > 0) {
+      if (isSubscribed && Array.isArray(livePromos)) {
         setPromoCodes(livePromos);
       }
     });

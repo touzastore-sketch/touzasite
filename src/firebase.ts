@@ -674,17 +674,6 @@ export const saveProductReview = async (reviewData: FirestoreReviewData): Promis
     throw new Error('User must be signed in with Google to post a review');
   }
 
-  const reviewsRef = collection(db, 'reviews');
-  const snapshot = await getDocs(reviewsRef);
-  
-  // If database was empty, seed all default reviews first so none are lost
-  if (snapshot.empty) {
-    for (const r of DEFAULT_REVIEWS) {
-      const docRef = doc(db, 'reviews', r.id);
-      await setDoc(docRef, r, { merge: true });
-    }
-  }
-
   const reviewRef = doc(collection(db, 'reviews'));
   const fullReview: SavedReview = {
     id: reviewRef.id,
@@ -707,13 +696,8 @@ export const getProductReviews = async (productId: string): Promise<SavedReview[
       reviews.push(docSnap.data() as SavedReview);
     });
 
-    // Merge missing default reviews so default reviews are never lost
-    const existingIds = new Set(reviews.map((r) => r.id));
-    const missingDefaults = DEFAULT_REVIEWS.filter((dr) => !existingIds.has(dr.id));
-    const combined = [...reviews, ...missingDefaults];
-
     // Strictly filter for matching product ID
-    const matched = combined.filter((r) => r.productId === productId);
+    const matched = reviews.filter((r) => r.productId === productId);
 
     // Sort descending by createdAt
     matched.sort((a, b) => {
@@ -725,7 +709,13 @@ export const getProductReviews = async (productId: string): Promise<SavedReview[
     return matched;
   } catch (error) {
     console.warn('Using offline fallback for product reviews:', error);
-    return DEFAULT_REVIEWS.filter((r) => r.productId === productId);
+    try {
+      const cached = JSON.parse(localStorage.getItem('maison_reviews_cache') || '[]');
+      if (Array.isArray(cached)) {
+        return cached.filter((r: SavedReview) => r.productId === productId);
+      }
+    } catch {}
+    return [];
   }
 };
 
@@ -749,17 +739,6 @@ export const getAllReviews = async (): Promise<SavedReview[]> => {
       reviews.push({ ...data, createdAt, id: docSnap.id } as SavedReview);
     });
 
-    if (reviews.length === 0) {
-      // Seed default reviews if Firestore is completely empty
-      for (const dr of DEFAULT_REVIEWS) {
-        await setDoc(doc(db, 'reviews', dr.id), dr, { merge: true }).catch(() => {});
-      }
-      try {
-        localStorage.setItem('maison_reviews_cache', safeJsonStringify(DEFAULT_REVIEWS));
-      } catch {}
-      return DEFAULT_REVIEWS;
-    }
-
     reviews.sort((a, b) => {
       const timeA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : 0;
       const timeB = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : 0;
@@ -775,12 +754,12 @@ export const getAllReviews = async (): Promise<SavedReview[]> => {
     console.warn('Using offline fallback for all reviews:', error);
     try {
       const cached = JSON.parse(localStorage.getItem('maison_reviews_cache') || '[]');
-      if (Array.isArray(cached) && cached.length > 0) {
+      if (Array.isArray(cached)) {
         return cached;
       }
-      return DEFAULT_REVIEWS;
+      return [];
     } catch {
-      return DEFAULT_REVIEWS;
+      return [];
     }
   }
 };
@@ -788,24 +767,11 @@ export const getAllReviews = async (): Promise<SavedReview[]> => {
 // Delete Review (Admin)
 export const deleteReviewAdmin = async (
   reviewId: string,
-  allCurrentReviews?: SavedReview[]
+  _allCurrentReviews?: SavedReview[]
 ): Promise<boolean> => {
   try {
-    const reviewsRef = collection(db, 'reviews');
-    const snapshot = await getDocs(reviewsRef);
-    
-    // If database was empty, seed all current default reviews except the deleted one
-    if (snapshot.empty && allCurrentReviews && allCurrentReviews.length > 0) {
-      for (const r of allCurrentReviews) {
-        if (r.id !== reviewId) {
-          const docRef = doc(db, 'reviews', r.id);
-          await setDoc(docRef, r, { merge: true });
-        }
-      }
-    } else {
-      const reviewDocRef = doc(db, 'reviews', reviewId);
-      await deleteDoc(reviewDocRef);
-    }
+    const reviewDocRef = doc(db, 'reviews', reviewId);
+    await deleteDoc(reviewDocRef);
 
     try {
       const cached = JSON.parse(localStorage.getItem('maison_reviews_cache') || '[]');
@@ -824,23 +790,11 @@ export const deleteReviewAdmin = async (
 export const updateReviewAdmin = async (
   reviewId: string,
   updatedData: Partial<FirestoreReviewData>,
-  allCurrentReviews?: SavedReview[]
+  _allCurrentReviews?: SavedReview[]
 ): Promise<boolean> => {
   try {
-    const reviewsRef = collection(db, 'reviews');
-    const snapshot = await getDocs(reviewsRef);
-    
-    // If database was empty, seed all default reviews first so none are lost
-    if (snapshot.empty && allCurrentReviews && allCurrentReviews.length > 0) {
-      for (const r of allCurrentReviews) {
-        const docRef = doc(db, 'reviews', r.id);
-        const dataToSave = r.id === reviewId ? { ...r, ...updatedData } : r;
-        await setDoc(docRef, dataToSave, { merge: true });
-      }
-    } else {
-      const reviewDocRef = doc(db, 'reviews', reviewId);
-      await setDoc(reviewDocRef, updatedData, { merge: true });
-    }
+    const reviewDocRef = doc(db, 'reviews', reviewId);
+    await setDoc(reviewDocRef, updatedData, { merge: true });
 
     try {
       const cached = JSON.parse(localStorage.getItem('maison_reviews_cache') || '[]');
@@ -857,18 +811,8 @@ export const updateReviewAdmin = async (
 
 export const addReviewAdmin = async (
   reviewData: Partial<FirestoreReviewData>,
-  allCurrentReviews?: SavedReview[]
+  _allCurrentReviews?: SavedReview[]
 ): Promise<SavedReview> => {
-  const reviewsRef = collection(db, 'reviews');
-  const snapshot = await getDocs(reviewsRef);
-  
-  if (snapshot.empty && allCurrentReviews && allCurrentReviews.length > 0) {
-    for (const r of allCurrentReviews) {
-      const docRef = doc(db, 'reviews', r.id);
-      await setDoc(docRef, r, { merge: true });
-    }
-  }
-
   const reviewRef = doc(collection(db, 'reviews'));
   const fullReview: SavedReview = {
     id: reviewRef.id,
@@ -969,14 +913,10 @@ export const subscribeToReviews = (
 
           callback(reviews);
         } else {
-          // If Firestore is empty, seed defaults and notify
-          for (const dr of DEFAULT_REVIEWS) {
-            setDoc(doc(db, 'reviews', dr.id), dr, { merge: true }).catch(() => {});
-          }
           try {
-            localStorage.setItem('maison_reviews_cache', safeJsonStringify(DEFAULT_REVIEWS));
+            localStorage.setItem('maison_reviews_cache', safeJsonStringify([]));
           } catch {}
-          callback(DEFAULT_REVIEWS);
+          callback([]);
         }
       },
       (err) => {
@@ -1017,16 +957,6 @@ export const getAllCategories = async (): Promise<Category[]> => {
       categories.push({ id: docSnap.id, ...docSnap.data() } as Category);
     });
 
-    if (categories.length === 0) {
-      for (const c of DEFAULT_CATEGORIES) {
-        setDoc(doc(db, 'categories', c.id), sanitizeForFirestore(c), { merge: true }).catch(() => {});
-      }
-      try {
-        localStorage.setItem('maison_categories', safeJsonStringify(DEFAULT_CATEGORIES));
-      } catch {}
-      return DEFAULT_CATEGORIES;
-    }
-
     try {
       localStorage.setItem('maison_categories', safeJsonStringify(categories));
     } catch {}
@@ -1037,10 +967,10 @@ export const getAllCategories = async (): Promise<Category[]> => {
       const saved = localStorage.getItem('maison_categories');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch {}
-    return DEFAULT_CATEGORIES;
+    return [];
   }
 };
 
@@ -1052,17 +982,11 @@ export const subscribeToCategories = (
     const saved = localStorage.getItem('maison_categories');
     if (saved) {
       const parsed: Category[] = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         callback(parsed);
-      } else {
-        callback(DEFAULT_CATEGORIES);
       }
-    } else {
-      callback(DEFAULT_CATEGORIES);
     }
-  } catch {
-    callback(DEFAULT_CATEGORIES);
-  }
+  } catch {}
 
   try {
     const catsRef = collection(db, 'categories');
@@ -1074,21 +998,15 @@ export const subscribeToCategories = (
           snapshot.forEach((docSnap) => {
             firestoreCats.push({ id: docSnap.id, ...docSnap.data() } as Category);
           });
-          if (firestoreCats.length > 0) {
-            try {
-              localStorage.setItem('maison_categories', safeJsonStringify(firestoreCats));
-            } catch {}
-            callback(firestoreCats);
-          }
-        } else {
-          // If Firestore is empty, seed defaults
-          for (const c of DEFAULT_CATEGORIES) {
-            setDoc(doc(db, 'categories', c.id), sanitizeForFirestore(c), { merge: true }).catch(() => {});
-          }
           try {
-            localStorage.setItem('maison_categories', safeJsonStringify(DEFAULT_CATEGORIES));
+            localStorage.setItem('maison_categories', safeJsonStringify(firestoreCats));
           } catch {}
-          callback(DEFAULT_CATEGORIES);
+          callback(firestoreCats);
+        } else {
+          try {
+            localStorage.setItem('maison_categories', safeJsonStringify([]));
+          } catch {}
+          callback([]);
         }
       },
       (err) => {
@@ -1308,18 +1226,6 @@ export const getNewsletterSubscribers = async (): Promise<NewsletterSubscriber[]
     return result;
   } catch (err) {
     console.warn('Failed to load subscribers from Firestore:', err);
-  }
-
-  if (!isInitialized && localSubscribers.length === 0) {
-    const demoSubscribers: NewsletterSubscriber[] = [
-      { id: 'sub_1', email: 'vip.client@luxuryfashion.eg', subscribedAt: new Date(Date.now() - 86400000 * 2).toISOString(), status: 'active', source: 'الموقع الإلكتروني' },
-      { id: 'sub_2', email: 'yasmin.almasri@gmail.com', subscribedAt: new Date(Date.now() - 86400000 * 5).toISOString(), source: 'إعلان فيسبوك', status: 'active' },
-      { id: 'sub_3', email: 'nour.hassan@yahoo.com', subscribedAt: new Date(Date.now() - 86400000 * 10).toISOString(), source: 'الموقع الإلكتروني', status: 'active' },
-    ];
-    const filteredDemo = demoSubscribers.filter((s) => !deletedSet.has(s.email.toLowerCase()));
-    localStorage.setItem('maison_subscribers', safeJsonStringify(filteredDemo));
-    localStorage.setItem('maison_subscribers_init', 'true');
-    return filteredDemo;
   }
 
   const activeLocal = localSubscribers.filter((s) => s && s.email && !deletedSet.has(s.email.trim().toLowerCase()));
@@ -1577,25 +1483,20 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
       return firestoreProducts;
     }
 
-    // If Firestore is empty, seed initial default products
-    const initialProducts = PRODUCTS.map(sanitizeProduct);
-    for (const prod of initialProducts) {
-      setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true }).catch(() => {});
-    }
     try {
-      localStorage.setItem('maison_products', safeJsonStringify(initialProducts));
+      localStorage.setItem('maison_products', safeJsonStringify([]));
     } catch {}
-    return initialProducts;
+    return [];
   } catch (error) {
     console.warn('Using offline cached products fallback:', error);
     try {
       const saved = localStorage.getItem('maison_products');
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(sanitizeProduct);
+        if (Array.isArray(parsed)) return parsed.map(sanitizeProduct);
       }
     } catch {}
-    return PRODUCTS.map(sanitizeProduct);
+    return [];
   }
 };
 
@@ -1607,17 +1508,11 @@ export const subscribeToProducts = (
     const saved = localStorage.getItem('maison_products');
     if (saved) {
       const parsed: Product[] = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         callback(parsed.map(sanitizeProduct));
-      } else {
-        callback(PRODUCTS.map(sanitizeProduct));
       }
-    } else {
-      callback(PRODUCTS.map(sanitizeProduct));
     }
-  } catch {
-    callback(PRODUCTS.map(sanitizeProduct));
-  }
+  } catch {}
 
   try {
     const productsRef = collection(db, 'products');
@@ -1631,22 +1526,15 @@ export const subscribeToProducts = (
             firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
           });
           
-          if (firestoreProducts.length > 0) {
-            try {
-              localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
-            } catch {}
-            callback(firestoreProducts);
-          }
-        } else {
-          // If Firestore is completely empty (e.g. first initial setup), seed the default products
-          const initialProducts = PRODUCTS.map(sanitizeProduct);
-          for (const prod of initialProducts) {
-            setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true }).catch(() => {});
-          }
           try {
-            localStorage.setItem('maison_products', safeJsonStringify(initialProducts));
+            localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
           } catch {}
-          callback(initialProducts);
+          callback(firestoreProducts);
+        } else {
+          try {
+            localStorage.setItem('maison_products', safeJsonStringify([]));
+          } catch {}
+          callback([]);
         }
       },
       (err) => {
@@ -1830,21 +1718,17 @@ export const getStoreSettingsAdmin = async (
     const docSnap = await fetchWithTimeout(getDoc(settingsDocRef));
     
     if (!docSnap.exists()) {
-      let settingsToSeed = defaultSettings;
+      let settingsToReturn = defaultSettings;
       try {
         const saved = localStorage.getItem(SETTINGS_STORAGE_KEY) || localStorage.getItem('maison_settings');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed) {
-            settingsToSeed = sanitizeSettings({ ...defaultSettings, ...parsed }, defaultSettings);
+            settingsToReturn = sanitizeSettings({ ...defaultSettings, ...parsed }, defaultSettings);
           }
         }
       } catch {}
-
-      await setDoc(settingsDocRef, sanitizeForFirestore(settingsToSeed), { merge: true });
-      localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(settingsToSeed));
-      localStorage.setItem('maison_settings', safeJsonStringify(settingsToSeed));
-      return settingsToSeed;
+      return settingsToReturn;
     }
 
     const remoteData = sanitizeSettings({ ...defaultSettings, ...(docSnap.data() as StoreSettings) }, defaultSettings);
@@ -1926,18 +1810,15 @@ export const saveStoreSettingsAdmin = async (
 // ==========================================
 
 export const getAllPromoCodesAdmin = async (
-  defaultPromos: PromoCode[]
+  _defaultPromos: PromoCode[]
 ): Promise<PromoCode[]> => {
   try {
     const promosRef = collection(db, 'promoCodes');
     const snapshot = await fetchWithTimeout(getDocs(promosRef));
 
     if (snapshot.empty) {
-      for (const p of defaultPromos) {
-        await setDoc(doc(db, 'promoCodes', p.id), sanitizeForFirestore(p), { merge: true });
-      }
-      localStorage.setItem('maison_promos', safeJsonStringify(defaultPromos));
-      return defaultPromos;
+      localStorage.setItem('maison_promos', safeJsonStringify([]));
+      return [];
     }
 
     const firestorePromos: PromoCode[] = [];
@@ -1951,9 +1832,9 @@ export const getAllPromoCodesAdmin = async (
     console.warn('Using offline fallback for promo codes:', error);
     try {
       const saved = localStorage.getItem('maison_promos');
-      return saved ? JSON.parse(saved) : defaultPromos;
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return defaultPromos;
+      return [];
     }
   }
 };
@@ -1962,7 +1843,7 @@ export const getAllPromoCodesAdmin = async (
  * Real-time Promo Codes Listener
  */
 export const subscribeToPromoCodes = (
-  defaultPromos: PromoCode[],
+  _defaultPromos: PromoCode[],
   callback: (promos: PromoCode[]) => void
 ): (() => void) => {
   try {
@@ -1978,11 +1859,8 @@ export const subscribeToPromoCodes = (
           localStorage.setItem('maison_promos', safeJsonStringify(firestorePromos));
           callback(firestorePromos);
         } else {
-          // If empty, seed initial promos
-          for (const p of defaultPromos) {
-            setDoc(doc(db, 'promoCodes', p.id), sanitizeForFirestore(p), { merge: true }).catch(() => {});
-          }
-          callback(defaultPromos);
+          localStorage.setItem('maison_promos', safeJsonStringify([]));
+          callback([]);
         }
       },
       (err) => {
