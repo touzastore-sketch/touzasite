@@ -15,7 +15,6 @@ import {
   User,
 } from 'firebase/auth';
 import {
-  initializeFirestore,
   getFirestore,
   setLogLevel,
   collection,
@@ -31,8 +30,6 @@ import {
   where,
   orderBy,
   serverTimestamp,
-  persistentLocalCache,
-  persistentMultipleTabManager,
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import { DEFAULT_REVIEWS } from './data/defaultReviews';
@@ -64,28 +61,10 @@ try {
   setLogLevel('silent');
 } catch {}
 
-// Initialize Firestore with high-performance persistent local cache (IndexedDB) with graceful fallback for Safari / Private browsing
-export const db = (() => {
-  try {
-    const firestoreSettings = {
-      localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager(),
-      }),
-      experimentalAutoDetectLongPolling: true,
-    };
-    return resolvedFirebaseConfig.firestoreDatabaseId
-      ? initializeFirestore(app, firestoreSettings, resolvedFirebaseConfig.firestoreDatabaseId)
-      : initializeFirestore(app, firestoreSettings);
-  } catch (_err) {
-    try {
-      return resolvedFirebaseConfig.firestoreDatabaseId
-        ? getFirestore(app, resolvedFirebaseConfig.firestoreDatabaseId)
-        : getFirestore(app);
-    } catch {
-      return getFirestore(app);
-    }
-  }
-})();
+// Initialize Firestore with clean real-time connection across all mobile and desktop devices
+export const db = resolvedFirebaseConfig.firestoreDatabaseId
+  ? getFirestore(app, resolvedFirebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
 
 // Helper to timeout long-hanging Firestore requests (e.g. offline/network latency/Safari ITP)
 const fetchWithTimeout = <T>(promise: Promise<T>, timeoutMs = 15000): Promise<T> => {
