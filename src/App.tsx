@@ -313,6 +313,12 @@ export const AppContent: React.FC = () => {
     returnsEn: 'Returns and exchanges are accepted within 14 days of delivery in original condition.',
     shippingAr: 'نوفر خدمة التوصيل السريع لجميع محافظات مصر (القاهرة والجيزة خلال 24-48 ساعة، وباقي المحافظات خلال 2-4 أيام عمل).',
     shippingEn: 'Express delivery nationwide across Egypt (Cairo & Giza within 24-48 hrs, other governorates within 2-4 business days).',
+    shippingFree: true,
+    shippingFee: 0,
+    shippingLabelAr: 'الشحن داخل مصر',
+    shippingLabelEn: 'Express Delivery',
+    shippingNoteAr: 'شامل جميع الرسوم والتوصيل للمحافظات.',
+    shippingNoteEn: 'All duties & delivery across Egypt included.',
     defaultLanguage: 'ar',
     enableVodafoneCash: true,
     vodafoneCashNumber: '01012345678',
@@ -426,6 +432,16 @@ export const AppContent: React.FC = () => {
 
   const [selectedProduct, setSelectedProduct] = useState<Product>(products[0] || PRODUCTS[0]);
   const [categoryFilter, setCategoryFilter] = useState<string>(initialUrlState.category || 'All');
+
+  // Sync selected product with live Firestore updates
+  useEffect(() => {
+    if (selectedProduct && products.length > 0) {
+      const updated = products.find((p) => p.id === selectedProduct.id);
+      if (updated && updated !== selectedProduct) {
+        setSelectedProduct(updated);
+      }
+    }
+  }, [products]);
 
   // Load product from URL parameter if present
   useEffect(() => {
@@ -1007,6 +1023,7 @@ export const AppContent: React.FC = () => {
             onUpdateQuantity={handleUpdateCartQuantity}
             onRemoveItem={handleRemoveCartItem}
             onProceedToCheckout={() => handleNavigate('checkout')}
+            storeSettings={storeSettings}
           />
         )}
 
@@ -1018,6 +1035,7 @@ export const AppContent: React.FC = () => {
             onSelectProduct={handleSelectProduct}
             onRemoveWishlist={handleToggleWishlist}
             onAddToCart={handleAddToCart}
+            products={products}
           />
         )}
 

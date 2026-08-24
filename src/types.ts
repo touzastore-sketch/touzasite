@@ -127,6 +127,13 @@ export interface StoreSettings {
   returnsEn?: string;
   shippingAr?: string;
   shippingEn?: string;
+  // Shipping Cost & Display Control (سلة التسوق وصفحة إتمام الطلب)
+  shippingFree?: boolean;
+  shippingFee?: number;
+  shippingLabelAr?: string;
+  shippingLabelEn?: string;
+  shippingNoteAr?: string;
+  shippingNoteEn?: string;
   copyrightAr?: string;
   copyrightEn?: string;
   // Collections View Header Settings

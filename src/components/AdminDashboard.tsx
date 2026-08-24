@@ -4048,6 +4048,232 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
+              {/* Shipping Line & Cost Controls (التحكم في سطر ورسوم الشحن) */}
+              <div className="space-y-4 p-5 bg-[#ffffff] rounded-2xl border-2 border-[#000000]/10 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#c4c7c7]/30 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-[#000000] text-white flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[20px]">local_shipping</span>
+                    </div>
+                    <div>
+                      <h3 className="font-label-caps text-[14px] font-bold text-[#000000]">
+                        {language === 'ar' ? 'التحكم في سطر وتكلفة الشحن (سلة التسوق والدفع)' : 'Shipping Cost & Cart Line Options'}
+                      </h3>
+                      <p className="text-[12px] text-[#747878] font-body">
+                        {language === 'ar'
+                          ? 'اختر ما إذا كان الشحن مجانياً أو حدد تكلفة الشحن بالجنيه المصري، مع التحكم في النصوص والملاحظات.'
+                          : 'Set shipping as complimentary or define a fixed fee in EGP, with full label and notice control.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Status Badge */}
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-bold self-start sm:self-auto ${
+                      settingsForm.shippingFree !== false && (Number(settingsForm.shippingFee) <= 0 || settingsForm.shippingFee === undefined)
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : 'bg-blue-100 text-blue-800 border border-blue-300'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-current"></span>
+                    <span>
+                      {settingsForm.shippingFree !== false && (Number(settingsForm.shippingFee) <= 0 || settingsForm.shippingFee === undefined)
+                        ? (language === 'ar' ? 'شحن مجاني حالياً' : 'Currently Free')
+                        : (language === 'ar' ? `رسوم شحن: ${settingsForm.shippingFee || 0} ج.م` : `Fee: ${settingsForm.shippingFee || 0} EGP`)}
+                    </span>
+                  </span>
+                </div>
+
+                {/* 1. Free vs Fixed Fee Toggle Mode */}
+                <div className="space-y-2">
+                  <label className="block text-[12px] font-label-caps text-[#444748] font-bold">
+                    {language === 'ar' ? 'حالة الشحن' : 'Shipping Mode'}
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSettingsForm({
+                          ...settingsForm,
+                          shippingFree: true,
+                          shippingFee: 0,
+                        });
+                      }}
+                      className={`p-3.5 rounded-xl border text-start flex items-center gap-3 transition-all cursor-pointer ${
+                        settingsForm.shippingFree !== false && (Number(settingsForm.shippingFee) <= 0 || settingsForm.shippingFee === undefined)
+                          ? 'border-emerald-600 bg-emerald-50/70 text-[#000000] ring-2 ring-emerald-500/20 font-bold'
+                          : 'border-[#c4c7c7] bg-white text-[#5e5e5c] hover:bg-[#f9f9f9]'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                          settingsForm.shippingFree !== false && (Number(settingsForm.shippingFee) <= 0 || settingsForm.shippingFee === undefined)
+                            ? 'border-emerald-600 bg-emerald-600'
+                            : 'border-[#c4c7c7]'
+                        }`}
+                      >
+                        {settingsForm.shippingFree !== false && (Number(settingsForm.shippingFee) <= 0 || settingsForm.shippingFee === undefined) && (
+                          <div className="w-2 h-2 rounded-full bg-white" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-[13px] font-bold text-[#000000]">
+                          {language === 'ar' ? '🟢 شحن مجاني (Complimentary)' : '🟢 Free Shipping'}
+                        </div>
+                        <div className="text-[11px] text-[#747878]">
+                          {language === 'ar' ? 'يظهر للعميل كلمة «مجاني» باللون الأخضر ولا تضاف أي رسوم' : 'Displays "Complimentary" in green, zero extra fee'}
+                        </div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSettingsForm({
+                          ...settingsForm,
+                          shippingFree: false,
+                          shippingFee: Number(settingsForm.shippingFee) > 0 ? settingsForm.shippingFee : 50,
+                        });
+                      }}
+                      className={`p-3.5 rounded-xl border text-start flex items-center gap-3 transition-all cursor-pointer ${
+                        settingsForm.shippingFree === false || Number(settingsForm.shippingFee) > 0
+                          ? 'border-black bg-black/5 text-[#000000] ring-2 ring-black/10 font-bold'
+                          : 'border-[#c4c7c7] bg-white text-[#5e5e5c] hover:bg-[#f9f9f9]'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                          settingsForm.shippingFree === false || Number(settingsForm.shippingFee) > 0
+                            ? 'border-black bg-black'
+                            : 'border-[#c4c7c7]'
+                        }`}
+                      >
+                        {(settingsForm.shippingFree === false || Number(settingsForm.shippingFee) > 0) && (
+                          <div className="w-2 h-2 rounded-full bg-white" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-[13px] font-bold text-[#000000]">
+                          {language === 'ar' ? '💳 رسوم شحن محددة (مبلغ مالي)' : '💳 Fixed Shipping Fee'}
+                        </div>
+                        <div className="text-[11px] text-[#747878]">
+                          {language === 'ar' ? 'تحديد مبلغ ثابت للشحن يضاف على إجمالي الطلب' : 'Adds a specified shipping amount to cart total'}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Numeric Shipping Fee Input */}
+                <div>
+                  <label className="block text-[12px] font-label-caps text-[#444748] font-bold mb-1">
+                    {language === 'ar' ? 'تكلفة الشحن (بالجنيه المصري EGP)' : 'Shipping Fee Amount (EGP)'}
+                  </label>
+                  <div className="relative max-w-xs">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={settingsForm.shippingFee !== undefined ? settingsForm.shippingFee : (settingsForm.shippingFree === false ? 50 : 0)}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 0 : Number(e.target.value);
+                        setSettingsForm({
+                          ...settingsForm,
+                          shippingFee: val,
+                          shippingFree: val <= 0,
+                        });
+                      }}
+                      placeholder="0"
+                      className="w-full border border-[#c4c7c7] rounded-xl p-3 pr-14 text-[15px] font-bold text-[#000000] focus:ring-2 focus:ring-black focus:outline-none"
+                    />
+                    <span className="absolute top-1/2 -translate-y-1/2 left-3 font-bold text-[13px] text-[#747878]">
+                      {language === 'ar' ? 'ج.م' : 'EGP'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#747878] mt-1 font-body">
+                    {language === 'ar'
+                      ? '💡 إذا كانت القيمة 0، سيعتبر الشحن مجانياً تلقائياً. وإذا وضعت مثلاً 50 أو 60 سيتم إضافة الرسوم وعرضها في السلة وإتمام الطلب.'
+                      : '💡 Set to 0 for free shipping, or specify any numeric amount (e.g. 50, 60) to charge shipping.'}
+                  </p>
+                </div>
+
+                {/* 3. Text line & note customization */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-[#c4c7c7]/20">
+                  <div>
+                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
+                      {language === 'ar' ? 'عنوان سطر الشحن بالعربية' : 'Shipping Row Label (Arabic)'}
+                    </label>
+                    <input
+                      type="text"
+                      value={settingsForm.shippingLabelAr || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, shippingLabelAr: e.target.value })}
+                      placeholder="الشحن داخل مصر"
+                      className="w-full border border-[#c4c7c7] rounded-xl p-3 text-[13px]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
+                      {language === 'ar' ? 'عنوان سطر الشحن بالإنجليزية' : 'Shipping Row Label (English)'}
+                    </label>
+                    <input
+                      type="text"
+                      value={settingsForm.shippingLabelEn || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, shippingLabelEn: e.target.value })}
+                      placeholder="Express Delivery"
+                      className="w-full border border-[#c4c7c7] rounded-xl p-3 text-[13px]"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
+                      {language === 'ar' ? 'الملاحظة أسفل سطر الشحن (عربي)' : 'Shipping Note / Tax Info (Arabic)'}
+                    </label>
+                    <input
+                      type="text"
+                      value={settingsForm.shippingNoteAr || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, shippingNoteAr: e.target.value })}
+                      placeholder="شامل جميع الرسوم والتوصيل للمحافظات."
+                      className="w-full border border-[#c4c7c7] rounded-xl p-3 text-[13px]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-label-caps text-[#747878] mb-1">
+                      {language === 'ar' ? 'الملاحظة أسفل سطر الشحن (إنجليزي)' : 'Shipping Note / Tax Info (English)'}
+                    </label>
+                    <input
+                      type="text"
+                      value={settingsForm.shippingNoteEn || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, shippingNoteEn: e.target.value })}
+                      placeholder="All duties & delivery across Egypt included."
+                      className="w-full border border-[#c4c7c7] rounded-xl p-3 text-[13px]"
+                    />
+                  </div>
+                </div>
+
+                {/* 4. Live Preview Box */}
+                <div className="p-3.5 bg-[#f9f9f9] rounded-xl border border-[#c4c7c7]/30 space-y-1.5">
+                  <div className="text-[11px] font-label-caps text-[#747878] font-bold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">preview</span>
+                    <span>{language === 'ar' ? 'معاينة شكل السطر في سلة التسوق وصفحة الطلب:' : 'Live Cart & Checkout Preview:'}</span>
+                  </div>
+                  <div className="flex justify-between font-label-caps text-[#444748] text-[12px] bg-white p-2.5 rounded-lg border border-[#c4c7c7]/20">
+                    <span>
+                      {settingsForm.shippingLabelAr || (language === 'ar' ? 'الشحن داخل مصر' : 'Express Delivery')}
+                    </span>
+                    {settingsForm.shippingFree !== false && (Number(settingsForm.shippingFee) <= 0 || settingsForm.shippingFee === undefined) ? (
+                      <span className="text-[#2e7d32] font-bold">{language === 'ar' ? 'مجاني' : 'Complimentary'}</span>
+                    ) : (
+                      <span className="text-[#000000] font-bold dir-ltr">{formatPrice(Number(settingsForm.shippingFee) || 0)}</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-[#747878] font-body px-1">
+                    {settingsForm.shippingNoteAr || (language === 'ar' ? 'شامل جميع الرسوم والتوصيل للمحافظات.' : 'All duties & delivery across Egypt included.')}
+                  </p>
+                </div>
+              </div>
+
               {/* Shipping Policy (الشحن والتوصيل) */}
               <div className="space-y-3 p-4 bg-[#f9f9f9] rounded-xl border border-[#c4c7c7]/20">
                 <h3 className="font-label-caps text-[13px] font-bold text-[#000000] flex items-center gap-2">

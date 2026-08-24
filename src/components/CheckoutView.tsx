@@ -133,7 +133,8 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   const discountAmount = discountFixedAmount > 0
     ? Math.min(subtotal, discountFixedAmount)
     : (subtotal * discountPercent) / 100;
-  const shipping = 0; // Express complimentary
+  const isFreeShipping = activeSettings?.shippingFree !== false && (Number(activeSettings?.shippingFee) <= 0 || activeSettings?.shippingFee === undefined);
+  const shipping = isFreeShipping ? 0 : (Number(activeSettings?.shippingFee) || 0);
   const total = Math.max(0, subtotal - discountAmount + shipping);
 
   // Trigger TikTok InitiateCheckout event once on mounting CheckoutView
@@ -1174,8 +1175,16 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                 </div>
               )}
               <div className="flex justify-between text-[#444748]">
-                <span>{t('cart.delivery', 'Express Shipping')}</span>
-                <span className="text-[#2e7d32] font-bold">{t('cart.free', 'Complimentary')}</span>
+                <span>
+                  {language === 'ar'
+                    ? (activeSettings?.shippingLabelAr || t('cart.delivery', 'الشحن داخل مصر'))
+                    : (activeSettings?.shippingLabelEn || t('cart.delivery', 'Express Shipping'))}
+                </span>
+                {shipping === 0 ? (
+                  <span className="text-[#2e7d32] font-bold">{t('cart.free', 'Complimentary')}</span>
+                ) : (
+                  <span className="text-[#000000] font-bold dir-ltr">{formatPrice(shipping)}</span>
+                )}
               </div>
 
               <div className="flex justify-between font-display text-[20px] text-[#000000] pt-3 border-t border-[#c4c7c7]/30 font-bold">

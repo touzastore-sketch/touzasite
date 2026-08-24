@@ -12,6 +12,7 @@ interface WishlistModalProps {
   onSelectProduct: (product: Product) => void;
   onRemoveWishlist: (product: Product) => void;
   onAddToCart: (product: Product, color: string, size: string) => void;
+  products?: Product[];
 }
 
 const FALLBACK_IMAGE = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
@@ -23,12 +24,14 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
   onSelectProduct,
   onRemoveWishlist,
   onAddToCart,
+  products = PRODUCTS,
 }) => {
   const { language, formatPrice, t, direction } = useLanguage();
 
   if (!isOpen) return null;
 
-  const wishlistedProducts = PRODUCTS.filter((p) => wishlistIds.includes(p.id));
+  const currentProductsList = products && products.length > 0 ? products : PRODUCTS;
+  const wishlistedProducts = currentProductsList.filter((p) => wishlistIds.includes(p.id));
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">

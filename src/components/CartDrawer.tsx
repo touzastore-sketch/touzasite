@@ -1,6 +1,6 @@
 import React from 'react';
 import { ShoppingBag, X, Trash2, Plus, Minus, ArrowRight, ArrowLeft } from 'lucide-react';
-import { CartItem } from '../types';
+import { CartItem, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getLocalizedProductName } from '../data/products';
 import { getOptimizedImageUrl } from '../utils/cloudinary';
@@ -12,6 +12,7 @@ interface CartDrawerProps {
   onUpdateQuantity: (cartItemId: string, newQty: number) => void;
   onRemoveItem: (cartItemId: string) => void;
   onProceedToCheckout: () => void;
+  storeSettings?: StoreSettings;
 }
 
 const FALLBACK_IMAGE = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
@@ -23,6 +24,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onUpdateQuantity,
   onRemoveItem,
   onProceedToCheckout,
+  storeSettings,
 }) => {
   const { language, formatPrice, t, direction } = useLanguage();
 
@@ -47,6 +49,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   );
 
   const totalItemsCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+
+  const isFreeShipping = storeSettings?.shippingFree !== false && (Number(storeSettings?.shippingFee) <= 0 || storeSettings?.shippingFee === undefined);
+  const shippingCost = isFreeShipping ? 0 : (Number(storeSettings?.shippingFee) || 0);
 
   return (
     <div id="cart-drawer-modal" className="fixed inset-0 z-[99999] overflow-hidden" role="dialog" aria-modal="true">
@@ -239,11 +244,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   </span>
                 </div>
                 <div className="flex justify-between font-label-caps text-[#444748] text-[11px] sm:text-[12px]">
-                  <span>{t('cart.delivery', 'Express Delivery')}</span>
-                  <span className="text-[#2e7d32] font-bold">{t('cart.free', 'Complimentary')}</span>
+                  <span>
+                    {language === 'ar'
+                      ? (storeSettings?.shippingLabelAr || t('cart.delivery', 'الشحن داخل مصر'))
+                      : (storeSettings?.shippingLabelEn || t('cart.delivery', 'Express Delivery'))}
+                  </span>
+                  {isFreeShipping || shippingCost === 0 ? (
+                    <span className="text-[#2e7d32] font-bold">{t('cart.free', 'مجاني')}</span>
+                  ) : (
+                    <span className="text-[#000000] font-bold dir-ltr">{formatPrice(shippingCost)}</span>
+                  )}
                 </div>
                 <p className="text-[11px] sm:text-[12px] text-[#747878] font-body">
-                  {t('cart.taxInfo', 'All duties & delivery across Egypt included.')}
+                  {language === 'ar'
+                    ? (storeSettings?.shippingNoteAr || t('cart.taxInfo', 'شامل جميع الرسوم والتوصيل للمحافظات.'))
+                    : (storeSettings?.shippingNoteEn || t('cart.taxInfo', 'All duties & delivery across Egypt included.'))}
                 </p>
               </div>
 
