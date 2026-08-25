@@ -39,7 +39,7 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   const activeSizes = (activeColor?.sizes && activeColor.sizes.length > 0) ? activeColor.sizes : (product.sizes || []);
 
   const rawImg = activeColor?.imageUrl || product.images?.[0];
-  const fallbackImage = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
+  const fallbackImage = 'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
   const displayImage = getOptimizedImageUrl(rawImg && rawImg.trim() ? rawImg : fallbackImage, { width: 450, quality: 'auto:good' });
 
   const displayName = getLocalizedProductName(product, language);

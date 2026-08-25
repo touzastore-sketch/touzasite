@@ -10,7 +10,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
     "descriptionAr": "",
     "nameAr": "بنطلون",
     "descriptionEn": "ك",
-    "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786828835/touza_categories/cyh7zei4gbemcymw3nqh.png"
+    "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786828835/touza_categories/cyh7zei4gbemcymw3nqh.png"
   },
   {
     "id": "cat-polos",
@@ -19,21 +19,21 @@ export const DEFAULT_CATEGORIES: Category[] = [
     "descriptionEn": "",
     "descriptionAr": "تشكيلة مميزة من أزياء TOUZA STORE",
     "nameAr": "تشيرت بولو",
-    "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787089724/touza_categories/acjypfdm59jnhmcoycsk.jpg"
+    "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787089724/touza_categories/acjypfdm59jnhmcoycsk.jpg"
   },
   {
     "id": "cat-shirts",
     "descriptionEn": "",
     "nameEn": "Shirts",
     "descriptionAr": "تشكيلة مميزة من أزياء TOUZA STORE\n",
-    "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786812211/touza_categories/lbwvargfhrgyh7ezfnio.png",
+    "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786812211/touza_categories/lbwvargfhrgyh7ezfnio.png",
     "icon": "dry_cleaning",
     "nameAr": "قميص"
   },
   {
     "id": "cat-shorts",
     "nameAr": "ترنج ",
-    "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787174177/touza_categories/q2wow2iqolzfojmdq3oi.png",
+    "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787174177/touza_categories/q2wow2iqolzfojmdq3oi.png",
     "icon": "view_column",
     "descriptionEn": "",
     "descriptionAr": "ترنجات صيفية مريحة ",
@@ -41,7 +41,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
   },
   {
     "id": "cat-suit",
-    "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786807044/touza_categories/kltzbav7u9mcggq3rxvu.jpg",
+    "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786807044/touza_categories/kltzbav7u9mcggq3rxvu.jpg",
     "icon": "styler",
     "nameAr": "سيت",
     "nameEn": "suit",
@@ -52,7 +52,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
     "id": "cat-tshirts",
     "nameAr": "تيشيرت",
     "icon": "styler",
-    "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786808192/touza_categories/xfx6znyit7wlmvoz1d7p.png",
+    "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786808192/touza_categories/xfx6znyit7wlmvoz1d7p.png",
     "descriptionEn": "",
     "descriptionAr": "تشكيلة مميزة من أزياء TOUZA STORE",
     "nameEn": "T-Shirts"

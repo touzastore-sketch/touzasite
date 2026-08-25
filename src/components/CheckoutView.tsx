@@ -346,7 +346,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
         orderNumber: generatedOrderNum,
         items: cartItems.map((item) => {
           const colorObj = item.product.colors?.find((c) => c.name === item.selectedColor);
-          const rawImg = colorObj?.imageUrl || (item.product.images && item.product.images.length > 0 ? item.product.images[0] : '') || 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
+          const rawImg = colorObj?.imageUrl || (item.product.images && item.product.images.length > 0 ? item.product.images[0] : '') || 'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
           return {
             productId: item.product.id,
             title: getLocalizedProductName(item.product, language),

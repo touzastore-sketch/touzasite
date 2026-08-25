@@ -296,7 +296,7 @@ export const AppContent: React.FC = () => {
     philosophyParagraph1En: 'At TOUZA, we craft high-end casual menswear built with 280GSM Egyptian cotton, pure flax linen, and custom relaxed tailoring.',
     philosophyParagraph2Ar: 'تصاميم تعبر عن الثقة والأناقة الكاجوال مع توصيل سريع لجميع محافظات مصر.',
     philosophyParagraph2En: 'Designed for everyday confidence with fast express shipping across all Egyptian governorates.',
-    philosophyImageUrl: 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595579/touza_settings/mf5eckkcwerbrntmvvbs.png',
+    philosophyImageUrl: 'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786595579/touza_settings/mf5eckkcwerbrntmvvbs.png',
     socialInstagramUrl: 'https://www.instagram.com/touzamenswear?igsh=MWlibDh0OThsOGY4dg%3D%3D&utm_source=qr',
     socialFacebookUrl: '',
     socialTiktokUrl: 'https://www.tiktok.com/@eltouza95?_r=1&_t=ZS-98m1NvL2Yo3',

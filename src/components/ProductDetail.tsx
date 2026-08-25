@@ -249,10 +249,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   }`}
                 >
                   <img
-                    src={getOptimizedImageUrl(img || 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg', { width: 200 })}
+                    src={getOptimizedImageUrl(img || 'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg', { width: 200 })}
                     alt={`${displayName} view ${idx + 1}`}
                     onError={(e) => {
-                      e.currentTarget.src = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
+                      e.currentTarget.src = 'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
                     }}
                     className="w-full h-full object-cover object-center"
                     referrerPolicy="no-referrer"
@@ -266,10 +266,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           {/* Main Display Image - Matched to Home Page Frame Aspect Ratio & Sleek Compact Size */}
           <div className="w-full max-w-[420px] sm:max-w-[460px] lg:max-w-[480px] aspect-[3/4] max-h-[460px] sm:max-h-[500px] lg:max-h-[540px] bg-[#fafafa] relative group cursor-crosshair overflow-hidden rounded-2xl border border-[#c4c7c7]/30 shadow-xs mx-auto lg:mx-0">
             <img
-              src={getOptimizedImageUrl(currentImage || 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg', { width: 1000 })}
+              src={getOptimizedImageUrl(currentImage || 'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg', { width: 1000 })}
               alt={displayName}
               onError={(e) => {
-                e.currentTarget.src = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
+                e.currentTarget.src = 'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
               }}
               className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
               referrerPolicy="no-referrer"

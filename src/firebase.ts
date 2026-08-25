@@ -984,7 +984,7 @@ export const addReviewAdmin = async (
     comment: reviewData.comment || '',
     userId: reviewData.userId || 'admin-added',
     userName: reviewData.userName || 'عميل توزا',
-    userPhoto: reviewData.userPhoto || 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg',
+    userPhoto: reviewData.userPhoto || 'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg',
     orderNumber: reviewData.orderNumber || 'TOUZA-VIP',
     createdAt: new Date().toISOString(),
   };
@@ -1683,7 +1683,7 @@ export const isBannedProductId = (id?: string): boolean => {
 };
 
 const DEFAULT_FALLBACK_PRODUCT_IMAGE =
-  'https://res.cloudinary.com/qazdrpcx/image/upload/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg';
+  'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg';
 
 const sanitizeProduct = (p: Product): Product => {
   if (!p) return p;

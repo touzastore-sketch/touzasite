@@ -120,7 +120,7 @@ const CategorySectionComponent: React.FC<CategorySectionProps> = ({
                   alt={cat.nameAr}
                   loading="lazy"
                   onError={(e) => {
-                    e.currentTarget.src = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg';
+                    e.currentTarget.src = 'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg';
                   }}
                   className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-110"
                 />

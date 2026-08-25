@@ -15,7 +15,7 @@ interface WishlistModalProps {
   products?: Product[];
 }
 
-const FALLBACK_IMAGE = 'https://res.cloudinary.com/qazdrpcx/image/upload/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
+const FALLBACK_IMAGE = 'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
 
 export const WishlistModal: React.FC<WishlistModalProps> = ({
   isOpen,

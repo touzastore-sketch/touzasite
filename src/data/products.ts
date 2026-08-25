@@ -12,13 +12,13 @@ export const PRODUCTS: Product[] = [
         "nameAr": "افتراضي",
         "name": "Default",
         "hex": "#a7c6ff",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg"
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg"
       }
     ],
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786807466/touza_products/aq8tezmxfgx5g5lksn0y.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786807480/touza_products/gbbqszuri6nj36jd3hum.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786807466/touza_products/aq8tezmxfgx5g5lksn0y.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786807480/touza_products/gbbqszuri6nj36jd3hum.jpg"
     ],
     "sizes": [
       {
@@ -49,7 +49,7 @@ export const PRODUCTS: Product[] = [
     "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
     "colors": [
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786808714/touza_products/wjybbowlh99dgw3gpqfi.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786808714/touza_products/wjybbowlh99dgw3gpqfi.png",
         "nameAr": "أسود",
         "hex": "#111111",
         "name": "Black"
@@ -58,11 +58,11 @@ export const PRODUCTS: Product[] = [
         "name": "White",
         "hex": "#ffffff",
         "nameAr": "أبيض",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786808728/touza_products/n90sjnrydbe1idlqgmsl.png"
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786808728/touza_products/n90sjnrydbe1idlqgmsl.png"
       }
     ],
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786809185/touza_products/et2olhe9fa5ndwtgz4fl.png"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786809185/touza_products/et2olhe9fa5ndwtgz4fl.png"
     ],
     "sizes": [
       {
@@ -110,14 +110,14 @@ export const PRODUCTS: Product[] = [
     "categoryAr": "تيشيرت",
     "colors": [
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786811748/touza_products/lafj3u1izwghqryeurym.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786811748/touza_products/lafj3u1izwghqryeurym.jpg",
         "nameAr": "أسود",
         "hex": "#111111",
         "name": "Black"
       }
     ],
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786812106/touza_products/heiasuuelelpbbncehob.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786812106/touza_products/heiasuuelelpbbncehob.jpg"
     ],
     "sizes": [
       {
@@ -137,18 +137,18 @@ export const PRODUCTS: Product[] = [
       {
         "hex": "#ffffff",
         "nameAr": "أبيض",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786812533/touza_products/hcjrlg9juszfqwdyxwgz.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786812533/touza_products/hcjrlg9juszfqwdyxwgz.png",
         "name": "White"
       },
       {
         "hex": "#000000",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786812546/touza_products/sefmhvttvpytsysantlk.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786812546/touza_products/sefmhvttvpytsysantlk.jpg",
         "name": "Black",
         "nameAr": "أسود"
       }
     ],
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786812577/touza_products/lq3h64gkjahy92h8cj18.png"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786812577/touza_products/lq3h64gkjahy92h8cj18.png"
     ],
     "category": "Shirts",
     "categoryAr": "قميص",
@@ -218,13 +218,13 @@ export const PRODUCTS: Product[] = [
     "showOnHome": true,
     "nameAr": "وايد ليج بلنسياجا ",
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786828539/touza_products/lu9wvhmrqexytjkuer8i.png"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786828539/touza_products/lu9wvhmrqexytjkuer8i.png"
     ],
     "colors": [
       {
         "nameAr": "أزرق ",
         "name": "Jeans ",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786828481/touza_products/imu3afnmz4x8sd3fscg8.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786828481/touza_products/imu3afnmz4x8sd3fscg8.png",
         "hex": "#0042a9"
       }
     ],
@@ -260,13 +260,13 @@ export const PRODUCTS: Product[] = [
     "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
     "descriptionAr": "",
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786997914/touza_products/apvwbqbvmjl9hbhjmoip.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786997914/touza_products/apvwbqbvmjl9hbhjmoip.jpg"
     ],
     "colors": [
       {
         "hex": "#111111",
         "name": "Black",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786997826/touza_products/sac5mz7v5u4kxyw9vnva.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786997826/touza_products/sac5mz7v5u4kxyw9vnva.jpg",
         "nameAr": "أسود"
       }
     ]
@@ -307,7 +307,7 @@ export const PRODUCTS: Product[] = [
             "size": "XXL"
           }
         ],
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786998405/touza_products/pf1pn5hkcob6ewj49zmf.png"
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786998405/touza_products/pf1pn5hkcob6ewj49zmf.png"
       },
       {
         "name": "White",
@@ -334,12 +334,12 @@ export const PRODUCTS: Product[] = [
             "size": "XXL"
           }
         ],
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786998317/touza_products/dsuipth6oaboyaoz46vk.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786998317/touza_products/dsuipth6oaboyaoz46vk.png",
         "hex": "#ffffff"
       }
     ],
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786998439/touza_products/mnunskoz4rai0hdcposq.png"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786998439/touza_products/mnunskoz4rai0hdcposq.png"
     ],
     "name": "Amiri tshirt",
     "categoryAr": "تيشيرت",
@@ -372,7 +372,7 @@ export const PRODUCTS: Product[] = [
     "price": 850,
     "colors": [
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787076547/touza_products/p9rnldygrhqr7rftg7cg.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787076547/touza_products/p9rnldygrhqr7rftg7cg.png",
         "name": "Black",
         "hex": "#111111",
         "sizes": [
@@ -397,7 +397,7 @@ export const PRODUCTS: Product[] = [
       },
       {
         "nameAr": "أبيض",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787076575/touza_products/k38u8dfq1p91m8afav94.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787076575/touza_products/k38u8dfq1p91m8afav94.png",
         "sizes": [
           {
             "size": "L",
@@ -417,7 +417,7 @@ export const PRODUCTS: Product[] = [
       }
     ],
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077932/touza_products/xymtefafcacnyyhghhlt.png"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787077932/touza_products/xymtefafcacnyyhghhlt.png"
     ],
     "sizes": [
       {
@@ -449,11 +449,11 @@ export const PRODUCTS: Product[] = [
     "id": "prod-1787077515769",
     "price": 1400,
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077508/touza_products/d6qfr9satkyrl1azryis.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787077508/touza_products/d6qfr9satkyrl1azryis.jpg"
     ],
     "colors": [
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077508/touza_products/d6qfr9satkyrl1azryis.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787077508/touza_products/d6qfr9satkyrl1azryis.jpg",
         "sizes": [
           {
             "inStock": false,
@@ -508,7 +508,7 @@ export const PRODUCTS: Product[] = [
     "id": "prod-1787077904145",
     "showOnHome": true,
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077892/touza_products/zoj99gx8c7hkqdc76wdo.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787077892/touza_products/zoj99gx8c7hkqdc76wdo.jpg"
     ],
     "colors": [
       {
@@ -536,7 +536,7 @@ export const PRODUCTS: Product[] = [
           }
         ],
         "hex": "#111111",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077769/touza_products/qthuoql3evljoyuknprq.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787077769/touza_products/qthuoql3evljoyuknprq.png",
         "nameAr": "أسود"
       },
       {
@@ -557,7 +557,7 @@ export const PRODUCTS: Product[] = [
             "size": "XL"
           }
         ],
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077810/touza_products/u11mkhjz66tvlqjj8hif.jpg"
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787077810/touza_products/u11mkhjz66tvlqjj8hif.jpg"
       },
       {
         "nameAr": "أبيض",
@@ -573,7 +573,7 @@ export const PRODUCTS: Product[] = [
           }
         ],
         "name": "White",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077842/touza_products/aj5p8vd4kmkatssmigox.jpg"
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787077842/touza_products/aj5p8vd4kmkatssmigox.jpg"
       }
     ],
     "isNewArrival": false,
@@ -639,7 +639,7 @@ export const PRODUCTS: Product[] = [
     "isNewArrival": false,
     "name": "D&G Tshirt",
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078362/touza_products/h5pda3dc2pdaaq35i6xq.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787078362/touza_products/h5pda3dc2pdaaq35i6xq.jpg"
     ],
     "colors": [
       {
@@ -667,7 +667,7 @@ export const PRODUCTS: Product[] = [
           }
         ],
         "nameAr": "أبيض",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078274/touza_products/ccnyzqptolszj4fo9237.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787078274/touza_products/ccnyzqptolszj4fo9237.jpg",
         "name": "White"
       }
     ],
@@ -694,7 +694,7 @@ export const PRODUCTS: Product[] = [
             "size": "XL"
           }
         ],
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078586/touza_products/ykvqosnktnxqipmvheaa.png"
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787078586/touza_products/ykvqosnktnxqipmvheaa.png"
       },
       {
         "hex": "#000000",
@@ -712,13 +712,13 @@ export const PRODUCTS: Product[] = [
             "size": "XL"
           }
         ],
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078674/touza_products/gbtgcytqqj28onnc6edy.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787078674/touza_products/gbtgcytqqj28onnc6edy.jpg",
         "nameAr": "أسود",
         "name": "Black"
       }
     ],
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078800/touza_products/jpilwxdpgpqawb4pi6yi.png"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787078800/touza_products/jpilwxdpgpqawb4pi6yi.png"
     ],
     "sizes": [
       {
@@ -767,7 +767,7 @@ export const PRODUCTS: Product[] = [
     "originalPrice": 2000,
     "colors": [
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787089799/touza_products/crufmm4hv2qqhlgfma67.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787089799/touza_products/crufmm4hv2qqhlgfma67.jpg",
         "name": "Black",
         "nameAr": "أسود",
         "sizes": [
@@ -787,7 +787,7 @@ export const PRODUCTS: Product[] = [
         "hex": "#111111"
       },
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787089827/touza_products/zlnf6vatzc1aflqwfkv0.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787089827/touza_products/zlnf6vatzc1aflqwfkv0.jpg",
         "hex": "#ffffff",
         "name": "White",
         "nameAr": "أبيض",
@@ -804,7 +804,7 @@ export const PRODUCTS: Product[] = [
       }
     ],
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787089854/touza_products/qbimomvpk5d2suhcq1xi.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787089854/touza_products/qbimomvpk5d2suhcq1xi.jpg"
     ],
     "showOnHome": true,
     "nameAr": "تشيرت بلمان ",
@@ -818,7 +818,7 @@ export const PRODUCTS: Product[] = [
     "showOnHome": true,
     "colors": [
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152034/touza_products/tkmb9mxgrbpphxmdsnwd.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787152034/touza_products/tkmb9mxgrbpphxmdsnwd.png",
         "name": "Black",
         "sizes": [
           {
@@ -855,11 +855,11 @@ export const PRODUCTS: Product[] = [
         "name": "White",
         "nameAr": "أبيض",
         "hex": "#ffffff",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152110/touza_products/gq2pihrb8irzlrn66agn.jpg"
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787152110/touza_products/gq2pihrb8irzlrn66agn.jpg"
       }
     ],
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152269/touza_products/thehxvnzg4jxhqpmr2u1.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787152269/touza_products/thehxvnzg4jxhqpmr2u1.jpg"
     ],
     "category": "Shirts",
     "nameAr": "قميص أميرى",
@@ -893,7 +893,7 @@ export const PRODUCTS: Product[] = [
     "nameAr": "قميص ديور ",
     "categoryAr": "قميص",
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152514/touza_products/qgndhh1xgskqcclrmjxd.png"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787152514/touza_products/qgndhh1xgskqcclrmjxd.png"
     ],
     "colors": [
       {
@@ -919,7 +919,7 @@ export const PRODUCTS: Product[] = [
             "inStock": true
           }
         ],
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152474/touza_products/ftqdcleqxqy7gtv2loci.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787152474/touza_products/ftqdcleqxqy7gtv2loci.png",
         "nameAr": "رومادى ",
         "name": "Grey",
         "hex": "#ebebeb"
@@ -971,11 +971,11 @@ export const PRODUCTS: Product[] = [
     ],
     "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787174431/touza_products/xpdgdkrw7pvc3o49ebo8.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787174431/touza_products/xpdgdkrw7pvc3o49ebo8.jpg"
     ],
     "colors": [
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787174328/touza_products/judcbqfu8twivvaupj9f.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787174328/touza_products/judcbqfu8twivvaupj9f.jpg",
         "name": "Black",
         "sizes": [
           {
@@ -1000,7 +1000,7 @@ export const PRODUCTS: Product[] = [
       },
       {
         "hex": "#ffffff",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787174375/touza_products/kyruoozimx1255m7etpe.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787174375/touza_products/kyruoozimx1255m7etpe.png",
         "nameAr": "أبيض ",
         "sizes": [
           {
@@ -1035,12 +1035,12 @@ export const PRODUCTS: Product[] = [
     "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
     "showOnHome": false,
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787175242/touza_products/nvae3zopzhgsgsbknbpu.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787175242/touza_products/nvae3zopzhgsgsbknbpu.jpg"
     ],
     "colors": [
       {
         "name": "White",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787175093/touza_products/ydiln46jziiva7fj1lia.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787175093/touza_products/ydiln46jziiva7fj1lia.png",
         "sizes": [
           {
             "inStock": false,
@@ -1067,7 +1067,7 @@ export const PRODUCTS: Product[] = [
         "nameAr": "أبيض"
       },
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787175169/touza_products/ao9wi4sz6al4zvipzbbw.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787175169/touza_products/ao9wi4sz6al4zvipzbbw.png",
         "name": "Blacl",
         "hex": "#111111",
         "nameAr": "أسود"
@@ -1110,13 +1110,13 @@ export const PRODUCTS: Product[] = [
     "category": "T-Shirts",
     "showOnHome": false,
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787176974/touza_products/njxowcriojvvodyaalru.png",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787176993/touza_products/rzbnmyuotibs27hcwpli.png"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787176974/touza_products/njxowcriojvvodyaalru.png",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787176993/touza_products/rzbnmyuotibs27hcwpli.png"
     ],
     "colors": [
       {
         "hex": "#111111",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787176900/touza_products/qvsl6nmwood0cwragvgf.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787176900/touza_products/qvsl6nmwood0cwragvgf.png",
         "sizes": [
           {
             "size": "S",
@@ -1183,7 +1183,7 @@ export const PRODUCTS: Product[] = [
     "categoryAr": "تيشيرت",
     "colors": [
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177279/touza_products/cpvkofvhd9c91t4ntbuz.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787177279/touza_products/cpvkofvhd9c91t4ntbuz.png",
         "hex": "#ffffff",
         "sizes": [
           {
@@ -1200,7 +1200,7 @@ export const PRODUCTS: Product[] = [
       },
       {
         "nameAr": "أسود",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177344/touza_products/zbebrsui0fj6bw1zb51q.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787177344/touza_products/zbebrsui0fj6bw1zb51q.jpg",
         "sizes": [
           {
             "size": "M",
@@ -1220,10 +1220,10 @@ export const PRODUCTS: Product[] = [
       }
     ],
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177559/touza_products/rmczysjoc2rnuznudkdb.png",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177565/touza_products/njqflfklszb5wme6agh0.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177583/touza_products/h8bi3bulgvvrskn5rx8g.png",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177790/touza_products/sxvjedb4hwwycnewv57b.png"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787177559/touza_products/rmczysjoc2rnuznudkdb.png",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787177565/touza_products/njqflfklszb5wme6agh0.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787177583/touza_products/h8bi3bulgvvrskn5rx8g.png",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787177790/touza_products/sxvjedb4hwwycnewv57b.png"
     ],
     "category": "T-Shirts",
     "isFeatured": false,
@@ -1267,15 +1267,15 @@ export const PRODUCTS: Product[] = [
     "nameAr": "قميص كتان ",
     "descriptionAr": "",
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787269563/touza_products/vimfavjeosv4qkccwnku.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787269587/touza_products/qynot1epph9kzgmvgbut.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787269602/touza_products/pzxfzhtv2b0nglnij5a9.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787269632/touza_products/owfgeknwlmcy1upjembr.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787269563/touza_products/vimfavjeosv4qkccwnku.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787269587/touza_products/qynot1epph9kzgmvgbut.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787269602/touza_products/pzxfzhtv2b0nglnij5a9.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787269632/touza_products/owfgeknwlmcy1upjembr.jpg"
     ],
     "colors": [
       {
         "nameAr": "بنى",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787267859/touza_products/pag1qeooecjjybyxtjmr.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787267859/touza_products/pag1qeooecjjybyxtjmr.jpg",
         "hex": "#563d00",
         "sizes": [
           {
@@ -1302,7 +1302,7 @@ export const PRODUCTS: Product[] = [
         "name": "Brown"
       },
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787267907/touza_products/igs7dvazeolk26q6y0e2.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787267907/touza_products/igs7dvazeolk26q6y0e2.jpg",
         "hex": "#fefb41",
         "name": "Yellow",
         "nameAr": "أصفر",
@@ -1355,10 +1355,10 @@ export const PRODUCTS: Product[] = [
         "name": "Green",
         "nameAr": "اخضر",
         "hex": "#38571a",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787268178/touza_products/wzyhfqkx49e1dqsqos3y.jpg"
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787268178/touza_products/wzyhfqkx49e1dqsqos3y.jpg"
       },
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787268276/touza_products/t6ksudgknyehngfwsuaz.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787268276/touza_products/t6ksudgknyehngfwsuaz.jpg",
         "sizes": [
           {
             "size": "S",
@@ -1420,15 +1420,15 @@ export const PRODUCTS: Product[] = [
     "nameAr": "ترنج غوتشى ",
     "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787359286/touza_products/w3hnbszed2xyaufumxoh.png",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787359207/touza_products/dvpnuorkbwpmrw09qwnc.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787359307/touza_products/twzaxd0cwriqtzrz5x8m.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787359325/touza_products/o6va0t0dxldvtzatb6li.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787359286/touza_products/w3hnbszed2xyaufumxoh.png",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787359207/touza_products/dvpnuorkbwpmrw09qwnc.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787359307/touza_products/twzaxd0cwriqtzrz5x8m.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787359325/touza_products/o6va0t0dxldvtzatb6li.jpg"
     ],
     "colors": [
       {
         "name": "Green",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787359066/touza_products/koyejasgo8hmadojqiee.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787359066/touza_products/koyejasgo8hmadojqiee.png",
         "nameAr": "أخضر",
         "sizes": [
           {
@@ -1456,7 +1456,7 @@ export const PRODUCTS: Product[] = [
       },
       {
         "hex": "#ffffff",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787359145/touza_products/zbj3rej8u0dahfrcpjwm.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787359145/touza_products/zbj3rej8u0dahfrcpjwm.png",
         "sizes": [
           {
             "size": "S",
@@ -1490,11 +1490,11 @@ export const PRODUCTS: Product[] = [
     "id": "prod-1787425680594",
     "description": "",
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787425646/touza_products/zyrjbml5dtefvdjy5csn.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787425646/touza_products/zyrjbml5dtefvdjy5csn.jpg"
     ],
     "colors": [
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787425669/touza_products/niy0weuclxajyta5hyqm.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787425669/touza_products/niy0weuclxajyta5hyqm.jpg",
         "sizes": [
           {
             "inStock": false,
@@ -1575,10 +1575,10 @@ export const PRODUCTS: Product[] = [
     "category": "Tracksuit",
     "categoryAr": "ترنج ",
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787531315/touza_products/jzsglgklvdc3axjtrh3b.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787531332/touza_products/yredmdk9fwqifkgc9uff.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787531362/touza_products/xjxj8x8xhcen1nkko7mu.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787531401/touza_products/uxa3hhpbkockygerf3nv.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787531315/touza_products/jzsglgklvdc3axjtrh3b.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787531332/touza_products/yredmdk9fwqifkgc9uff.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787531362/touza_products/xjxj8x8xhcen1nkko7mu.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787531401/touza_products/uxa3hhpbkockygerf3nv.jpg"
     ],
     "colors": [
       {
@@ -1606,11 +1606,11 @@ export const PRODUCTS: Product[] = [
             "size": "XXL"
           }
         ],
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787531227/touza_products/uvmhptanrt5rhkb8prkk.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787531227/touza_products/uvmhptanrt5rhkb8prkk.jpg",
         "nameAr": "أسود"
       },
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787531252/touza_products/mxru99vzgwsamtqbenhe.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787531252/touza_products/mxru99vzgwsamtqbenhe.jpg",
         "hex": "#ffffff",
         "name": "White",
         "nameAr": "أبيض",
@@ -1674,11 +1674,11 @@ export const PRODUCTS: Product[] = [
           }
         ],
         "hex": "#a7c6ff",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592093/touza_products/hvr0hnsrsdo7dcmnbs4s.png"
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787592093/touza_products/hvr0hnsrsdo7dcmnbs4s.png"
       },
       {
         "hex": "#c2c2c2",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592092/touza_products/gwmpceipni0jppyxb18i.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787592092/touza_products/gwmpceipni0jppyxb18i.png",
         "name": "Gray",
         "nameAr": "رومادى",
         "sizes": [
@@ -1706,11 +1706,11 @@ export const PRODUCTS: Product[] = [
       }
     ],
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592308/touza_products/ylbiihdrwbry8w3mjkpn.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592346/touza_products/tffrwugdhrevei9o2lef.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592381/touza_products/hbf7e474hdkb2nrvhk6c.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592440/touza_products/emymamidffad9b28bkej.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592529/touza_products/lkvyj8kuluzcekupin7x.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787592308/touza_products/ylbiihdrwbry8w3mjkpn.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787592346/touza_products/tffrwugdhrevei9o2lef.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787592381/touza_products/hbf7e474hdkb2nrvhk6c.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787592440/touza_products/emymamidffad9b28bkej.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787592529/touza_products/lkvyj8kuluzcekupin7x.jpg"
     ],
     "isNewArrival": true,
     "name": "Dior suit ",
@@ -1744,15 +1744,15 @@ export const PRODUCTS: Product[] = [
     "isFeatured": true,
     "isNewArrival": true,
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787593072/touza_products/qszejckhae92siir0j3v.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787593097/touza_products/y2gn1xbrftcclx5myqvp.jpg"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787593072/touza_products/qszejckhae92siir0j3v.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787593097/touza_products/y2gn1xbrftcclx5myqvp.jpg"
     ],
     "colors": [
       {
         "name": "Brown",
         "hex": "#583300",
         "nameAr": "بنى ",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592837/touza_products/wjmxnuukur7f0fz2vonj.jpg",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787592837/touza_products/wjmxnuukur7f0fz2vonj.jpg",
         "sizes": [
           {
             "size": "S",
@@ -1777,7 +1777,7 @@ export const PRODUCTS: Product[] = [
         ]
       },
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787593048/touza_products/pj2afau2blecnuyljf0o.png",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1787593048/touza_products/pj2afau2blecnuyljf0o.png",
         "name": "Gray ",
         "nameAr": "رومادى",
         "sizes": [

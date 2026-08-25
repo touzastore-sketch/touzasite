@@ -158,8 +158,8 @@ export function getOptimizedImageUrl(
     return url;
   }
 
-  // If URL already contains transformations right after upload/
-  if (url.includes('/upload/f_auto') || url.includes('/upload/q_auto') || url.includes('/video/')) {
+  // If URL already contains full width or video transformations right after upload/
+  if (url.includes('/video/')) {
     return url;
   }
 
@@ -173,6 +173,11 @@ export function getOptimizedImageUrl(
     transformParts.push(`h_${options.height}`);
   }
   const transformString = transformParts.join(',');
+
+  if (url.includes('/upload/f_auto,q_auto/')) {
+    if (!options) return url;
+    return url.replace('/upload/f_auto,q_auto/', `/upload/${transformString}/`);
+  }
 
   if (url.includes('/upload/')) {
     return url.replace('/upload/', `/upload/${transformString}/`);
