@@ -181,32 +181,58 @@ export function getOptimizedImageUrl(
   return url;
 }
 
+export const DEFAULT_HEADER_VIDEO_URL =
+  'https://res.cloudinary.com/qazdrpcx/video/upload/v1787597556/touza_header_videos/vz8cdlvj2jqpd9ueb9uk.mp4';
+
 /**
- * Formats a Cloudinary video URL to deliver a universally supported MP4 video
- * with auto quality optimization (q_auto, f_mp4) and .mp4 extension for HTML5 video compatibility.
+ * Formats a Cloudinary video URL or public ID to deliver a reliable, directly playable HTTPS video URL.
+ * Guarantees compatibility with iOS Safari, Chrome, and desktop browsers.
  */
-export function getOptimizedVideoUrl(url: string): string {
-  if (!url || typeof url !== 'string') return '';
-  if (!url.includes('res.cloudinary.com') && !url.includes('cloudinary.com')) {
-    return url;
+export function getOptimizedVideoUrl(url?: string): string {
+  if (!url || typeof url !== 'string' || !url.trim()) {
+    return DEFAULT_HEADER_VIDEO_URL;
+  }
+  let formattedUrl = url.trim();
+
+  // If passed an old deprecated/deleted Cloudinary video asset ID
+  if (formattedUrl.includes('pb3glshlcqx6jhuapcpq')) {
+    return DEFAULT_HEADER_VIDEO_URL;
   }
 
-  let formattedUrl = url;
-
-  // Insert q_auto,f_mp4 if no transformation is present
-  if (!formattedUrl.includes('/upload/q_auto') && !formattedUrl.includes('/upload/f_mp4') && !formattedUrl.includes('/upload/f_auto')) {
-    formattedUrl = formattedUrl.replace('/upload/', '/upload/q_auto,f_mp4/');
-  } else if (formattedUrl.includes('/upload/f_auto,q_auto,vc_auto/')) {
-    formattedUrl = formattedUrl.replace('/upload/f_auto,q_auto,vc_auto/', '/upload/q_auto,f_mp4/');
+  // If passed an insecure http URL, upgrade to https
+  if (formattedUrl.startsWith('http://')) {
+    formattedUrl = 'https://' + formattedUrl.slice(7);
   }
 
-  // Ensure URL ends with .mp4 extension so HTML5 video tag recognizes MIME type
-  if (!formattedUrl.toLowerCase().endsWith('.mp4')) {
-    if (/\.[a-zA-Z0-9]+$/.test(formattedUrl)) {
-      formattedUrl = formattedUrl.replace(/\.[a-zA-Z0-9]+$/, '.mp4');
-    } else {
-      formattedUrl += '.mp4';
+  // If given a public ID or relative path without full domain
+  if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+    // If it's a local static path (like /desert-video.mp4 or /soli.mp4)
+    if (formattedUrl.startsWith('/') && !formattedUrl.includes('touza_')) {
+      return formattedUrl;
     }
+    // Clean leading slashes
+    const cleanPublicId = formattedUrl.replace(/^\/+/, '');
+    const hasExt = cleanPublicId.match(/\.(mp4|webm|mov|ogg|m4v)$/i);
+    const finalId = hasExt ? cleanPublicId : `${cleanPublicId}.mp4`;
+    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${finalId}`;
+  }
+
+  // Handle Cloudinary domain URLs
+  if (formattedUrl.includes('res.cloudinary.com') || formattedUrl.includes('cloudinary.com')) {
+    // Fix accidental image/upload resource type for video files
+    if (formattedUrl.includes('/image/upload/') && (
+      formattedUrl.match(/\.(mp4|webm|mov|ogg|m4v)(\?.*)?$/i) ||
+      formattedUrl.includes('touza_header_videos') ||
+      formattedUrl.includes('touza_videos')
+    )) {
+      formattedUrl = formattedUrl.replace('/image/upload/', '/video/upload/');
+    }
+
+    // Clean up redundant or conflicting transformations so native H.264 MP4 streams directly
+    formattedUrl = formattedUrl.replace(
+      /\/upload\/(q_auto,f_mp4|f_auto,q_auto,vc_auto|f_mp4|q_auto)\//,
+      '/upload/'
+    );
   }
 
   return formattedUrl;

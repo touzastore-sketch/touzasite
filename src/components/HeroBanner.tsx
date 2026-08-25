@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { StoreSettings } from '../types';
 import { SocialLinks } from './SocialLinks';
-import { getOptimizedVideoUrl } from '../utils/cloudinary';
+import { getOptimizedVideoUrl, DEFAULT_HEADER_VIDEO_URL } from '../utils/cloudinary';
 
 interface HeroBannerProps {
   onShopNow: () => void;
@@ -10,11 +10,17 @@ interface HeroBannerProps {
   onVideoReady?: () => void;
 }
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings, onVideoReady }) => {
   const { language, t } = useLanguage();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [usingFallbackVideo, setUsingFallbackVideo] = useState(false);
+  const playAttemptsRef = useRef(0);
+  const maxAttempts = 3;
+  const isMountedRef = useRef(true);
 
   const heroTitle = (language === 'ar'
     ? storeSettings?.heroTitleAr
@@ -33,26 +39,9 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
 
   const rawMedia = storeSettings?.heroImageUrl?.trim();
 
-  // Reset video error state whenever rawMedia changes so new uploaded videos are attempted
-  useEffect(() => {
-    setVideoError(false);
-  }, [rawMedia]);
-
-  // Default to hero video if rawMedia is missing
-  let mediaUrl = '/hero-video.mp4';
-  if (rawMedia) {
-    mediaUrl = getOptimizedVideoUrl(rawMedia);
-  }
-
-  let videoSrc = mediaUrl.startsWith('http')
-    ? mediaUrl
-    : mediaUrl.startsWith('/')
-    ? mediaUrl
-    : '/' + mediaUrl;
-
-  if (videoError && videoSrc !== '/hero-video.mp4') {
-    videoSrc = '/hero-video.mp4';
-  }
+  // Resolve video delivery URL
+  const primaryVideoUrl = rawMedia ? getOptimizedVideoUrl(rawMedia) : DEFAULT_HEADER_VIDEO_URL;
+  const videoSrc = usingFallbackVideo ? DEFAULT_HEADER_VIDEO_URL : primaryVideoUrl;
 
   const mediaLower = videoSrc.toLowerCase();
   const isVideo =
@@ -67,11 +56,131 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
     mediaLower.includes('soli') ||
     !mediaLower.match(/\.(jpg|jpeg|png|webp|gif|svg)$/);
 
-  const handleVideoEnded = () => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {});
+  // Reset state when rawMedia changes
+  useEffect(() => {
+    setVideoError(false);
+    setUsingFallbackVideo(false);
+    playAttemptsRef.current = 0;
+  }, [rawMedia]);
+
+  // Robust programmatic play with promise & retry handling
+  const attemptPlay = useCallback((reason = 'direct') => {
+    const video = videoRef.current;
+    if (!video || !isMountedRef.current) return;
+
+    // Strict Safari / WebKit setup before requesting play
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.volume = 0;
+
+    if (isDev) {
+      console.log(`[Hero Video] attempting autoplay (${reason}, attempt ${playAttemptsRef.current + 1})`);
     }
+
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          if (!isMountedRef.current) return;
+          if (isDev) {
+            console.log('[Hero Video] autoplay success');
+          }
+          setIsVideoLoaded(true);
+          if (onVideoReady) {
+            onVideoReady();
+          }
+        })
+        .catch((err) => {
+          if (!isMountedRef.current) return;
+          if (isDev) {
+            console.warn('[Hero Video] autoplay failed:', err?.name || 'Error', err?.message || err);
+          }
+
+          // Retry logic (safely bounded)
+          if (playAttemptsRef.current < maxAttempts) {
+            playAttemptsRef.current += 1;
+            const delays = [250, 750, 1500];
+            const delay = delays[playAttemptsRef.current - 1] || 1000;
+            setTimeout(() => {
+              if (isMountedRef.current && videoRef.current && videoRef.current.paused) {
+                attemptPlay(`retry-${playAttemptsRef.current}`);
+              }
+            }, delay);
+          }
+        });
+    }
+  }, [onVideoReady]);
+
+  // Lifecycle listeners and initial play triggers
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    if (isVideo && videoRef.current) {
+      const video = videoRef.current;
+
+      if (isDev) {
+        console.log('[Hero Video] source:', videoSrc);
+        console.log('[Hero Video] loading:', videoSrc);
+      }
+
+      // Configure DOM attributes directly for strict mobile Safari compliance
+      video.muted = true;
+      video.defaultMuted = true;
+      video.playsInline = true;
+      video.volume = 0;
+      video.setAttribute('muted', '');
+      video.setAttribute('playsinline', '');
+      video.setAttribute('webkit-playsinline', '');
+      video.setAttribute('x5-playsinline', '');
+
+      // Trigger initial play
+      attemptPlay('mounted');
+
+      // Handle pageshow event (Safari bfcache restoration)
+      const handlePageShow = (e: PageTransitionEvent) => {
+        if (e.persisted && videoRef.current) {
+          if (isDev) console.log('[Hero Video] pageshow persisted event, resuming');
+          attemptPlay('pageshow');
+        }
+      };
+
+      // Handle document visibility changes (tab switching / app foreground)
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible' && videoRef.current && videoRef.current.paused) {
+          if (isDev) console.log('[Hero Video] tab became visible, resuming autoplay');
+          attemptPlay('visibilitychange');
+        }
+      };
+
+      window.addEventListener('pageshow', handlePageShow);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        isMountedRef.current = false;
+        window.removeEventListener('pageshow', handlePageShow);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    } else if (!isVideo) {
+      setIsVideoLoaded(true);
+      if (onVideoReady) onVideoReady();
+    }
+  }, [isVideo, videoSrc, attemptPlay, onVideoReady]);
+
+  // Handlers for video media events
+  const handleLoadedMetadata = () => {
+    if (isDev) console.log('[Hero Video] loadedmetadata');
+    attemptPlay('loadedmetadata');
+  };
+
+  const handleCanPlay = () => {
+    if (isDev) console.log('[Hero Video] canplay');
+    attemptPlay('canplay');
+  };
+
+  const handleCanPlayThrough = () => {
+    if (isDev) console.log('[Hero Video] canplaythrough');
+    attemptPlay('canplaythrough');
   };
 
   const handleVideoPlaying = () => {
@@ -82,7 +191,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
   };
 
   const handleTimeUpdate = () => {
-    if (videoRef.current && videoRef.current.currentTime > 0.05) {
+    if (videoRef.current && videoRef.current.currentTime > 0.05 && !isVideoLoaded) {
       setIsVideoLoaded(true);
       if (onVideoReady) {
         onVideoReady();
@@ -90,94 +199,52 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
     }
   };
 
-  const handleReady = () => {
+  const handleVideoEnded = () => {
     if (videoRef.current) {
-      const v = videoRef.current;
-      // If video has already buffered and ready to play without stalling
-      if (v.readyState >= 3 && v.currentTime > 0) {
-        setIsVideoLoaded(true);
-        if (onVideoReady) {
-          onVideoReady();
-        }
-      }
-    } else {
-      setIsVideoLoaded(true);
-      if (onVideoReady) {
-        onVideoReady();
-      }
+      videoRef.current.currentTime = 0;
+      attemptPlay('loop-restart');
     }
   };
 
-  useEffect(() => {
-    let isMounted = true;
-    let fallbackTimer: NodeJS.Timeout;
+  const handleVideoError = () => {
+    const video = videoRef.current;
+    if (isDev) {
+      console.error('[Hero Video] video error occurred:', {
+        src: video?.src,
+        currentSrc: video?.currentSrc,
+        readyState: video?.readyState,
+        networkState: video?.networkState,
+        errorCode: video?.error?.code,
+        errorMessage: video?.error?.message,
+      });
+    }
 
-    if (isVideo && videoRef.current) {
-      const videoEl = videoRef.current;
-      videoEl.defaultMuted = true;
-      videoEl.muted = true;
-      videoEl.playsInline = true;
-      videoEl.setAttribute('playsinline', 'true');
-      videoEl.setAttribute('webkit-playsinline', 'true');
-      videoEl.setAttribute('x5-playsinline', 'true');
-
-      const playVideo = () => {
-        if (!isMounted || !videoRef.current) return;
-        videoRef.current.defaultMuted = true;
-        videoRef.current.muted = true;
-        videoRef.current.playsInline = true;
-        
-        const promise = videoRef.current.play();
-        if (promise !== undefined) {
-          promise.then(() => {
-            if (isMounted) {
-              setIsVideoLoaded(true);
-              if (onVideoReady) onVideoReady();
-            }
-          }).catch((err) => {
-            console.log('Autoplay status:', err);
-          });
+    // If primary video failed and we haven't tried default fallback yet, switch to default fallback
+    if (!usingFallbackVideo && videoSrc !== DEFAULT_HEADER_VIDEO_URL) {
+      if (isDev) {
+        console.warn('[Hero Video] primary video failed, switching to default fallback video');
+      }
+      setUsingFallbackVideo(true);
+      setVideoError(false);
+      playAttemptsRef.current = 0;
+      setTimeout(() => {
+        if (videoRef.current) {
+          try {
+            videoRef.current.load();
+            attemptPlay('fallback-switch');
+          } catch {}
         }
-      };
-
-      // Trigger video load & play
-      try {
-        videoEl.load();
-      } catch {}
-      playVideo();
-
-      // Graceful fallback for low power mode or restricted background autoplay
-      fallbackTimer = setTimeout(() => {
-        if (isMounted) {
-          setIsVideoLoaded(true);
-          if (onVideoReady) onVideoReady();
-        }
-      }, 3500);
-
-      const handleUserInteraction = () => {
-        playVideo();
-      };
-
-      window.addEventListener('touchstart', handleUserInteraction, { passive: true });
-      window.addEventListener('click', handleUserInteraction, { passive: true });
-      window.addEventListener('scroll', handleUserInteraction, { passive: true });
-
-      return () => {
-        isMounted = false;
-        clearTimeout(fallbackTimer);
-        window.removeEventListener('touchstart', handleUserInteraction);
-        window.removeEventListener('click', handleUserInteraction);
-        window.removeEventListener('scroll', handleUserInteraction);
-      };
-    } else if (!isVideo) {
+      }, 50);
+    } else {
+      setVideoError(true);
       setIsVideoLoaded(true);
       if (onVideoReady) onVideoReady();
     }
-  }, [mediaUrl, isVideo]);
+  };
 
   return (
     <section className="relative h-[100dvh] min-h-[550px] sm:min-h-[600px] w-full flex items-end justify-center pb-10 sm:pb-16 md:pb-20 pt-24 sm:pt-28 px-4 overflow-hidden bg-[#0c0c0e]">
-      {/* Primary Visual Poster Backdrop */}
+      {/* Primary Visual Poster Backdrop (Guarantees elegant visual instantly while media loads) */}
       <div
         className="absolute inset-0 z-0 bg-cover bg-center pointer-events-none"
         style={{
@@ -185,35 +252,43 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
         }}
       />
 
-      {/* Hero Media Background Video */}
-      {isVideo && (
+      {/* Hero Media Background Video (Layer 1) */}
+      {isVideo && !videoError && (
         <video
-          key={videoSrc}
-          ref={videoRef}
+          ref={(el) => {
+            if (el) {
+              el.defaultMuted = true;
+              el.muted = true;
+              el.playsInline = true;
+              el.volume = 0;
+              el.setAttribute('muted', '');
+              el.setAttribute('playsinline', '');
+              el.setAttribute('webkit-playsinline', '');
+              el.setAttribute('x5-playsinline', '');
+            }
+            videoRef.current = el;
+          }}
           src={videoSrc}
           poster="/images/philosophy_model.jpg"
           autoPlay
           muted
           loop
           playsInline
-          preload="metadata"
-          onEnded={handleVideoEnded}
-          onLoadedData={handleReady}
-          onCanPlay={handleReady}
-          onPlay={handleReady}
+          preload="auto"
+          disablePictureInPicture
+          onLoadedMetadata={handleLoadedMetadata}
+          onLoadedData={handleCanPlay}
+          onCanPlay={handleCanPlay}
+          onCanPlayThrough={handleCanPlayThrough}
           onPlaying={handleVideoPlaying}
           onTimeUpdate={handleTimeUpdate}
-          onError={(e) => {
-            console.error('Hero video load issue for URL:', videoSrc, e);
-            if (!videoError && videoSrc !== '/hero-video.mp4') {
-              setVideoError(true);
-            }
-            handleReady();
-          }}
-          className="hero-video absolute inset-0 w-full h-full object-cover object-center z-1 bg-transparent opacity-100 transition-opacity duration-500"
+          onEnded={handleVideoEnded}
+          onError={handleVideoError}
+          className={`hero-video absolute inset-0 w-full h-full object-cover object-center z-[1] pointer-events-none bg-transparent transition-opacity duration-700 ease-out ${
+            isVideoLoaded ? 'opacity-100' : 'opacity-90'
+          }`}
         >
           <source src={videoSrc} type="video/mp4" />
-          {rawMedia && rawMedia !== videoSrc && <source src={rawMedia} />}
         </video>
       )}
 
@@ -225,14 +300,14 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
           onError={(e) => {
             e.currentTarget.src = '/images/philosophy_model.jpg';
           }}
-          className="absolute inset-0 w-full h-full object-cover object-center z-1"
+          className="absolute inset-0 w-full h-full object-cover object-center z-[1] pointer-events-none"
         />
       )}
 
-      {/* Gradient Overlay covering top navbar down to bottom text for readability */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/80 z-2 pointer-events-none" />
+      {/* Gradient Overlay covering top navbar down to bottom text for readability (Layer 2) */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/80 z-[2] pointer-events-none" />
 
-      {/* Hero Content positioned elegantly - renders immediately upon page load */}
+      {/* Hero Content positioned elegantly - renders immediately upon page load (Layer 10) */}
       <div className="relative z-10 text-center px-4 flex flex-col items-center max-w-2xl mx-auto pb-2 sm:pb-4">
         <span className="font-label-caps text-white/95 text-[11px] md:text-[13px] tracking-widest mb-3 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 shadow-xs">
           {heroBadge}
@@ -258,4 +333,5 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
 };
 
 export const HeroBanner = React.memo(HeroBannerComponent);
+
 

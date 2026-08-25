@@ -15,6 +15,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { Category, Product, PromoCode, StoreSettings } from '../types';
+import { safeJsonStringify, isBannedProductId } from '../firebase';
 
 interface AiStudioSyncTabProps {
   products: Product[];
@@ -33,6 +34,8 @@ export const AiStudioSyncTab: React.FC<AiStudioSyncTabProps> = ({
 }) => {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [activeCodeView, setActiveCodeView] = useState<'products' | 'categories' | 'prompt' | 'fullJson'>('products');
+
+  const validProducts = (products || []).filter((p) => !isBannedProductId(p.id));
 
   const copyToClipboard = async (text: string, sectionKey: string) => {
     try {
@@ -69,7 +72,7 @@ export const AiStudioSyncTab: React.FC<AiStudioSyncTabProps> = ({
 
   // Generate src/data/products.ts content
   const generateProductsTsContent = () => {
-    const productsJson = JSON.stringify(products, null, 2);
+    const productsJson = safeJsonStringify(validProducts, 2);
     return `import { Product } from '../types';
 
 export const PRODUCTS: Product[] = ${productsJson};
@@ -106,7 +109,7 @@ export const getLocalizedProductDetails = (product: Product, language: 'ar' | 'e
 
   // Generate src/data/defaultCategories.ts content
   const generateCategoriesTsContent = () => {
-    const categoriesJson = JSON.stringify(categories, null, 2);
+    const categoriesJson = safeJsonStringify(categories, 2);
     return `import { Category } from '../types';
 
 export const DEFAULT_CATEGORIES: Category[] = ${categoriesJson};
@@ -121,12 +124,12 @@ export const DEFAULT_CATEGORIES: Category[] = ${categoriesJson};
 ${generateProductsTsContent()}
 \`\`\`
 
-يرجى أيضاً التأكد من حفظ جميع المنتجات (${products.length} منتج) ومقاساتها وصورها وتصنيفاتها.`;
+يرجى أيضاً التأكد من حفظ جميع المنتجات (${validProducts.length} منتج) ومقاساتها وصورها وتصنيفاتها.`;
   };
 
   // Generate Full Database Export JSON
   const generateFullJsonContent = () => {
-    return JSON.stringify(
+    return safeJsonStringify(
       {
         exportedAt: new Date().toISOString(),
         productCount: products.length,
@@ -136,7 +139,6 @@ ${generateProductsTsContent()}
         storeSettings,
         promoCodes,
       },
-      null,
       2
     );
   };

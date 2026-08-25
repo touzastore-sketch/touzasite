@@ -85,47 +85,152 @@ const fetchWithTimeout = <T>(promise: Promise<T>, timeoutMs = 15000): Promise<T>
   });
 };
 
-// Safe JSON stringify helper to prevent cyclic structure errors with Firestore Timestamps and FieldValues
-export function safeJsonStringify(obj: any): string {
-  const seen = new WeakSet();
-  return JSON.stringify(obj, (key, value) => {
-    if (typeof value === 'object' && value !== null) {
-      if (typeof value.toDate === 'function') {
-        try {
-          return value.toDate().toISOString();
-        } catch {
-          return new Date().toISOString();
-        }
+// Safe JSON stringify helper to prevent cyclic structure errors with Firestore Timestamps, FieldValues, and circular references
+export function safeJsonStringify(obj: any, space?: number | string): string {
+  try {
+    const seen = new WeakSet();
+
+    const clean = (val: any): any => {
+      if (val === null || val === undefined) {
+        return val;
       }
-      if (typeof value.seconds === 'number' && typeof value.nanoseconds === 'number') {
-        return new Date(value.seconds * 1000).toISOString();
+      const valType = typeof val;
+      if (valType === 'string' || valType === 'number' || valType === 'boolean') {
+        return val;
       }
-      if (value.constructor && (value.constructor.name === 'FieldValue' || (value as any)._methodName)) {
-        return new Date().toISOString();
+      if (valType === 'bigint') {
+        return val.toString();
       }
-      if (seen.has(value)) {
+      if (valType === 'function' || valType === 'symbol') {
         return undefined;
       }
-      seen.add(value);
+
+      if (valType === 'object') {
+        // Handle Firestore Timestamp
+        if (typeof val.toDate === 'function') {
+          try {
+            return val.toDate().toISOString();
+          } catch {
+            return new Date().toISOString();
+          }
+        }
+        // Handle timestamp-like objects { seconds, nanoseconds }
+        if (typeof val.seconds === 'number' && typeof val.nanoseconds === 'number') {
+          return new Date(val.seconds * 1000).toISOString();
+        }
+        // Handle Date objects
+        if (val instanceof Date) {
+          return isNaN(val.getTime()) ? null : val.toISOString();
+        }
+        // Handle Firestore DocumentReference / Collections
+        if (
+          val.constructor &&
+          (val.constructor.name === 'DocumentReference' ||
+            val.constructor.name === '_DocumentReference' ||
+            val.constructor.name === 'CollectionReference' ||
+            val.constructor.name === '_CollectionReference' ||
+            (val._key && val.firestore))
+        ) {
+          return val.path || val.id || '[DocumentReference]';
+        }
+        // Handle Firestore FieldValue
+        if (val.constructor && (val.constructor.name === 'FieldValue' || (val as any)._methodName)) {
+          return new Date().toISOString();
+        }
+        // Skip DOM nodes, window, document, and React fiber nodes
+        if (
+          (typeof window !== 'undefined' && (val instanceof HTMLElement || val === window || val === document)) ||
+          val.$$typeof
+        ) {
+          return undefined;
+        }
+
+        // Cyclic structure detection
+        if (seen.has(val)) {
+          return undefined;
+        }
+        seen.add(val);
+
+        if (Array.isArray(val)) {
+          const resultArr: any[] = [];
+          for (let i = 0; i < val.length; i++) {
+            try {
+              const item = clean(val[i]);
+              resultArr.push(item !== undefined ? item : null);
+            } catch {
+              resultArr.push(null);
+            }
+          }
+          return resultArr;
+        }
+
+        const resultObj: Record<string, any> = {};
+        const keys = Object.keys(val);
+        for (let i = 0; i < keys.length; i++) {
+          const key = keys[i];
+          if (
+            key.startsWith('_') &&
+            (key.includes('firestore') || key.includes('client') || key.includes('internal') || key.includes('auth'))
+          ) {
+            continue;
+          }
+          try {
+            const propVal = clean(val[key]);
+            if (propVal !== undefined) {
+              resultObj[key] = propVal;
+            }
+          } catch {
+            // Ignore property if getter throws
+          }
+        }
+        return resultObj;
+      }
+
+      return undefined;
+    };
+
+    const sanitized = clean(obj);
+    return JSON.stringify(sanitized, null, space);
+  } catch (error) {
+    console.warn('safeJsonStringify fallback error:', error);
+    try {
+      if (Array.isArray(obj)) return '[]';
+      if (typeof obj === 'object' && obj !== null) return '{}';
+      return JSON.stringify(String(obj));
+    } catch {
+      return '""';
     }
-    return value;
-  });
+  }
 }
 
-// Recursively strips undefined fields to prevent Firestore invalid data errors
-export function sanitizeForFirestore<T>(obj: T): T {
+// Recursively strips undefined fields and circular references to prevent Firestore invalid data errors
+export function sanitizeForFirestore<T>(obj: T, seen = new WeakSet()): T {
   if (obj === null || obj === undefined) {
     return obj;
   }
   if (Array.isArray(obj)) {
-    return obj.map((item) => sanitizeForFirestore(item)) as unknown as T;
+    return obj.map((item) => sanitizeForFirestore(item, seen)) as unknown as T;
   }
   if (typeof obj === 'object' && !(obj instanceof Date) && typeof (obj as any).toDate !== 'function') {
+    if (seen.has(obj as object)) {
+      return undefined as unknown as T;
+    }
+    seen.add(obj as object);
+
     const cleaned: any = {};
-    for (const key of Object.keys(obj)) {
-      const val = (obj as any)[key];
-      if (val !== undefined) {
-        cleaned[key] = sanitizeForFirestore(val);
+    const keys = Object.keys(obj);
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      try {
+        const val = (obj as any)[key];
+        if (val !== undefined) {
+          const sanitizedVal = sanitizeForFirestore(val, seen);
+          if (sanitizedVal !== undefined) {
+            cleaned[key] = sanitizedVal;
+          }
+        }
+      } catch {
+        // Ignore errors
       }
     }
     return cleaned as T;
@@ -644,6 +749,26 @@ export const deleteOrderAdmin = async (userId: string, orderId: string) => {
       const userOrderDocRef = doc(db, 'users', userId, 'orders', orderId);
       await deleteDoc(userOrderDocRef).catch(() => {});
     }
+
+    try {
+      const cachedOrders: SavedOrder[] = JSON.parse(localStorage.getItem('maison_orders_cache') || '[]');
+      const filtered = cachedOrders.filter((o) => o.id !== orderId && o.orderNumber !== orderId);
+      localStorage.setItem('maison_orders_cache', safeJsonStringify(filtered));
+
+      const deletedOrders: string[] = JSON.parse(localStorage.getItem('maison_deleted_orders') || '[]');
+      if (!deletedOrders.includes(orderId)) {
+        deletedOrders.push(orderId);
+        localStorage.setItem('maison_deleted_orders', safeJsonStringify(deletedOrders));
+      }
+    } catch {}
+
+    try {
+      await setDoc(doc(db, 'deleted_orders', orderId), {
+        orderId,
+        deletedAt: new Date().toISOString(),
+      }, { merge: true });
+    } catch {}
+
     return true;
   } catch (error) {
     console.error('Failed to delete order:', error);
@@ -674,6 +799,17 @@ export const saveProductReview = async (reviewData: FirestoreReviewData): Promis
     throw new Error('User must be signed in with Google to post a review');
   }
 
+  const reviewsRef = collection(db, 'reviews');
+  const snapshot = await getDocs(reviewsRef);
+  
+  // If database was empty, seed all default reviews first so none are lost
+  if (snapshot.empty) {
+    for (const r of DEFAULT_REVIEWS) {
+      const docRef = doc(db, 'reviews', r.id);
+      await setDoc(docRef, r, { merge: true });
+    }
+  }
+
   const reviewRef = doc(collection(db, 'reviews'));
   const fullReview: SavedReview = {
     id: reviewRef.id,
@@ -696,8 +832,13 @@ export const getProductReviews = async (productId: string): Promise<SavedReview[
       reviews.push(docSnap.data() as SavedReview);
     });
 
+    // Merge missing default reviews so default reviews are never lost
+    const existingIds = new Set(reviews.map((r) => r.id));
+    const missingDefaults = DEFAULT_REVIEWS.filter((dr) => !existingIds.has(dr.id));
+    const combined = [...reviews, ...missingDefaults];
+
     // Strictly filter for matching product ID
-    const matched = reviews.filter((r) => r.productId === productId);
+    const matched = combined.filter((r) => r.productId === productId);
 
     // Sort descending by createdAt
     matched.sort((a, b) => {
@@ -709,34 +850,42 @@ export const getProductReviews = async (productId: string): Promise<SavedReview[
     return matched;
   } catch (error) {
     console.warn('Using offline fallback for product reviews:', error);
-    try {
-      const cached = JSON.parse(localStorage.getItem('maison_reviews_cache') || '[]');
-      if (Array.isArray(cached)) {
-        return cached.filter((r: SavedReview) => r.productId === productId);
-      }
-    } catch {}
-    return [];
+    return DEFAULT_REVIEWS.filter((r) => r.productId === productId);
   }
 };
 
 // Fetch all reviews for homepage or admin dashboard
 export const getAllReviews = async (): Promise<SavedReview[]> => {
+  const deletedRevsLocal: string[] = JSON.parse(
+    localStorage.getItem('maison_deleted_reviews') || '[]'
+  );
+  const deletedSet = new Set(deletedRevsLocal.map((id) => id.trim()));
+
+  try {
+    const deletedSnap = await fetchWithTimeout(getDocs(collection(db, 'deleted_reviews')));
+    deletedSnap.forEach((d) => {
+      deletedSet.add(d.id.trim());
+    });
+  } catch {}
+
   try {
     const reviewsRef = collection(db, 'reviews');
     const snapshot = await fetchWithTimeout(getDocs(reviewsRef));
     const reviews: SavedReview[] = [];
 
     snapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      let createdAt = data?.createdAt;
-      if (createdAt && typeof createdAt.toDate === 'function') {
-        try { createdAt = createdAt.toDate().toISOString(); } catch { createdAt = new Date().toISOString(); }
-      } else if (createdAt && typeof createdAt.seconds === 'number') {
-        createdAt = new Date(createdAt.seconds * 1000).toISOString();
-      } else if (!createdAt || typeof createdAt === 'object') {
-        createdAt = new Date().toISOString();
+      if (!deletedSet.has(docSnap.id.trim())) {
+        const data = docSnap.data();
+        let createdAt = data?.createdAt;
+        if (createdAt && typeof createdAt.toDate === 'function') {
+          try { createdAt = createdAt.toDate().toISOString(); } catch { createdAt = new Date().toISOString(); }
+        } else if (createdAt && typeof createdAt.seconds === 'number') {
+          createdAt = new Date(createdAt.seconds * 1000).toISOString();
+        } else if (!createdAt || typeof createdAt === 'object') {
+          createdAt = new Date().toISOString();
+        }
+        reviews.push({ ...data, createdAt, id: docSnap.id } as SavedReview);
       }
-      reviews.push({ ...data, createdAt, id: docSnap.id } as SavedReview);
     });
 
     reviews.sort((a, b) => {
@@ -755,11 +904,11 @@ export const getAllReviews = async (): Promise<SavedReview[]> => {
     try {
       const cached = JSON.parse(localStorage.getItem('maison_reviews_cache') || '[]');
       if (Array.isArray(cached)) {
-        return cached;
+        return cached.filter((r: SavedReview) => !deletedSet.has(r.id));
       }
-      return [];
+      return DEFAULT_REVIEWS.filter((r) => !deletedSet.has(r.id));
     } catch {
-      return [];
+      return DEFAULT_REVIEWS.filter((r) => !deletedSet.has(r.id));
     }
   }
 };
@@ -767,16 +916,29 @@ export const getAllReviews = async (): Promise<SavedReview[]> => {
 // Delete Review (Admin)
 export const deleteReviewAdmin = async (
   reviewId: string,
-  _allCurrentReviews?: SavedReview[]
+  allCurrentReviews?: SavedReview[]
 ): Promise<boolean> => {
   try {
     const reviewDocRef = doc(db, 'reviews', reviewId);
-    await deleteDoc(reviewDocRef);
+    await deleteDoc(reviewDocRef).catch(() => {});
 
     try {
       const cached = JSON.parse(localStorage.getItem('maison_reviews_cache') || '[]');
       const updated = cached.filter((r: SavedReview) => r.id !== reviewId);
       localStorage.setItem('maison_reviews_cache', safeJsonStringify(updated));
+
+      const deletedRevs: string[] = JSON.parse(localStorage.getItem('maison_deleted_reviews') || '[]');
+      if (!deletedRevs.includes(reviewId)) {
+        deletedRevs.push(reviewId);
+        localStorage.setItem('maison_deleted_reviews', safeJsonStringify(deletedRevs));
+      }
+    } catch {}
+
+    try {
+      await setDoc(doc(db, 'deleted_reviews', reviewId), {
+        reviewId,
+        deletedAt: new Date().toISOString(),
+      }, { merge: true });
     } catch {}
 
     return true;
@@ -790,7 +952,7 @@ export const deleteReviewAdmin = async (
 export const updateReviewAdmin = async (
   reviewId: string,
   updatedData: Partial<FirestoreReviewData>,
-  _allCurrentReviews?: SavedReview[]
+  allCurrentReviews?: SavedReview[]
 ): Promise<boolean> => {
   try {
     const reviewDocRef = doc(db, 'reviews', reviewId);
@@ -798,7 +960,7 @@ export const updateReviewAdmin = async (
 
     try {
       const cached = JSON.parse(localStorage.getItem('maison_reviews_cache') || '[]');
-      const updated = cached.map((r: SavedReview) => r.id === reviewId ? { ...r, ...updatedData } : r);
+      const updated = cached.map((r: SavedReview) => (r.id === reviewId ? { ...r, ...updatedData } : r));
       localStorage.setItem('maison_reviews_cache', safeJsonStringify(updated));
     } catch {}
 
@@ -811,7 +973,7 @@ export const updateReviewAdmin = async (
 
 export const addReviewAdmin = async (
   reviewData: Partial<FirestoreReviewData>,
-  _allCurrentReviews?: SavedReview[]
+  allCurrentReviews?: SavedReview[]
 ): Promise<SavedReview> => {
   const reviewRef = doc(collection(db, 'reviews'));
   const fullReview: SavedReview = {
@@ -843,12 +1005,18 @@ export const resetDefaultReviewsAdmin = async (): Promise<SavedReview[]> => {
   try {
     const reviewsRef = collection(db, 'reviews');
     const snapshot = await getDocs(reviewsRef);
-    // Delete existing docs first
     const deletePromises: Promise<void>[] = [];
     snapshot.forEach((docSnap) => {
       deletePromises.push(deleteDoc(doc(db, 'reviews', docSnap.id)));
     });
     await Promise.all(deletePromises);
+
+    // Clear deleted reviews tracking
+    try {
+      localStorage.removeItem('maison_deleted_reviews');
+      const delSnap = await getDocs(collection(db, 'deleted_reviews'));
+      delSnap.forEach((d) => deleteDoc(doc(db, 'deleted_reviews', d.id)).catch(() => {}));
+    } catch {}
 
     // Seed default reviews
     for (const r of DEFAULT_REVIEWS) {
@@ -873,11 +1041,16 @@ export const resetDefaultReviewsAdmin = async (): Promise<SavedReview[]> => {
 export const subscribeToReviews = (
   callback: (reviews: SavedReview[]) => void
 ): (() => void) => {
+  const deletedRevsLocal: string[] = JSON.parse(
+    localStorage.getItem('maison_deleted_reviews') || '[]'
+  );
+  const deletedSet = new Set(deletedRevsLocal.map((id) => id.trim()));
+
   // Immediately serve cached reviews for instant rendering
   try {
     const cached = JSON.parse(localStorage.getItem('maison_reviews_cache') || '[]');
-    if (Array.isArray(cached) && cached.length > 0) {
-      callback(cached);
+    if (Array.isArray(cached)) {
+      callback(cached.filter((r: SavedReview) => !deletedSet.has(r.id)));
     }
   } catch {}
 
@@ -886,9 +1059,9 @@ export const subscribeToReviews = (
     const unsubscribe = onSnapshot(
       reviewsRef,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const reviews: SavedReview[] = [];
-          snapshot.forEach((docSnap) => {
+        const reviews: SavedReview[] = [];
+        snapshot.forEach((docSnap) => {
+          if (!deletedSet.has(docSnap.id.trim())) {
             const data = docSnap.data();
             let createdAt = data?.createdAt;
             if (createdAt && typeof createdAt.toDate === 'function') {
@@ -899,25 +1072,20 @@ export const subscribeToReviews = (
               createdAt = new Date().toISOString();
             }
             reviews.push({ ...data, createdAt, id: docSnap.id } as SavedReview);
-          });
+          }
+        });
 
-          reviews.sort((a, b) => {
-            const timeA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : 0;
-            const timeB = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : 0;
-            return timeB - timeA;
-          });
+        reviews.sort((a, b) => {
+          const timeA = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : 0;
+          const timeB = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : 0;
+          return timeB - timeA;
+        });
 
-          try {
-            localStorage.setItem('maison_reviews_cache', safeJsonStringify(reviews));
-          } catch {}
+        try {
+          localStorage.setItem('maison_reviews_cache', safeJsonStringify(reviews));
+        } catch {}
 
-          callback(reviews);
-        } else {
-          try {
-            localStorage.setItem('maison_reviews_cache', safeJsonStringify([]));
-          } catch {}
-          callback([]);
-        }
+        callback(reviews);
       },
       (err) => {
         console.warn('Realtime reviews listener notice:', err);
@@ -948,66 +1116,91 @@ export const subscribeToProductReviews = (
 // ==========================================
 
 export const getAllCategories = async (): Promise<Category[]> => {
+  const deletedCatsLocal: string[] = JSON.parse(
+    localStorage.getItem('maison_deleted_categories') || '[]'
+  );
+  const deletedSet = new Set(deletedCatsLocal.map((id) => id.trim()));
+
+  try {
+    const deletedSnap = await fetchWithTimeout(getDocs(collection(db, 'deleted_categories')));
+    deletedSnap.forEach((d) => {
+      deletedSet.add(d.id.trim());
+    });
+  } catch {}
+
   try {
     const catsRef = collection(db, 'categories');
     const snapshot = await fetchWithTimeout(getDocs(catsRef), 8000);
     const categories: Category[] = [];
 
     snapshot.forEach((docSnap) => {
-      categories.push({ id: docSnap.id, ...docSnap.data() } as Category);
+      if (!deletedSet.has(docSnap.id.trim())) {
+        categories.push({ id: docSnap.id, ...docSnap.data() } as Category);
+      }
     });
 
-    try {
-      localStorage.setItem('maison_categories', safeJsonStringify(categories));
-    } catch {}
-    return categories;
+    if (categories.length > 0) {
+      try {
+        localStorage.setItem('maison_categories', safeJsonStringify(categories));
+      } catch {}
+      return categories;
+    }
+
+    const filteredDefaults = DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id));
+    return filteredDefaults;
   } catch (error) {
     console.warn('Using offline fallback for categories:', error);
     try {
       const saved = localStorage.getItem('maison_categories');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) return parsed.filter((c: Category) => !deletedSet.has(c.id));
       }
     } catch {}
-    return [];
+    return DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id));
   }
 };
 
 export const subscribeToCategories = (
   callback: (categories: Category[]) => void
 ): (() => void) => {
+  const deletedCatsLocal: string[] = JSON.parse(
+    localStorage.getItem('maison_deleted_categories') || '[]'
+  );
+  const deletedSet = new Set(deletedCatsLocal.map((id) => id.trim()));
+
   // Instant visual hydration from local cache
   try {
     const saved = localStorage.getItem('maison_categories');
     if (saved) {
       const parsed: Category[] = JSON.parse(saved);
       if (Array.isArray(parsed)) {
-        callback(parsed);
+        callback(parsed.filter((c: Category) => !deletedSet.has(c.id)));
+      } else {
+        callback(DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)));
       }
+    } else {
+      callback(DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)));
     }
-  } catch {}
+  } catch {
+    callback(DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)));
+  }
 
   try {
     const catsRef = collection(db, 'categories');
     const unsubscribe = onSnapshot(
       catsRef,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const firestoreCats: Category[] = [];
-          snapshot.forEach((docSnap) => {
+        const firestoreCats: Category[] = [];
+        snapshot.forEach((docSnap) => {
+          if (!deletedSet.has(docSnap.id.trim())) {
             firestoreCats.push({ id: docSnap.id, ...docSnap.data() } as Category);
-          });
-          try {
-            localStorage.setItem('maison_categories', safeJsonStringify(firestoreCats));
-          } catch {}
-          callback(firestoreCats);
-        } else {
-          try {
-            localStorage.setItem('maison_categories', safeJsonStringify([]));
-          } catch {}
-          callback([]);
-        }
+          }
+        });
+        try {
+          localStorage.setItem('maison_categories', safeJsonStringify(firestoreCats));
+        } catch {}
+        callback(firestoreCats);
       },
       (err) => {
         console.warn('Realtime categories listener notice:', err);
@@ -1029,6 +1222,14 @@ export const saveCategoryAdmin = async (
     id: newCatId,
     ...categoryData,
   };
+
+  // Remove from deleted tracking if re-added
+  try {
+    const deletedCats: string[] = JSON.parse(localStorage.getItem('maison_deleted_categories') || '[]');
+    const filtered = deletedCats.filter((id) => id !== newCatId);
+    localStorage.setItem('maison_deleted_categories', safeJsonStringify(filtered));
+    await deleteDoc(doc(db, 'deleted_categories', newCatId)).catch(() => {});
+  } catch {}
 
   const updatedList = [newCat, ...currentCategories.filter((c) => c.id !== newCatId)];
   try {
@@ -1077,11 +1278,20 @@ export const deleteCategoryAdmin = async (
   const updatedList = currentCategories.filter((c) => c.id !== categoryId);
   try {
     localStorage.setItem('maison_categories', safeJsonStringify(updatedList));
+    const deletedCats: string[] = JSON.parse(localStorage.getItem('maison_deleted_categories') || '[]');
+    if (!deletedCats.includes(categoryId)) {
+      deletedCats.push(categoryId);
+      localStorage.setItem('maison_deleted_categories', safeJsonStringify(deletedCats));
+    }
   } catch {}
 
   try {
     const catDocRef = doc(db, 'categories', categoryId);
     await deleteDoc(catDocRef);
+    await setDoc(doc(db, 'deleted_categories', categoryId), {
+      categoryId,
+      deletedAt: new Date().toISOString(),
+    }, { merge: true }).catch(() => {});
   } catch (error) {
     console.error('Failed to delete category from Firestore:', error);
     throw error;
@@ -1099,6 +1309,13 @@ export const resetDefaultCategoriesAdmin = async (): Promise<Category[]> => {
       deletePromises.push(deleteDoc(doc(db, 'categories', docSnap.id)));
     });
     await Promise.all(deletePromises);
+
+    // Clear deleted categories tracking
+    try {
+      localStorage.removeItem('maison_deleted_categories');
+      const delSnap = await getDocs(collection(db, 'deleted_categories'));
+      delSnap.forEach((d) => deleteDoc(doc(db, 'deleted_categories', d.id)).catch(() => {}));
+    } catch {}
 
     for (const c of DEFAULT_CATEGORIES) {
       await setDoc(doc(db, 'categories', c.id), sanitizeForFirestore(c), { merge: true });
@@ -1226,6 +1443,18 @@ export const getNewsletterSubscribers = async (): Promise<NewsletterSubscriber[]
     return result;
   } catch (err) {
     console.warn('Failed to load subscribers from Firestore:', err);
+  }
+
+  if (!isInitialized && localSubscribers.length === 0) {
+    const demoSubscribers: NewsletterSubscriber[] = [
+      { id: 'sub_1', email: 'vip.client@luxuryfashion.eg', subscribedAt: new Date(Date.now() - 86400000 * 2).toISOString(), status: 'active', source: 'الموقع الإلكتروني' },
+      { id: 'sub_2', email: 'yasmin.almasri@gmail.com', subscribedAt: new Date(Date.now() - 86400000 * 5).toISOString(), source: 'إعلان فيسبوك', status: 'active' },
+      { id: 'sub_3', email: 'nour.hassan@yahoo.com', subscribedAt: new Date(Date.now() - 86400000 * 10).toISOString(), source: 'الموقع الإلكتروني', status: 'active' },
+    ];
+    const filteredDemo = demoSubscribers.filter((s) => !deletedSet.has(s.email.toLowerCase()));
+    localStorage.setItem('maison_subscribers', safeJsonStringify(filteredDemo));
+    localStorage.setItem('maison_subscribers_init', 'true');
+    return filteredDemo;
   }
 
   const activeLocal = localSubscribers.filter((s) => s && s.email && !deletedSet.has(s.email.trim().toLowerCase()));
@@ -1438,6 +1667,24 @@ export const subscribeToNewsletterCampaigns = (
 // PRODUCTS FIRESTORE PERSISTENCE
 // ==========================================
 
+export const BANNED_DEPRECATED_PRODUCT_IDS = new Set<string>([
+  'touza-summer-striped-shirt-brown',
+  'touza-summer-striped-shirt-green',
+  'touza-summer-striped-shirt-orange',
+  'touza-summer-striped-shirt-yellow',
+]);
+
+export const isBannedProductId = (id?: string): boolean => {
+  if (!id || typeof id !== 'string') return false;
+  return (
+    BANNED_DEPRECATED_PRODUCT_IDS.has(id.trim()) ||
+    id.toLowerCase().includes('touza-summer-striped-shirt')
+  );
+};
+
+const DEFAULT_FALLBACK_PRODUCT_IMAGE =
+  'https://res.cloudinary.com/qazdrpcx/image/upload/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg';
+
 const sanitizeProduct = (p: Product): Product => {
   if (!p) return p;
   const images = (p.images || [])
@@ -1445,14 +1692,14 @@ const sanitizeProduct = (p: Product): Product => {
     .map((img) => img.trim());
 
   if (images.length === 0) {
-    images.push('/images/touza_green_shirt.jpg');
+    images.push(DEFAULT_FALLBACK_PRODUCT_IMAGE);
   }
 
   const colors = (p.colors || []).map((c) => ({
     ...c,
     imageUrl: (c.imageUrl && typeof c.imageUrl === 'string' && c.imageUrl.trim() !== '')
       ? c.imageUrl.trim()
-      : images[0] || '/images/touza_green_shirt.jpg',
+      : images[0] || DEFAULT_FALLBACK_PRODUCT_IMAGE,
     sizes: Array.isArray(c.sizes) ? c.sizes : undefined,
   }));
 
@@ -1460,7 +1707,7 @@ const sanitizeProduct = (p: Product): Product => {
     ...p,
     showOnHome: typeof p.showOnHome === 'boolean' ? p.showOnHome : (p.isFeatured ?? true),
     images,
-    colors: colors.length > 0 ? colors : [{ name: 'Default', nameAr: 'افتراضي', hex: '#2e5a44', imageUrl: images[0] || '/images/touza_green_shirt.jpg' }],
+    colors: colors.length > 0 ? colors : [{ name: 'Default', nameAr: 'افتراضي', hex: '#111111', imageUrl: images[0] || DEFAULT_FALLBACK_PRODUCT_IMAGE }],
     sizes: Array.isArray(p.sizes) ? p.sizes : [],
   };
 };
@@ -1473,30 +1720,44 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
     if (!snapshot.empty) {
       const firestoreProducts: Product[] = [];
       snapshot.forEach((docSnap) => {
+        if (isBannedProductId(docSnap.id)) {
+          // Permanently purge any banned or deprecated products from Firestore
+          deleteDoc(doc(db, 'products', docSnap.id)).catch(() => {});
+          return;
+        }
         const data = docSnap.data();
         firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
       });
 
-      try {
-        localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
-      } catch {}
-      return firestoreProducts;
+      if (firestoreProducts.length > 0) {
+        try {
+          localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
+        } catch {}
+        return firestoreProducts;
+      }
     }
 
+    // If Firestore is empty, seed initial default products (excluding any banned IDs)
+    const initialProducts = PRODUCTS.filter((p) => !isBannedProductId(p.id)).map(sanitizeProduct);
+    for (const prod of initialProducts) {
+      setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true }).catch(() => {});
+    }
     try {
-      localStorage.setItem('maison_products', safeJsonStringify([]));
+      localStorage.setItem('maison_products', safeJsonStringify(initialProducts));
     } catch {}
-    return [];
+    return initialProducts;
   } catch (error) {
     console.warn('Using offline cached products fallback:', error);
     try {
       const saved = localStorage.getItem('maison_products');
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed.map(sanitizeProduct);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((p) => !isBannedProductId(p.id)).map(sanitizeProduct);
+        }
       }
     } catch {}
-    return [];
+    return PRODUCTS.filter((p) => !isBannedProductId(p.id)).map(sanitizeProduct);
   }
 };
 
@@ -1508,11 +1769,18 @@ export const subscribeToProducts = (
     const saved = localStorage.getItem('maison_products');
     if (saved) {
       const parsed: Product[] = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
-        callback(parsed.map(sanitizeProduct));
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const filteredCached = parsed.filter((p) => !isBannedProductId(p.id));
+        callback(filteredCached.map(sanitizeProduct));
+      } else {
+        callback(PRODUCTS.filter((p) => !isBannedProductId(p.id)).map(sanitizeProduct));
       }
+    } else {
+      callback(PRODUCTS.filter((p) => !isBannedProductId(p.id)).map(sanitizeProduct));
     }
-  } catch {}
+  } catch {
+    callback(PRODUCTS.filter((p) => !isBannedProductId(p.id)).map(sanitizeProduct));
+  }
 
   try {
     const productsRef = collection(db, 'products');
@@ -1522,19 +1790,31 @@ export const subscribeToProducts = (
         if (!snapshot.empty) {
           const firestoreProducts: Product[] = [];
           snapshot.forEach((docSnap) => {
+            if (isBannedProductId(docSnap.id)) {
+              // Automatically delete banned deprecated document if encountered
+              deleteDoc(doc(db, 'products', docSnap.id)).catch(() => {});
+              return;
+            }
             const data = docSnap.data();
             firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
           });
           
-          try {
-            localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
-          } catch {}
-          callback(firestoreProducts);
+          if (firestoreProducts.length > 0) {
+            try {
+              localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
+            } catch {}
+            callback(firestoreProducts);
+          }
         } else {
+          // If Firestore is completely empty (e.g. first initial setup), seed the default products
+          const initialProducts = PRODUCTS.filter((p) => !isBannedProductId(p.id)).map(sanitizeProduct);
+          for (const prod of initialProducts) {
+            setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true }).catch(() => {});
+          }
           try {
-            localStorage.setItem('maison_products', safeJsonStringify([]));
+            localStorage.setItem('maison_products', safeJsonStringify(initialProducts));
           } catch {}
-          callback([]);
+          callback(initialProducts);
         }
       },
       (err) => {
@@ -1561,7 +1841,9 @@ export const exportFirestoreProductsBackup = async (): Promise<{
   const snapshot = await fetchWithTimeout(getDocs(productsRef), 15000);
   const rawProducts: any[] = [];
   snapshot.forEach((docSnap) => {
-    rawProducts.push({ id: docSnap.id, ...docSnap.data() });
+    if (!isBannedProductId(docSnap.id)) {
+      rawProducts.push({ id: docSnap.id, ...docSnap.data() });
+    }
   });
 
   return {
@@ -1590,6 +1872,9 @@ export const syncAllProductsToFirestore = async (
     if (!listToUpload || listToUpload.length === 0) {
       listToUpload = PRODUCTS;
     }
+
+    // Filter out banned deprecated product IDs
+    listToUpload = listToUpload.filter((p) => !isBannedProductId(p.id));
 
     const batchPromises = listToUpload.map((prod) => {
       const sanitized = sanitizeProduct(prod);
@@ -1671,20 +1956,22 @@ export const resetDefaultProductsAdmin = async (): Promise<Product[]> => {
     });
     await Promise.all(deletePromises);
 
-    for (const prod of PRODUCTS) {
+    const safeDefaults = PRODUCTS.filter((p) => !isBannedProductId(p.id));
+    for (const prod of safeDefaults) {
       await setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true });
     }
 
     try {
-      localStorage.setItem('maison_products', safeJsonStringify(PRODUCTS));
+      localStorage.setItem('maison_products', safeJsonStringify(safeDefaults));
     } catch {}
-    return PRODUCTS;
+    return safeDefaults;
   } catch (error) {
     console.error('Failed to reset default products:', error);
+    const safeDefaults = PRODUCTS.filter((p) => !isBannedProductId(p.id));
     try {
-      localStorage.setItem('maison_products', safeJsonStringify(PRODUCTS));
+      localStorage.setItem('maison_products', safeJsonStringify(safeDefaults));
     } catch {}
-    return PRODUCTS;
+    return safeDefaults;
   }
 };
 
@@ -1694,9 +1981,15 @@ export const resetDefaultProductsAdmin = async (): Promise<Product[]> => {
 
 function sanitizeSettings(settings: Partial<StoreSettings>, defaultSettings: StoreSettings): StoreSettings {
   if (!settings) return defaultSettings;
+  let heroImageUrl = settings.heroImageUrl || defaultSettings.heroImageUrl;
+  if (typeof heroImageUrl === 'string' && heroImageUrl.includes('pb3glshlcqx6jhuapcpq')) {
+    heroImageUrl = 'https://res.cloudinary.com/qazdrpcx/video/upload/v1787597556/touza_header_videos/vz8cdlvj2jqpd9ueb9uk.mp4';
+  }
+
   const merged: StoreSettings = {
     ...defaultSettings,
     ...settings,
+    heroImageUrl,
     // Ensure boolean and numeric shipping fields are preserved properly
     shippingFree: settings.shippingFree !== undefined ? settings.shippingFree : (defaultSettings.shippingFree ?? true),
     shippingFee: settings.shippingFee !== undefined ? Number(settings.shippingFee) : (defaultSettings.shippingFee ?? 0),
@@ -1718,17 +2011,21 @@ export const getStoreSettingsAdmin = async (
     const docSnap = await fetchWithTimeout(getDoc(settingsDocRef));
     
     if (!docSnap.exists()) {
-      let settingsToReturn = defaultSettings;
+      let settingsToSeed = defaultSettings;
       try {
         const saved = localStorage.getItem(SETTINGS_STORAGE_KEY) || localStorage.getItem('maison_settings');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed) {
-            settingsToReturn = sanitizeSettings({ ...defaultSettings, ...parsed }, defaultSettings);
+            settingsToSeed = sanitizeSettings({ ...defaultSettings, ...parsed }, defaultSettings);
           }
         }
       } catch {}
-      return settingsToReturn;
+
+      await setDoc(settingsDocRef, sanitizeForFirestore(settingsToSeed), { merge: true });
+      localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(settingsToSeed));
+      localStorage.setItem('maison_settings', safeJsonStringify(settingsToSeed));
+      return settingsToSeed;
     }
 
     const remoteData = sanitizeSettings({ ...defaultSettings, ...(docSnap.data() as StoreSettings) }, defaultSettings);
@@ -1810,32 +2107,48 @@ export const saveStoreSettingsAdmin = async (
 // ==========================================
 
 export const getAllPromoCodesAdmin = async (
-  _defaultPromos: PromoCode[]
+  defaultPromos: PromoCode[]
 ): Promise<PromoCode[]> => {
+  const deletedPromosLocal: string[] = JSON.parse(
+    localStorage.getItem('maison_deleted_promos') || '[]'
+  );
+  const deletedSet = new Set(deletedPromosLocal.map((id) => id.trim()));
+
+  try {
+    const deletedSnap = await fetchWithTimeout(getDocs(collection(db, 'deleted_promos')));
+    deletedSnap.forEach((d) => {
+      deletedSet.add(d.id.trim());
+    });
+  } catch {}
+
   try {
     const promosRef = collection(db, 'promoCodes');
     const snapshot = await fetchWithTimeout(getDocs(promosRef));
 
-    if (snapshot.empty) {
-      localStorage.setItem('maison_promos', safeJsonStringify([]));
-      return [];
-    }
-
     const firestorePromos: PromoCode[] = [];
     snapshot.forEach((docSnap) => {
-      firestorePromos.push({ id: docSnap.id, ...docSnap.data() } as PromoCode);
+      if (!deletedSet.has(docSnap.id.trim())) {
+        firestorePromos.push({ id: docSnap.id, ...docSnap.data() } as PromoCode);
+      }
     });
 
-    localStorage.setItem('maison_promos', safeJsonStringify(firestorePromos));
-    return firestorePromos;
+    if (firestorePromos.length > 0) {
+      localStorage.setItem('maison_promos', safeJsonStringify(firestorePromos));
+      return firestorePromos;
+    }
+
+    const filteredDefaults = defaultPromos.filter((p) => !deletedSet.has(p.id));
+    return filteredDefaults;
   } catch (error) {
     console.warn('Using offline fallback for promo codes:', error);
     try {
       const saved = localStorage.getItem('maison_promos');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+      if (saved) {
+        const parsed: PromoCode[] = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed.filter((p) => !deletedSet.has(p.id));
+      }
+    } catch {}
+    return defaultPromos.filter((p) => !deletedSet.has(p.id));
   }
 };
 
@@ -1843,25 +2156,38 @@ export const getAllPromoCodesAdmin = async (
  * Real-time Promo Codes Listener
  */
 export const subscribeToPromoCodes = (
-  _defaultPromos: PromoCode[],
+  defaultPromos: PromoCode[],
   callback: (promos: PromoCode[]) => void
 ): (() => void) => {
+  const deletedPromosLocal: string[] = JSON.parse(
+    localStorage.getItem('maison_deleted_promos') || '[]'
+  );
+  const deletedSet = new Set(deletedPromosLocal.map((id) => id.trim()));
+
+  // Local cache emission
+  try {
+    const saved = localStorage.getItem('maison_promos');
+    if (saved) {
+      const parsed: PromoCode[] = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        callback(parsed.filter((p) => !deletedSet.has(p.id)));
+      }
+    }
+  } catch {}
+
   try {
     const promosRef = collection(db, 'promoCodes');
     const unsubscribe = onSnapshot(
       promosRef,
       (snapshot) => {
-        if (!snapshot.empty) {
-          const firestorePromos: PromoCode[] = [];
-          snapshot.forEach((docSnap) => {
+        const firestorePromos: PromoCode[] = [];
+        snapshot.forEach((docSnap) => {
+          if (!deletedSet.has(docSnap.id.trim())) {
             firestorePromos.push({ id: docSnap.id, ...docSnap.data() } as PromoCode);
-          });
-          localStorage.setItem('maison_promos', safeJsonStringify(firestorePromos));
-          callback(firestorePromos);
-        } else {
-          localStorage.setItem('maison_promos', safeJsonStringify([]));
-          callback([]);
-        }
+          }
+        });
+        localStorage.setItem('maison_promos', safeJsonStringify(firestorePromos));
+        callback(firestorePromos);
       },
       (err) => {
         console.warn('Realtime promo codes listener error:', err);
@@ -1878,6 +2204,14 @@ export const savePromoCodeAdmin = async (
   promoData: PromoCode
 ): Promise<boolean> => {
   try {
+    // Remove from deleted tracking if re-added
+    try {
+      const deletedPromos: string[] = JSON.parse(localStorage.getItem('maison_deleted_promos') || '[]');
+      const filtered = deletedPromos.filter((id) => id !== promoData.id);
+      localStorage.setItem('maison_deleted_promos', safeJsonStringify(filtered));
+      await deleteDoc(doc(db, 'deleted_promos', promoData.id)).catch(() => {});
+    } catch {}
+
     const promoDocRef = doc(db, 'promoCodes', promoData.id);
     await setDoc(promoDocRef, sanitizeForFirestore(promoData), { merge: true });
     return true;
@@ -1891,10 +2225,47 @@ export const deletePromoCodeAdmin = async (
   promoId: string
 ): Promise<boolean> => {
   try {
-    await deleteDoc(doc(db, 'promoCodes', promoId));
+    await deleteDoc(doc(db, 'promoCodes', promoId)).catch(() => {});
+
+    try {
+      const existing: PromoCode[] = JSON.parse(localStorage.getItem('maison_promos') || '[]');
+      const filtered = existing.filter((p) => p.id !== promoId);
+      localStorage.setItem('maison_promos', safeJsonStringify(filtered));
+
+      const deletedPromos: string[] = JSON.parse(localStorage.getItem('maison_deleted_promos') || '[]');
+      if (!deletedPromos.includes(promoId)) {
+        deletedPromos.push(promoId);
+        localStorage.setItem('maison_deleted_promos', safeJsonStringify(deletedPromos));
+      }
+    } catch {}
+
+    try {
+      await setDoc(doc(db, 'deleted_promos', promoId), {
+        promoId,
+        deletedAt: new Date().toISOString(),
+      }, { merge: true });
+    } catch {}
+
     return true;
   } catch (error) {
     console.error('Failed to delete promo code from Firestore:', error);
+    throw error;
+  }
+};
+
+export const deleteNewsletterCampaignAdmin = async (
+  campaignId: string
+): Promise<boolean> => {
+  try {
+    await deleteDoc(doc(db, 'newsletterCampaigns', campaignId)).catch(() => {});
+    try {
+      const existing: NewsletterCampaign[] = JSON.parse(localStorage.getItem('maison_campaigns') || '[]');
+      const filtered = existing.filter((c) => c.id !== campaignId);
+      localStorage.setItem('maison_campaigns', safeJsonStringify(filtered));
+    } catch {}
+    return true;
+  } catch (error) {
+    console.error('Failed to delete campaign:', error);
     throw error;
   }
 };
@@ -1919,5 +2290,6 @@ export const incrementPromoCodeUsageAdmin = async (
     return 1;
   }
 };
+
 
 

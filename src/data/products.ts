@@ -1,31 +1,20 @@
 import { Product } from '../types';
 
 export const HERO_IMAGE = '/images/touza_hero_poster.jpg';
-export const CATALOG_VERSION = 'v2026_08_21_20prods_sync';
+export const CATALOG_VERSION = 'v2026_08_25_25prods_clean';
 
 export const PRODUCTS: Product[] = [
   {
     "id": "prod-1786807489391",
-    "categoryAr": "سيت",
-    "subtitle": "TOUZA Casual Collection",
-    "isFeatured": true,
-    "nameAr": "سرت لويس فيتون",
-    "price": 5000,
-    "showOnHome": true,
-    "category": "suit",
-    "descriptionAr": "",
-    "originalPrice": 6750,
+    "name": "Suit louisvitton",
     "colors": [
       {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg",
-        "name": "Default",
         "nameAr": "افتراضي",
-        "hex": "#a7c6ff"
+        "name": "Default",
+        "hex": "#a7c6ff",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg"
       }
     ],
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
-    "isNewArrival": true,
-    "description": "",
     "images": [
       "https://res.cloudinary.com/qazdrpcx/image/upload/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg",
       "https://res.cloudinary.com/qazdrpcx/image/upload/v1786807466/touza_products/aq8tezmxfgx5g5lksn0y.jpg",
@@ -41,39 +30,40 @@ export const PRODUCTS: Product[] = [
         "size": "XXL"
       }
     ],
-    "name": "Suit louisvitton"
+    "price": 5000,
+    "originalPrice": 6750,
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "subtitle": "TOUZA Casual Collection",
+    "nameAr": "سرت لويس فيتون",
+    "showOnHome": true,
+    "descriptionAr": "",
+    "description": "",
+    "category": "suit",
+    "categoryAr": "سيت",
+    "isNewArrival": true,
+    "isFeatured": true
   },
   {
     "id": "prod-1786808736332",
-    "categoryAr": "تيشيرت",
-    "isNewArrival": false,
-    "isFeatured": true,
-    "price": 900,
-    "showOnHome": true,
-    "nameAr": "تشيرت بلمان",
-    "subtitle": "TOUZA Casual Collection",
-    "originalPrice": 1900,
-    "descriptionAr": "",
     "category": "T-Shirts",
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
     "colors": [
       {
         "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786808714/touza_products/wjybbowlh99dgw3gpqfi.png",
-        "hex": "#111111",
         "nameAr": "أسود",
+        "hex": "#111111",
         "name": "Black"
       },
       {
+        "name": "White",
         "hex": "#ffffff",
         "nameAr": "أبيض",
-        "name": "White",
         "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786808728/touza_products/n90sjnrydbe1idlqgmsl.png"
       }
     ],
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
     "images": [
       "https://res.cloudinary.com/qazdrpcx/image/upload/v1786809185/touza_products/et2olhe9fa5ndwtgz4fl.png"
     ],
-    "name": "Balmain tshirt",
     "sizes": [
       {
         "size": "s",
@@ -96,28 +86,39 @@ export const PRODUCTS: Product[] = [
         "size": "xxl"
       }
     ],
-    "description": ""
+    "price": 900,
+    "showOnHome": true,
+    "descriptionAr": "",
+    "nameAr": "تشيرت بلمان",
+    "name": "Balmain tshirt",
+    "categoryAr": "تيشيرت",
+    "subtitle": "TOUZA Casual Collection",
+    "isFeatured": true,
+    "isNewArrival": false,
+    "description": "",
+    "originalPrice": 1900
   },
   {
     "id": "prod-1786811765799",
-    "isFeatured": true,
+    "subtitle": "TOUZA Casual Collection",
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
     "showOnHome": true,
+    "description": "",
     "descriptionAr": "",
-    "price": 1400,
     "isNewArrival": false,
-    "category": "T-Shirts",
-    "nameAr": "تشيرت دولسي & غابانا ",
     "name": "D&G Tshirt",
+    "categoryAr": "تيشيرت",
     "colors": [
       {
-        "name": "Black",
         "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786811748/touza_products/lafj3u1izwghqryeurym.jpg",
+        "nameAr": "أسود",
         "hex": "#111111",
-        "nameAr": "أسود"
+        "name": "Black"
       }
     ],
-    "subtitle": "TOUZA Casual Collection",
-    "categoryAr": "تيشيرت",
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786812106/touza_products/heiasuuelelpbbncehob.jpg"
+    ],
     "sizes": [
       {
         "size": "XL",
@@ -125,82 +126,40 @@ export const PRODUCTS: Product[] = [
       }
     ],
     "originalPrice": 2000,
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
-    "description": "",
-    "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786812106/touza_products/heiasuuelelpbbncehob.jpg"
-    ]
+    "price": 1400,
+    "category": "T-Shirts",
+    "isFeatured": true,
+    "nameAr": "تشيرت دولسي & غابانا "
   },
   {
     "id": "prod-1786812584760",
-    "subtitle": "TOUZA Casual Collection",
-    "nameAr": "قميص دولسى & غابانا ",
-    "price": 1900,
-    "name": "D&g shirt",
-    "description": "",
-    "showOnHome": true,
-    "isFeatured": true,
-    "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786812577/touza_products/lq3h64gkjahy92h8cj18.png"
-    ],
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
-    "descriptionAr": "",
-    "sizes": [
-      {
-        "inStock": true,
-        "size": "M"
-      },
-      {
-        "inStock": true,
-        "size": "L"
-      },
-      {
-        "inStock": true,
-        "size": "XL"
-      },
-      {
-        "inStock": true,
-        "size": "XXL"
-      }
-    ],
     "colors": [
       {
         "hex": "#ffffff",
-        "name": "White",
+        "nameAr": "أبيض",
         "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786812533/touza_products/hcjrlg9juszfqwdyxwgz.png",
-        "nameAr": "أبيض"
+        "name": "White"
       },
       {
-        "name": "Black",
         "hex": "#000000",
         "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786812546/touza_products/sefmhvttvpytsysantlk.jpg",
+        "name": "Black",
         "nameAr": "أسود"
       }
     ],
-    "categoryAr": "قميص",
-    "category": "Shirts",
-    "isNewArrival": true
-  },
-  {
-    "id": "prod-1786828546097",
-    "categoryAr": "بنطلون",
-    "description": "",
-    "isFeatured": true,
-    "isNewArrival": false,
-    "showOnHome": true,
-    "nameAr": "وايد ليج بلنسياجا ",
-    "name": "Balenciaga wideleg",
-    "price": 2625,
-    "subtitle": "TOUZA Casual Collection",
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786828539/touza_products/lu9wvhmrqexytjkuer8i.png"
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786812577/touza_products/lq3h64gkjahy92h8cj18.png"
     ],
+    "category": "Shirts",
+    "categoryAr": "قميص",
+    "isFeatured": true,
+    "nameAr": "قميص دولسى & غابانا ",
+    "isNewArrival": true,
+    "subtitle": "TOUZA Casual Collection",
+    "descriptionAr": "",
+    "name": "D&g shirt",
+    "price": 1900,
     "sizes": [
-      {
-        "size": "S",
-        "inStock": true
-      },
       {
         "size": "M",
         "inStock": true
@@ -210,8 +169,39 @@ export const PRODUCTS: Product[] = [
         "inStock": true
       },
       {
+        "size": "XL",
+        "inStock": true
+      },
+      {
         "inStock": true,
-        "size": "Xl"
+        "size": "XXL"
+      }
+    ],
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "description": "",
+    "showOnHome": true
+  },
+  {
+    "id": "prod-1786828546097",
+    "name": "Balenciaga wideleg",
+    "categoryAr": "بنطلون",
+    "isFeatured": true,
+    "sizes": [
+      {
+        "inStock": true,
+        "size": "S"
+      },
+      {
+        "size": "M",
+        "inStock": true
+      },
+      {
+        "inStock": true,
+        "size": "L"
+      },
+      {
+        "size": "Xl",
+        "inStock": true
       },
       {
         "inStock": true,
@@ -219,69 +209,142 @@ export const PRODUCTS: Product[] = [
       }
     ],
     "category": "Pants",
+    "price": 2625,
+    "originalPrice": 3500,
+    "description": "",
+    "isNewArrival": false,
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "subtitle": "TOUZA Casual Collection",
+    "showOnHome": true,
+    "nameAr": "وايد ليج بلنسياجا ",
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786828539/touza_products/lu9wvhmrqexytjkuer8i.png"
+    ],
     "colors": [
       {
+        "nameAr": "أزرق ",
         "name": "Jeans ",
-        "hex": "#0042a9",
         "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786828481/touza_products/imu3afnmz4x8sd3fscg8.png",
-        "nameAr": "أزرق "
+        "hex": "#0042a9"
       }
     ],
-    "descriptionAr": "",
-    "originalPrice": 3500
+    "descriptionAr": ""
   },
   {
     "id": "prod-1786997865728",
     "isFeatured": true,
-    "showOnHome": true,
-    "price": 1400,
-    "categoryAr": "تيشيرت",
-    "descriptionAr": "",
     "originalPrice": 2000,
     "name": "Dior tshirt",
-    "nameAr": "تشيرت ديور ",
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
-    "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786997914/touza_products/apvwbqbvmjl9hbhjmoip.jpg"
-    ],
-    "category": "T-Shirts",
-    "colors": [
-      {
-        "nameAr": "أسود",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786997826/touza_products/sac5mz7v5u4kxyw9vnva.jpg",
-        "hex": "#111111",
-        "name": "Black"
-      }
-    ],
-    "description": "",
+    "subtitle": "TOUZA Casual Collection",
+    "categoryAr": "تيشيرت",
+    "price": 1400,
     "isNewArrival": false,
     "sizes": [
       {
-        "inStock": true,
-        "size": "M"
+        "size": "M",
+        "inStock": true
       },
       {
-        "inStock": true,
-        "size": "L"
+        "size": "L",
+        "inStock": true
       },
       {
-        "inStock": true,
-        "size": "XL"
+        "size": "XL",
+        "inStock": true
       }
     ],
-    "subtitle": "TOUZA Casual Collection"
+    "nameAr": "تشيرت ديور ",
+    "category": "T-Shirts",
+    "showOnHome": true,
+    "description": "",
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "descriptionAr": "",
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786997914/touza_products/apvwbqbvmjl9hbhjmoip.jpg"
+    ],
+    "colors": [
+      {
+        "hex": "#111111",
+        "name": "Black",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786997826/touza_products/sac5mz7v5u4kxyw9vnva.jpg",
+        "nameAr": "أسود"
+      }
+    ]
   },
   {
     "id": "prod-1786998444924",
+    "descriptionAr": "",
+    "description": "",
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
     "nameAr": "تشيرت أميرى ",
     "category": "T-Shirts",
-    "categoryAr": "تيشيرت",
-    "price": 1400,
-    "isNewArrival": false,
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
-    "name": "Amiri tshirt",
-    "descriptionAr": "",
     "showOnHome": false,
+    "isNewArrival": false,
+    "colors": [
+      {
+        "hex": "#111111",
+        "name": "Black",
+        "nameAr": "أسود",
+        "sizes": [
+          {
+            "inStock": true,
+            "size": "S"
+          },
+          {
+            "inStock": false,
+            "size": "M"
+          },
+          {
+            "inStock": false,
+            "size": "L"
+          },
+          {
+            "size": "XL",
+            "inStock": true
+          },
+          {
+            "inStock": true,
+            "size": "XXL"
+          }
+        ],
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786998405/touza_products/pf1pn5hkcob6ewj49zmf.png"
+      },
+      {
+        "name": "White",
+        "nameAr": "أبيض",
+        "sizes": [
+          {
+            "inStock": true,
+            "size": "S"
+          },
+          {
+            "size": "M",
+            "inStock": false
+          },
+          {
+            "size": "L",
+            "inStock": false
+          },
+          {
+            "inStock": false,
+            "size": "XL"
+          },
+          {
+            "inStock": true,
+            "size": "XXL"
+          }
+        ],
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786998317/touza_products/dsuipth6oaboyaoz46vk.png",
+        "hex": "#ffffff"
+      }
+    ],
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786998439/touza_products/mnunskoz4rai0hdcposq.png"
+    ],
+    "name": "Amiri tshirt",
+    "categoryAr": "تيشيرت",
+    "originalPrice": 2000,
+    "subtitle": "TOUZA Casual Collection",
     "isFeatured": false,
     "sizes": [
       {
@@ -293,135 +356,69 @@ export const PRODUCTS: Product[] = [
         "size": "XL"
       },
       {
-        "inStock": true,
-        "size": "XXL"
+        "size": "XXL",
+        "inStock": true
       }
     ],
-    "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1786998439/touza_products/mnunskoz4rai0hdcposq.png"
-    ],
-    "description": "",
-    "originalPrice": 2000,
+    "price": 1400
+  },
+  {
+    "id": "prod-1787076622253",
     "subtitle": "TOUZA Casual Collection",
+    "nameAr": "تشيرت أميرى",
+    "categoryAr": "تيشيرت",
+    "originalPrice": 1100,
+    "isFeatured": true,
+    "price": 850,
     "colors": [
       {
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787076547/touza_products/p9rnldygrhqr7rftg7cg.png",
+        "name": "Black",
+        "hex": "#111111",
         "sizes": [
           {
             "size": "S",
             "inStock": true
           },
           {
-            "inStock": false,
+            "inStock": true,
             "size": "M"
-          },
-          {
-            "size": "L",
-            "inStock": false
           },
           {
             "size": "XL",
             "inStock": true
-          },
-          {
-            "inStock": true,
-            "size": "XXL"
-          }
-        ],
-        "hex": "#111111",
-        "name": "Black",
-        "nameAr": "أسود",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786998405/touza_products/pf1pn5hkcob6ewj49zmf.png"
-      },
-      {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1786998317/touza_products/dsuipth6oaboyaoz46vk.png",
-        "nameAr": "أبيض",
-        "name": "White",
-        "hex": "#ffffff",
-        "sizes": [
-          {
-            "inStock": true,
-            "size": "S"
-          },
-          {
-            "size": "M",
-            "inStock": false
-          },
-          {
-            "size": "L",
-            "inStock": false
-          },
-          {
-            "size": "XL",
-            "inStock": false
-          },
-          {
-            "inStock": true,
-            "size": "XXL"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "id": "prod-1787076622253",
-    "subtitle": "TOUZA Casual Collection",
-    "colors": [
-      {
-        "sizes": [
-          {
-            "inStock": true,
-            "size": "S"
-          },
-          {
-            "inStock": true,
-            "size": "M"
-          },
-          {
-            "inStock": true,
-            "size": "XL"
-          },
-          {
-            "inStock": true,
-            "size": "XXL"
-          }
-        ],
-        "name": "Black",
-        "nameAr": "أسود",
-        "hex": "#111111",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787076547/touza_products/p9rnldygrhqr7rftg7cg.png"
-      },
-      {
-        "hex": "#ffffff",
-        "sizes": [
-          {
-            "inStock": true,
-            "size": "L"
-          },
-          {
-            "inStock": true,
-            "size": "XL"
           },
           {
             "size": "XXL",
             "inStock": true
           }
         ],
-        "name": "White",
+        "nameAr": "أسود"
+      },
+      {
         "nameAr": "أبيض",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787076575/touza_products/k38u8dfq1p91m8afav94.png"
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787076575/touza_products/k38u8dfq1p91m8afav94.png",
+        "sizes": [
+          {
+            "size": "L",
+            "inStock": true
+          },
+          {
+            "size": "XL",
+            "inStock": true
+          },
+          {
+            "inStock": true,
+            "size": "XXL"
+          }
+        ],
+        "hex": "#ffffff",
+        "name": "White"
       }
     ],
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
     "images": [
       "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077932/touza_products/xymtefafcacnyyhghhlt.png"
     ],
-    "category": "T-Shirts",
-    "price": 850,
-    "name": "Amiri tshirt",
-    "description": "",
-    "nameAr": "تشيرت أميرى",
-    "originalPrice": 1100,
-    "descriptionAr": "",
     "sizes": [
       {
         "inStock": true,
@@ -440,87 +437,31 @@ export const PRODUCTS: Product[] = [
         "inStock": true
       }
     ],
-    "isFeatured": true,
+    "name": "Amiri tshirt",
+    "category": "T-Shirts",
+    "description": "",
+    "isNewArrival": false,
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
     "showOnHome": true,
-    "categoryAr": "تيشيرت",
-    "isNewArrival": false
+    "descriptionAr": ""
   },
   {
     "id": "prod-1787077515769",
-    "description": "",
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
-    "subtitle": "TOUZA Casual Collection",
-    "showOnHome": false,
-    "descriptionAr": "",
-    "name": "Dsquared tshirt ",
-    "isFeatured": false,
-    "isNewArrival": false,
-    "sizes": [
-      {
-        "size": "M",
-        "inStock": true
-      },
-      {
-        "size": "XL",
-        "inStock": true
-      }
-    ],
-    "categoryAr": "تيشيرت",
-    "colors": [
-      {
-        "nameAr": "أسود",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077508/touza_products/d6qfr9satkyrl1azryis.jpg",
-        "name": "Black",
-        "hex": "#111111",
-        "sizes": [
-          {
-            "inStock": false,
-            "size": "S"
-          },
-          {
-            "inStock": true,
-            "size": "M"
-          },
-          {
-            "size": "L",
-            "inStock": false
-          },
-          {
-            "inStock": true,
-            "size": "XL"
-          },
-          {
-            "inStock": false,
-            "size": "XXL"
-          }
-        ]
-      }
-    ],
-    "originalPrice": 2000,
     "price": 1400,
-    "nameAr": "تشيرت ديسكورد",
     "images": [
       "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077508/touza_products/d6qfr9satkyrl1azryis.jpg"
     ],
-    "category": "T-Shirts"
-  },
-  {
-    "id": "prod-1787077904145",
-    "category": "T-Shirts",
-    "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077892/touza_products/zoj99gx8c7hkqdc76wdo.jpg"
-    ],
-    "isNewArrival": false,
     "colors": [
       {
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077508/touza_products/d6qfr9satkyrl1azryis.jpg",
         "sizes": [
           {
-            "inStock": true,
+            "inStock": false,
             "size": "S"
           },
           {
-            "inStock": true,
-            "size": "M"
+            "size": "M",
+            "inStock": true
           },
           {
             "inStock": false,
@@ -532,16 +473,46 @@ export const PRODUCTS: Product[] = [
           },
           {
             "size": "XXL",
-            "inStock": true
+            "inStock": false
           }
         ],
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077769/touza_products/qthuoql3evljoyuknprq.png",
-        "nameAr": "أسود",
+        "name": "Black",
         "hex": "#111111",
-        "name": "Black"
+        "nameAr": "أسود"
+      }
+    ],
+    "descriptionAr": "",
+    "subtitle": "TOUZA Casual Collection",
+    "sizes": [
+      {
+        "inStock": true,
+        "size": "M"
       },
       {
-        "hex": "#c2c2c2",
+        "inStock": true,
+        "size": "XL"
+      }
+    ],
+    "categoryAr": "تيشيرت",
+    "isFeatured": false,
+    "nameAr": "تشيرت ديسكورد",
+    "isNewArrival": false,
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "originalPrice": 2000,
+    "category": "T-Shirts",
+    "description": "",
+    "showOnHome": false,
+    "name": "Dsquared tshirt "
+  },
+  {
+    "id": "prod-1787077904145",
+    "showOnHome": true,
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077892/touza_products/zoj99gx8c7hkqdc76wdo.jpg"
+    ],
+    "colors": [
+      {
+        "name": "Black",
         "sizes": [
           {
             "inStock": true,
@@ -552,35 +523,235 @@ export const PRODUCTS: Product[] = [
             "inStock": true
           },
           {
-            "size": "XL",
-            "inStock": true
+            "size": "L",
+            "inStock": false
+          },
+          {
+            "inStock": true,
+            "size": "XL"
+          },
+          {
+            "inStock": true,
+            "size": "XXL"
           }
         ],
-        "name": "Grey",
-        "nameAr": "رومادى ",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077810/touza_products/u11mkhjz66tvlqjj8hif.jpg"
+        "hex": "#111111",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077769/touza_products/qthuoql3evljoyuknprq.png",
+        "nameAr": "أسود"
       },
       {
-        "name": "White",
-        "nameAr": "أبيض",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077842/touza_products/aj5p8vd4kmkatssmigox.jpg",
+        "nameAr": "رومادى ",
+        "hex": "#c2c2c2",
+        "name": "Grey",
         "sizes": [
           {
             "inStock": true,
             "size": "S"
           },
           {
-            "size": "XL",
+            "size": "M",
             "inStock": true
+          },
+          {
+            "inStock": true,
+            "size": "XL"
           }
         ],
-        "hex": "#ffffff"
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077810/touza_products/u11mkhjz66tvlqjj8hif.jpg"
+      },
+      {
+        "nameAr": "أبيض",
+        "hex": "#ffffff",
+        "sizes": [
+          {
+            "size": "S",
+            "inStock": true
+          },
+          {
+            "inStock": true,
+            "size": "XL"
+          }
+        ],
+        "name": "White",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787077842/touza_products/aj5p8vd4kmkatssmigox.jpg"
       }
+    ],
+    "isNewArrival": false,
+    "price": 1400,
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "sizes": [
+      {
+        "inStock": true,
+        "size": "M"
+      },
+      {
+        "inStock": true,
+        "size": "L"
+      },
+      {
+        "inStock": true,
+        "size": "XL"
+      },
+      {
+        "inStock": true,
+        "size": "S"
+      },
+      {
+        "size": "2XL",
+        "inStock": true
+      }
+    ],
+    "name": "Lowe tshirt ",
+    "description": "",
+    "category": "T-Shirts",
+    "nameAr": "تشيرت لويفي ",
+    "descriptionAr": "",
+    "isFeatured": true,
+    "categoryAr": "تيشيرت",
+    "subtitle": "TOUZA Casual Collection",
+    "originalPrice": 2000
+  },
+  {
+    "id": "prod-1787078405082",
+    "sizes": [
+      {
+        "inStock": true,
+        "size": "L"
+      },
+      {
+        "size": "XL",
+        "inStock": true
+      },
+      {
+        "inStock": true,
+        "size": "XXL"
+      }
+    ],
+    "showOnHome": true,
+    "price": 1400,
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "originalPrice": 2000,
+    "category": "T-Shirts",
+    "isFeatured": true,
+    "descriptionAr": "",
+    "nameAr": "تشيرت دولسى & غابانا ",
+    "categoryAr": "تيشيرت",
+    "isNewArrival": false,
+    "name": "D&G Tshirt",
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078362/touza_products/h5pda3dc2pdaaq35i6xq.jpg"
+    ],
+    "colors": [
+      {
+        "hex": "#ffffff",
+        "sizes": [
+          {
+            "inStock": false,
+            "size": "S"
+          },
+          {
+            "inStock": false,
+            "size": "M"
+          },
+          {
+            "size": "L",
+            "inStock": true
+          },
+          {
+            "size": "XL",
+            "inStock": true
+          },
+          {
+            "inStock": true,
+            "size": "XXL"
+          }
+        ],
+        "nameAr": "أبيض",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078274/touza_products/ccnyzqptolszj4fo9237.jpg",
+        "name": "White"
+      }
+    ],
+    "subtitle": "TOUZA Casual Collection",
+    "description": ""
+  },
+  {
+    "id": "prod-1787078804876",
+    "subtitle": "TOUZA Casual Collection",
+    "description": "",
+    "isNewArrival": false,
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "name": "D&G Tshirt",
+    "descriptionAr": "",
+    "showOnHome": false,
+    "colors": [
+      {
+        "hex": "#ffffff",
+        "nameAr": "أبيض",
+        "name": "White",
+        "sizes": [
+          {
+            "inStock": true,
+            "size": "XL"
+          }
+        ],
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078586/touza_products/ykvqosnktnxqipmvheaa.png"
+      },
+      {
+        "hex": "#000000",
+        "sizes": [
+          {
+            "size": "S",
+            "inStock": true
+          },
+          {
+            "inStock": true,
+            "size": "M"
+          },
+          {
+            "inStock": true,
+            "size": "XL"
+          }
+        ],
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078674/touza_products/gbtgcytqqj28onnc6edy.jpg",
+        "nameAr": "أسود",
+        "name": "Black"
+      }
+    ],
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078800/touza_products/jpilwxdpgpqawb4pi6yi.png"
     ],
     "sizes": [
       {
         "inStock": true,
         "size": "M"
+      },
+      {
+        "size": "XL",
+        "inStock": true
+      },
+      {
+        "size": "S",
+        "inStock": true
+      }
+    ],
+    "price": 1400,
+    "category": "T-Shirts",
+    "categoryAr": "تيشيرت",
+    "nameAr": "تشيرت دولسى & غابانا ",
+    "originalPrice": 2000,
+    "isFeatured": false
+  },
+  {
+    "id": "prod-1787085131724",
+    "isNewArrival": false,
+    "categoryAr": "تشيرت بولو",
+    "isFeatured": true,
+    "descriptionAr": "",
+    "subtitle": "TOUZA Casual Collection",
+    "sizes": [
+      {
+        "size": "M",
+        "inStock": true
       },
       {
         "size": "L",
@@ -589,172 +760,13 @@ export const PRODUCTS: Product[] = [
       {
         "size": "XL",
         "inStock": true
-      },
-      {
-        "inStock": true,
-        "size": "S"
-      },
-      {
-        "inStock": true,
-        "size": "2XL"
       }
     ],
-    "isFeatured": true,
-    "subtitle": "TOUZA Casual Collection",
-    "showOnHome": true,
-    "categoryAr": "تيشيرت",
     "price": 1400,
-    "name": "Lowe tshirt ",
-    "description": "",
     "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
-    "nameAr": "تشيرت لويفي ",
-    "descriptionAr": "",
-    "originalPrice": 2000
-  },
-  {
-    "id": "prod-1787078405082",
-    "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078362/touza_products/h5pda3dc2pdaaq35i6xq.jpg"
-    ],
-    "originalPrice": 2000,
-    "descriptionAr": "",
-    "name": "D&G Tshirt",
-    "price": 1400,
-    "colors": [
-      {
-        "hex": "#ffffff",
-        "name": "White",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078274/touza_products/ccnyzqptolszj4fo9237.jpg",
-        "nameAr": "أبيض",
-        "sizes": [
-          {
-            "size": "S",
-            "inStock": false
-          },
-          {
-            "inStock": false,
-            "size": "M"
-          },
-          {
-            "size": "L",
-            "inStock": true
-          },
-          {
-            "inStock": true,
-            "size": "XL"
-          },
-          {
-            "size": "XXL",
-            "inStock": true
-          }
-        ]
-      }
-    ],
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
-    "isNewArrival": false,
-    "description": "",
-    "category": "T-Shirts",
-    "sizes": [
-      {
-        "inStock": true,
-        "size": "L"
-      },
-      {
-        "inStock": true,
-        "size": "XL"
-      },
-      {
-        "size": "XXL",
-        "inStock": true
-      }
-    ],
-    "categoryAr": "تيشيرت",
-    "nameAr": "تشيرت دولسى & غابانا ",
-    "subtitle": "TOUZA Casual Collection",
-    "showOnHome": true,
-    "isFeatured": true
-  },
-  {
-    "id": "prod-1787078804876",
-    "description": "",
-    "subtitle": "TOUZA Casual Collection",
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
-    "sizes": [
-      {
-        "size": "M",
-        "inStock": true
-      },
-      {
-        "inStock": true,
-        "size": "XL"
-      },
-      {
-        "inStock": true,
-        "size": "S"
-      }
-    ],
-    "colors": [
-      {
-        "name": "White",
-        "hex": "#ffffff",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078586/touza_products/ykvqosnktnxqipmvheaa.png",
-        "nameAr": "أبيض",
-        "sizes": [
-          {
-            "inStock": true,
-            "size": "XL"
-          }
-        ]
-      },
-      {
-        "sizes": [
-          {
-            "size": "S",
-            "inStock": true
-          },
-          {
-            "inStock": true,
-            "size": "M"
-          },
-          {
-            "size": "XL",
-            "inStock": true
-          }
-        ],
-        "nameAr": "أسود",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078674/touza_products/gbtgcytqqj28onnc6edy.jpg",
-        "hex": "#000000",
-        "name": "Black"
-      }
-    ],
-    "showOnHome": false,
-    "originalPrice": 2000,
-    "nameAr": "تشيرت دولسى & غابانا ",
-    "price": 1400,
-    "isFeatured": false,
-    "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787078800/touza_products/jpilwxdpgpqawb4pi6yi.png"
-    ],
-    "descriptionAr": "",
-    "categoryAr": "تيشيرت",
-    "name": "D&G Tshirt",
-    "isNewArrival": false,
-    "category": "T-Shirts"
-  },
-  {
-    "id": "prod-1787085131724",
-    "categoryAr": "تشيرت بولو",
-    "category": "Polos",
-    "name": "balmain tshirt ",
-    "price": 1400,
-    "descriptionAr": "",
-    "description": "",
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
-    "nameAr": "تشيرت بلمان ",
     "originalPrice": 2000,
     "colors": [
       {
-        "hex": "#111111",
         "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787089799/touza_products/crufmm4hv2qqhlgfma67.jpg",
         "name": "Black",
         "nameAr": "أسود",
@@ -768,59 +780,95 @@ export const PRODUCTS: Product[] = [
             "inStock": true
           },
           {
-            "inStock": false,
-            "size": "XXL"
+            "size": "XXL",
+            "inStock": false
           }
-        ]
+        ],
+        "hex": "#111111"
       },
       {
-        "nameAr": "أبيض",
-        "name": "White",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787089827/touza_products/zlnf6vatzc1aflqwfkv0.jpg",
         "hex": "#ffffff",
+        "name": "White",
+        "nameAr": "أبيض",
         "sizes": [
           {
             "size": "L",
             "inStock": true
           },
           {
-            "inStock": true,
-            "size": "XL"
+            "size": "XL",
+            "inStock": true
           }
-        ],
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787089827/touza_products/zlnf6vatzc1aflqwfkv0.jpg"
+        ]
       }
     ],
-    "showOnHome": true,
-    "isFeatured": true,
-    "isNewArrival": false,
     "images": [
       "https://res.cloudinary.com/qazdrpcx/image/upload/v1787089854/touza_products/qbimomvpk5d2suhcq1xi.jpg"
     ],
-    "sizes": [
-      {
-        "size": "M",
-        "inStock": true
-      },
-      {
-        "inStock": true,
-        "size": "L"
-      },
-      {
-        "size": "XL",
-        "inStock": true
-      }
-    ],
-    "subtitle": "TOUZA Casual Collection"
+    "showOnHome": true,
+    "nameAr": "تشيرت بلمان ",
+    "name": "balmain tshirt ",
+    "description": "",
+    "category": "Polos"
   },
   {
     "id": "prod-1787152293645",
-    "isNewArrival": true,
-    "isFeatured": true,
-    "showOnHome": true,
-    "price": 1900,
     "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "showOnHome": true,
+    "colors": [
+      {
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152034/touza_products/tkmb9mxgrbpphxmdsnwd.png",
+        "name": "Black",
+        "sizes": [
+          {
+            "size": "S",
+            "inStock": false
+          },
+          {
+            "inStock": true,
+            "size": "M"
+          },
+          {
+            "size": "L",
+            "inStock": false
+          },
+          {
+            "size": "XL",
+            "inStock": true
+          },
+          {
+            "size": "XXL",
+            "inStock": true
+          }
+        ],
+        "hex": "#111111",
+        "nameAr": "أسود"
+      },
+      {
+        "sizes": [
+          {
+            "size": "M",
+            "inStock": true
+          }
+        ],
+        "name": "White",
+        "nameAr": "أبيض",
+        "hex": "#ffffff",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152110/touza_products/gq2pihrb8irzlrn66agn.jpg"
+      }
+    ],
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152269/touza_products/thehxvnzg4jxhqpmr2u1.jpg"
+    ],
+    "category": "Shirts",
+    "nameAr": "قميص أميرى",
+    "isNewArrival": true,
+    "categoryAr": "قميص",
+    "isFeatured": true,
+    "description": "",
     "descriptionAr": "",
-    "subtitle": "TOUZA Casual Collection",
+    "name": "Amiri shirt",
     "sizes": [
       {
         "size": "M",
@@ -835,14 +883,18 @@ export const PRODUCTS: Product[] = [
         "inStock": true
       }
     ],
-    "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152269/touza_products/thehxvnzg4jxhqpmr2u1.jpg"
-    ],
-    "category": "Shirts",
-    "description": "",
-    "name": "Amiri shirt",
-    "nameAr": "قميص أميرى",
+    "price": 1900,
+    "subtitle": "TOUZA Casual Collection"
+  },
+  {
+    "id": "prod-1787152522367",
+    "isFeatured": true,
+    "subtitle": "TOUZA Casual Collection",
+    "nameAr": "قميص ديور ",
     "categoryAr": "قميص",
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152514/touza_products/qgndhh1xgskqcclrmjxd.png"
+    ],
     "colors": [
       {
         "sizes": [
@@ -852,7 +904,7 @@ export const PRODUCTS: Product[] = [
           },
           {
             "size": "M",
-            "inStock": true
+            "inStock": false
           },
           {
             "inStock": false,
@@ -867,28 +919,15 @@ export const PRODUCTS: Product[] = [
             "inStock": true
           }
         ],
-        "hex": "#111111",
-        "nameAr": "أسود",
-        "name": "Black",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152034/touza_products/tkmb9mxgrbpphxmdsnwd.png"
-      },
-      {
-        "name": "White",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152110/touza_products/gq2pihrb8irzlrn66agn.jpg",
-        "sizes": [
-          {
-            "inStock": true,
-            "size": "M"
-          }
-        ],
-        "hex": "#ffffff",
-        "nameAr": "أبيض"
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152474/touza_products/ftqdcleqxqy7gtv2loci.png",
+        "nameAr": "رومادى ",
+        "name": "Grey",
+        "hex": "#ebebeb"
       }
-    ]
-  },
-  {
-    "id": "prod-1787152522367",
-    "categoryAr": "قميص",
+    ],
+    "name": "Dior shirt",
+    "isNewArrival": true,
+    "price": 1900,
     "sizes": [
       {
         "size": "XL",
@@ -899,61 +938,70 @@ export const PRODUCTS: Product[] = [
         "size": "XXL"
       }
     ],
-    "colors": [
-      {
-        "name": "Grey",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152474/touza_products/ftqdcleqxqy7gtv2loci.png",
-        "hex": "#ebebeb",
-        "nameAr": "رومادى ",
-        "sizes": [
-          {
-            "size": "S",
-            "inStock": false
-          },
-          {
-            "size": "M",
-            "inStock": false
-          },
-          {
-            "inStock": false,
-            "size": "L"
-          },
-          {
-            "inStock": true,
-            "size": "XL"
-          },
-          {
-            "size": "XXL",
-            "inStock": true
-          }
-        ]
-      }
-    ],
-    "descriptionAr": "",
     "description": "",
-    "nameAr": "قميص ديور ",
-    "price": 1900,
-    "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787152514/touza_products/qgndhh1xgskqcclrmjxd.png"
-    ],
-    "subtitle": "TOUZA Casual Collection",
+    "showOnHome": true,
     "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
     "category": "Shirts",
-    "isFeatured": true,
-    "name": "Dior shirt",
-    "isNewArrival": true,
-    "showOnHome": true
+    "descriptionAr": ""
   },
   {
     "id": "prod-1787174449423",
-    "nameAr": "ترنج غوتشى",
+    "isNewArrival": true,
+    "name": "Gucci suit ",
+    "category": "Tracksuit",
+    "showOnHome": false,
+    "price": 1900,
+    "sizes": [
+      {
+        "inStock": true,
+        "size": "M"
+      },
+      {
+        "size": "L",
+        "inStock": true
+      },
+      {
+        "inStock": true,
+        "size": "XL"
+      },
+      {
+        "inStock": true,
+        "size": "XXL"
+      }
+    ],
     "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
     "images": [
       "https://res.cloudinary.com/qazdrpcx/image/upload/v1787174431/touza_products/xpdgdkrw7pvc3o49ebo8.jpg"
     ],
     "colors": [
       {
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787174328/touza_products/judcbqfu8twivvaupj9f.jpg",
+        "name": "Black",
+        "sizes": [
+          {
+            "inStock": true,
+            "size": "M"
+          },
+          {
+            "size": "L",
+            "inStock": true
+          },
+          {
+            "size": "XL",
+            "inStock": true
+          },
+          {
+            "inStock": true,
+            "size": "XXL"
+          }
+        ],
         "hex": "#111111",
+        "nameAr": "أسود"
+      },
+      {
+        "hex": "#ffffff",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787174375/touza_products/kyruoozimx1255m7etpe.png",
+        "nameAr": "أبيض ",
         "sizes": [
           {
             "inStock": true,
@@ -972,45 +1020,62 @@ export const PRODUCTS: Product[] = [
             "size": "XXL"
           }
         ],
-        "name": "Black",
-        "nameAr": "أسود",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787174328/touza_products/judcbqfu8twivvaupj9f.jpg"
-      },
+        "name": "White"
+      }
+    ],
+    "isFeatured": false,
+    "nameAr": "ترنج غوتشى",
+    "descriptionAr": "",
+    "description": "",
+    "subtitle": "TOUZA Casual Collection",
+    "categoryAr": "ترنج "
+  },
+  {
+    "id": "prod-1787175294850",
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "showOnHome": false,
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787175242/touza_products/nvae3zopzhgsgsbknbpu.jpg"
+    ],
+    "colors": [
       {
         "name": "White",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787175093/touza_products/ydiln46jziiva7fj1lia.png",
         "sizes": [
+          {
+            "inStock": false,
+            "size": "S"
+          },
           {
             "size": "M",
             "inStock": true
           },
           {
-            "size": "L",
-            "inStock": true
+            "inStock": true,
+            "size": "L"
           },
           {
-            "inStock": true,
-            "size": "XL"
+            "size": "XL",
+            "inStock": true
           },
           {
             "size": "XXL",
             "inStock": true
           }
         ],
-        "nameAr": "أبيض ",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787174375/touza_products/kyruoozimx1255m7etpe.png",
-        "hex": "#ffffff"
+        "hex": "#ffffff",
+        "nameAr": "أبيض"
+      },
+      {
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787175169/touza_products/ao9wi4sz6al4zvipzbbw.png",
+        "name": "Blacl",
+        "hex": "#111111",
+        "nameAr": "أسود"
       }
     ],
     "descriptionAr": "",
-    "categoryAr": "ترنج ",
-    "subtitle": "TOUZA Casual Collection",
-    "name": "Gucci suit ",
-    "price": 1900,
-    "description": "",
     "category": "Tracksuit",
-    "isNewArrival": true,
-    "isFeatured": false,
-    "showOnHome": false,
+    "nameAr": "ترنج غوتشى ",
     "sizes": [
       {
         "inStock": true,
@@ -1025,131 +1090,63 @@ export const PRODUCTS: Product[] = [
         "inStock": true
       },
       {
-        "size": "XXL",
-        "inStock": true
+        "inStock": true,
+        "size": "XXL"
       }
-    ]
+    ],
+    "price": 1900,
+    "categoryAr": "ترنج ",
+    "name": "Gucci suit",
+    "isNewArrival": true,
+    "isFeatured": false,
+    "description": "",
+    "subtitle": "TOUZA Casual Collection"
   },
   {
-    "id": "prod-1787175294850",
-    "categoryAr": "ترنج ",
+    "id": "prod-1787177006021",
+    "isFeatured": false,
+    "categoryAr": "تيشيرت",
+    "originalPrice": 1800,
+    "category": "T-Shirts",
+    "showOnHome": false,
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787176974/touza_products/njxowcriojvvodyaalru.png",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787176993/touza_products/rzbnmyuotibs27hcwpli.png"
+    ],
     "colors": [
       {
-        "nameAr": "أبيض",
-        "name": "White",
+        "hex": "#111111",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787176900/touza_products/qvsl6nmwood0cwragvgf.png",
         "sizes": [
           {
             "size": "S",
             "inStock": false
           },
           {
-            "size": "M",
-            "inStock": true
-          },
-          {
-            "inStock": true,
-            "size": "L"
-          },
-          {
-            "inStock": true,
-            "size": "XL"
-          },
-          {
-            "inStock": true,
-            "size": "XXL"
-          }
-        ],
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787175093/touza_products/ydiln46jziiva7fj1lia.png",
-        "hex": "#ffffff"
-      },
-      {
-        "nameAr": "أسود",
-        "hex": "#111111",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787175169/touza_products/ao9wi4sz6al4zvipzbbw.png",
-        "name": "Blacl"
-      }
-    ],
-    "sizes": [
-      {
-        "size": "M",
-        "inStock": true
-      },
-      {
-        "inStock": true,
-        "size": "L"
-      },
-      {
-        "inStock": true,
-        "size": "XL"
-      },
-      {
-        "inStock": true,
-        "size": "XXL"
-      }
-    ],
-    "subtitle": "TOUZA Casual Collection",
-    "price": 1900,
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
-    "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787175242/touza_products/nvae3zopzhgsgsbknbpu.jpg"
-    ],
-    "nameAr": "ترنج غوتشى ",
-    "descriptionAr": "",
-    "description": "",
-    "isFeatured": false,
-    "category": "Tracksuit",
-    "showOnHome": false,
-    "isNewArrival": true,
-    "name": "Gucci suit"
-  },
-  {
-    "id": "prod-1787177006021",
-    "category": "T-Shirts",
-    "categoryAr": "تيشيرت",
-    "isNewArrival": false,
-    "colors": [
-      {
-        "nameAr": "أسود",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787176900/touza_products/qvsl6nmwood0cwragvgf.png",
-        "name": "Black",
-        "hex": "#111111",
-        "sizes": [
-          {
             "inStock": false,
-            "size": "S"
-          },
-          {
-            "size": "M",
-            "inStock": false
+            "size": "M"
           },
           {
             "size": "L",
             "inStock": true
           },
           {
-            "size": "XL",
-            "inStock": false
+            "inStock": false,
+            "size": "XL"
           },
           {
-            "inStock": true,
-            "size": "XXL"
+            "size": "XXL",
+            "inStock": true
           }
-        ]
+        ],
+        "name": "Black",
+        "nameAr": "أسود"
       }
     ],
-    "nameAr": "تشيرت أوف وايت ",
     "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
-    "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787176974/touza_products/njxowcriojvvodyaalru.png",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787176993/touza_products/rzbnmyuotibs27hcwpli.png"
-    ],
-    "description": "",
-    "price": 1200,
-    "isFeatured": false,
-    "showOnHome": false,
-    "subtitle": "TOUZA Casual Collection",
-    "descriptionAr": "",
+    "isNewArrival": false,
     "name": "Offwhite tshirt",
+    "subtitle": "TOUZA Casual Collection",
     "sizes": [
       {
         "size": "L",
@@ -1160,34 +1157,34 @@ export const PRODUCTS: Product[] = [
         "size": "XXL"
       }
     ],
-    "originalPrice": 1800
+    "nameAr": "تشيرت أوف وايت ",
+    "description": "",
+    "price": 1200,
+    "descriptionAr": ""
   },
   {
     "id": "prod-1787177608748",
-    "description": "",
-    "subtitle": "TOUZA Casual Collection",
-    "name": "Offwhite tshirt",
-    "isFeatured": false,
-    "showOnHome": false,
-    "isNewArrival": false,
-    "category": "T-Shirts",
-    "originalPrice": 1800,
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
-    "nameAr": "تشيرت اوف وايت ",
-    "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177559/touza_products/rmczysjoc2rnuznudkdb.png",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177565/touza_products/njqflfklszb5wme6agh0.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177583/touza_products/h8bi3bulgvvrskn5rx8g.png",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177790/touza_products/sxvjedb4hwwycnewv57b.png"
+    "sizes": [
+      {
+        "inStock": true,
+        "size": "M"
+      },
+      {
+        "inStock": true,
+        "size": "XL"
+      },
+      {
+        "inStock": true,
+        "size": "XXL"
+      }
     ],
     "price": 1200,
+    "nameAr": "تشيرت اوف وايت ",
     "categoryAr": "تيشيرت",
-    "descriptionAr": "",
     "colors": [
       {
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177279/touza_products/cpvkofvhd9c91t4ntbuz.png",
         "hex": "#ffffff",
-        "nameAr": "أبيض",
-        "name": "White",
         "sizes": [
           {
             "size": "XL",
@@ -1198,13 +1195,16 @@ export const PRODUCTS: Product[] = [
             "size": "XXL"
           }
         ],
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177279/touza_products/cpvkofvhd9c91t4ntbuz.png"
+        "nameAr": "أبيض",
+        "name": "White"
       },
       {
+        "nameAr": "أسود",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177344/touza_products/zbebrsui0fj6bw1zb51q.jpg",
         "sizes": [
           {
-            "inStock": true,
-            "size": "M"
+            "size": "M",
+            "inStock": true
           },
           {
             "size": "XL",
@@ -1216,36 +1216,33 @@ export const PRODUCTS: Product[] = [
           }
         ],
         "name": "Black",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177344/touza_products/zbebrsui0fj6bw1zb51q.jpg",
-        "nameAr": "أسود",
         "hex": "#000000"
       }
     ],
-    "sizes": [
-      {
-        "size": "M",
-        "inStock": true
-      },
-      {
-        "size": "XL",
-        "inStock": true
-      },
-      {
-        "size": "XXL",
-        "inStock": true
-      }
-    ]
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177559/touza_products/rmczysjoc2rnuznudkdb.png",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177565/touza_products/njqflfklszb5wme6agh0.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177583/touza_products/h8bi3bulgvvrskn5rx8g.png",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787177790/touza_products/sxvjedb4hwwycnewv57b.png"
+    ],
+    "category": "T-Shirts",
+    "isFeatured": false,
+    "originalPrice": 1800,
+    "description": "",
+    "isNewArrival": false,
+    "descriptionAr": "",
+    "name": "Offwhite tshirt",
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "showOnHome": false,
+    "subtitle": "TOUZA Casual Collection"
   },
   {
     "id": "prod-1787268569316",
-    "nameAr": "قميص كتان ",
-    "price": 850,
-    "showOnHome": false,
-    "isFeatured": false,
-    "subtitle": "TOUZA Casual Collection",
-    "descriptionAr": "",
-    "isNewArrival": false,
     "name": "Linen shirt",
+    "subtitle": "TOUZA Casual Collection",
+    "isFeatured": false,
+    "categoryAr": "قميص",
+    "showOnHome": false,
     "sizes": [
       {
         "size": "S",
@@ -1264,105 +1261,22 @@ export const PRODUCTS: Product[] = [
         "size": "L"
       }
     ],
-    "description": "",
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "price": 850,
+    "category": "Shirts",
+    "nameAr": "قميص كتان ",
+    "descriptionAr": "",
     "images": [
       "https://res.cloudinary.com/qazdrpcx/image/upload/v1787269563/touza_products/vimfavjeosv4qkccwnku.jpg",
       "https://res.cloudinary.com/qazdrpcx/image/upload/v1787269587/touza_products/qynot1epph9kzgmvgbut.jpg",
       "https://res.cloudinary.com/qazdrpcx/image/upload/v1787269602/touza_products/pzxfzhtv2b0nglnij5a9.jpg",
       "https://res.cloudinary.com/qazdrpcx/image/upload/v1787269632/touza_products/owfgeknwlmcy1upjembr.jpg"
     ],
-    "category": "Shirts",
-    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
-    "categoryAr": "قميص",
     "colors": [
       {
-        "hex": "#563d00",
-        "name": "Brown",
-        "sizes": [
-          {
-            "size": "S",
-            "inStock": true
-          },
-          {
-            "size": "M",
-            "inStock": true
-          },
-          {
-            "inStock": true,
-            "size": "L"
-          },
-          {
-            "size": "XL",
-            "inStock": true
-          },
-          {
-            "inStock": false,
-            "size": "XXL"
-          }
-        ],
+        "nameAr": "بنى",
         "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787267859/touza_products/pag1qeooecjjybyxtjmr.jpg",
-        "nameAr": "بنى"
-      },
-      {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787267907/touza_products/igs7dvazeolk26q6y0e2.jpg",
-        "nameAr": "أصفر",
-        "name": "Yellow",
-        "sizes": [
-          {
-            "inStock": true,
-            "size": "S"
-          },
-          {
-            "size": "M",
-            "inStock": true
-          },
-          {
-            "inStock": true,
-            "size": "L"
-          },
-          {
-            "inStock": true,
-            "size": "XL"
-          },
-          {
-            "inStock": false,
-            "size": "XXL"
-          }
-        ],
-        "hex": "#fefb41"
-      },
-      {
-        "hex": "#38571a",
-        "name": "Green",
-        "sizes": [
-          {
-            "inStock": true,
-            "size": "S"
-          },
-          {
-            "size": "M",
-            "inStock": true
-          },
-          {
-            "size": "L",
-            "inStock": true
-          },
-          {
-            "size": "XL",
-            "inStock": true
-          },
-          {
-            "inStock": false,
-            "size": "XXL"
-          }
-        ],
-        "nameAr": "اخضر",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787268178/touza_products/wzyhfqkx49e1dqsqos3y.jpg"
-      },
-      {
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787268276/touza_products/t6ksudgknyehngfwsuaz.jpg",
-        "hex": "#ff8648",
-        "name": "Orange",
+        "hex": "#563d00",
         "sizes": [
           {
             "inStock": true,
@@ -1385,9 +1299,534 @@ export const PRODUCTS: Product[] = [
             "size": "XXL"
           }
         ],
-        "nameAr": "برتقالى "
+        "name": "Brown"
+      },
+      {
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787267907/touza_products/igs7dvazeolk26q6y0e2.jpg",
+        "hex": "#fefb41",
+        "name": "Yellow",
+        "nameAr": "أصفر",
+        "sizes": [
+          {
+            "size": "S",
+            "inStock": true
+          },
+          {
+            "size": "M",
+            "inStock": true
+          },
+          {
+            "size": "L",
+            "inStock": true
+          },
+          {
+            "size": "XL",
+            "inStock": true
+          },
+          {
+            "inStock": false,
+            "size": "XXL"
+          }
+        ]
+      },
+      {
+        "sizes": [
+          {
+            "size": "S",
+            "inStock": true
+          },
+          {
+            "size": "M",
+            "inStock": true
+          },
+          {
+            "size": "L",
+            "inStock": true
+          },
+          {
+            "size": "XL",
+            "inStock": true
+          },
+          {
+            "inStock": false,
+            "size": "XXL"
+          }
+        ],
+        "name": "Green",
+        "nameAr": "اخضر",
+        "hex": "#38571a",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787268178/touza_products/wzyhfqkx49e1dqsqos3y.jpg"
+      },
+      {
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787268276/touza_products/t6ksudgknyehngfwsuaz.jpg",
+        "sizes": [
+          {
+            "size": "S",
+            "inStock": true
+          },
+          {
+            "size": "M",
+            "inStock": true
+          },
+          {
+            "size": "L",
+            "inStock": true
+          },
+          {
+            "size": "XL",
+            "inStock": true
+          },
+          {
+            "size": "XXL",
+            "inStock": false
+          }
+        ],
+        "nameAr": "برتقالى ",
+        "hex": "#ff8648",
+        "name": "Orange"
+      }
+    ],
+    "isNewArrival": false,
+    "description": ""
+  },
+  {
+    "id": "prod-1787359084543",
+    "isFeatured": false,
+    "isNewArrival": true,
+    "price": 1900,
+    "sizes": [
+      {
+        "inStock": true,
+        "size": "M"
+      },
+      {
+        "size": "L",
+        "inStock": true
+      },
+      {
+        "size": "XL",
+        "inStock": true
+      },
+      {
+        "size": "XXL",
+        "inStock": true
+      }
+    ],
+    "categoryAr": "ترنج ",
+    "category": "Tracksuit",
+    "descriptionAr": "",
+    "name": "Guuci suit",
+    "showOnHome": false,
+    "nameAr": "ترنج غوتشى ",
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787359286/touza_products/w3hnbszed2xyaufumxoh.png",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787359207/touza_products/dvpnuorkbwpmrw09qwnc.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787359307/touza_products/twzaxd0cwriqtzrz5x8m.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787359325/touza_products/o6va0t0dxldvtzatb6li.jpg"
+    ],
+    "colors": [
+      {
+        "name": "Green",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787359066/touza_products/koyejasgo8hmadojqiee.png",
+        "nameAr": "أخضر",
+        "sizes": [
+          {
+            "size": "S",
+            "inStock": false
+          },
+          {
+            "size": "M",
+            "inStock": true
+          },
+          {
+            "size": "L",
+            "inStock": true
+          },
+          {
+            "size": "XL",
+            "inStock": true
+          },
+          {
+            "size": "XXL",
+            "inStock": true
+          }
+        ],
+        "hex": "#38571a"
+      },
+      {
+        "hex": "#ffffff",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787359145/touza_products/zbj3rej8u0dahfrcpjwm.png",
+        "sizes": [
+          {
+            "size": "S",
+            "inStock": true
+          },
+          {
+            "size": "M",
+            "inStock": true
+          },
+          {
+            "size": "L",
+            "inStock": true
+          },
+          {
+            "size": "XL",
+            "inStock": true
+          },
+          {
+            "size": "XXL",
+            "inStock": false
+          }
+        ],
+        "nameAr": "أبيض",
+        "name": "White"
+      }
+    ],
+    "description": "",
+    "subtitle": "TOUZA Casual Collection"
+  },
+  {
+    "id": "prod-1787425680594",
+    "description": "",
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787425646/touza_products/zyrjbml5dtefvdjy5csn.jpg"
+    ],
+    "colors": [
+      {
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787425669/touza_products/niy0weuclxajyta5hyqm.jpg",
+        "sizes": [
+          {
+            "inStock": false,
+            "size": "S"
+          },
+          {
+            "inStock": false,
+            "size": "M"
+          },
+          {
+            "size": "L",
+            "inStock": false
+          },
+          {
+            "size": "XL",
+            "inStock": true
+          },
+          {
+            "inStock": false,
+            "size": "XXL"
+          }
+        ],
+        "nameAr": "أسود",
+        "hex": "#111111",
+        "name": "Black"
+      }
+    ],
+    "price": 1400,
+    "sizes": [
+      {
+        "inStock": true,
+        "size": "XL"
+      }
+    ],
+    "originalPrice": 2000,
+    "subtitle": "TOUZA Casual Collection",
+    "categoryAr": "تيشيرت",
+    "nameAr": "تشيرت أميرى",
+    "isFeatured": false,
+    "isNewArrival": false,
+    "descriptionAr": "",
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "category": "T-Shirts",
+    "showOnHome": false,
+    "name": "Amiri tshirt"
+  },
+  {
+    "id": "prod-1787531417896",
+    "name": "Casablanca suit ",
+    "isNewArrival": true,
+    "showOnHome": true,
+    "descriptionAr": "",
+    "price": 1900,
+    "subtitle": "TOUZA Casual Collection",
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "sizes": [
+      {
+        "inStock": true,
+        "size": "M"
+      },
+      {
+        "inStock": true,
+        "size": "L"
+      },
+      {
+        "size": "XL",
+        "inStock": true
+      },
+      {
+        "inStock": true,
+        "size": "XXL"
+      }
+    ],
+    "nameAr": "ترنج كازابلانكا ",
+    "description": "",
+    "isFeatured": true,
+    "originalPrice": 1900,
+    "category": "Tracksuit",
+    "categoryAr": "ترنج ",
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787531315/touza_products/jzsglgklvdc3axjtrh3b.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787531332/touza_products/yredmdk9fwqifkgc9uff.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787531362/touza_products/xjxj8x8xhcen1nkko7mu.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787531401/touza_products/uxa3hhpbkockygerf3nv.jpg"
+    ],
+    "colors": [
+      {
+        "name": "Black",
+        "hex": "#111111",
+        "sizes": [
+          {
+            "inStock": false,
+            "size": "S"
+          },
+          {
+            "inStock": false,
+            "size": "M"
+          },
+          {
+            "inStock": true,
+            "size": "L"
+          },
+          {
+            "size": "XL",
+            "inStock": true
+          },
+          {
+            "inStock": true,
+            "size": "XXL"
+          }
+        ],
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787531227/touza_products/uvmhptanrt5rhkb8prkk.jpg",
+        "nameAr": "أسود"
+      },
+      {
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787531252/touza_products/mxru99vzgwsamtqbenhe.jpg",
+        "hex": "#ffffff",
+        "name": "White",
+        "nameAr": "أبيض",
+        "sizes": [
+          {
+            "inStock": false,
+            "size": "S"
+          },
+          {
+            "size": "M",
+            "inStock": true
+          },
+          {
+            "size": "L",
+            "inStock": false
+          },
+          {
+            "inStock": true,
+            "size": "XL"
+          },
+          {
+            "inStock": true,
+            "size": "XXL"
+          }
+        ]
       }
     ]
+  },
+  {
+    "id": "prod-1787592536234",
+    "descriptionAr": "",
+    "description": "",
+    "nameAr": "سيت ديور ",
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "subtitle": "TOUZA Casual Collection",
+    "showOnHome": true,
+    "colors": [
+      {
+        "name": "Blue",
+        "nameAr": "أزرق ",
+        "sizes": [
+          {
+            "inStock": false,
+            "size": "S"
+          },
+          {
+            "inStock": true,
+            "size": "M"
+          },
+          {
+            "size": "L",
+            "inStock": true
+          },
+          {
+            "size": "XL",
+            "inStock": true
+          },
+          {
+            "inStock": false,
+            "size": "XXL"
+          }
+        ],
+        "hex": "#a7c6ff",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592093/touza_products/hvr0hnsrsdo7dcmnbs4s.png"
+      },
+      {
+        "hex": "#c2c2c2",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592092/touza_products/gwmpceipni0jppyxb18i.png",
+        "name": "Gray",
+        "nameAr": "رومادى",
+        "sizes": [
+          {
+            "inStock": false,
+            "size": "S"
+          },
+          {
+            "inStock": true,
+            "size": "M"
+          },
+          {
+            "size": "L",
+            "inStock": true
+          },
+          {
+            "size": "XL",
+            "inStock": true
+          },
+          {
+            "size": "XXL",
+            "inStock": false
+          }
+        ]
+      }
+    ],
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592308/touza_products/ylbiihdrwbry8w3mjkpn.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592346/touza_products/tffrwugdhrevei9o2lef.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592381/touza_products/hbf7e474hdkb2nrvhk6c.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592440/touza_products/emymamidffad9b28bkej.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592529/touza_products/lkvyj8kuluzcekupin7x.jpg"
+    ],
+    "isNewArrival": true,
+    "name": "Dior suit ",
+    "categoryAr": "سيت",
+    "price": 3800,
+    "isFeatured": true,
+    "sizes": [
+      {
+        "inStock": true,
+        "size": "M"
+      },
+      {
+        "inStock": true,
+        "size": "L"
+      },
+      {
+        "inStock": true,
+        "size": "XL"
+      }
+    ],
+    "category": "suit"
+  },
+  {
+    "id": "prod-1787593103515",
+    "categoryAr": "سيت",
+    "name": "Louisvuitton suit",
+    "nameAr": "سوت تريكو لويس فيتون ",
+    "descriptionAr": "",
+    "description": "",
+    "subtitle": "TOUZA Casual Collection",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "images": [
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787593072/touza_products/qszejckhae92siir0j3v.jpg",
+      "https://res.cloudinary.com/qazdrpcx/image/upload/v1787593097/touza_products/y2gn1xbrftcclx5myqvp.jpg"
+    ],
+    "colors": [
+      {
+        "name": "Brown",
+        "hex": "#583300",
+        "nameAr": "بنى ",
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787592837/touza_products/wjmxnuukur7f0fz2vonj.jpg",
+        "sizes": [
+          {
+            "size": "S",
+            "inStock": true
+          },
+          {
+            "inStock": true,
+            "size": "M"
+          },
+          {
+            "inStock": true,
+            "size": "L"
+          },
+          {
+            "inStock": false,
+            "size": "XL"
+          },
+          {
+            "size": "XXL",
+            "inStock": false
+          }
+        ]
+      },
+      {
+        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/v1787593048/touza_products/pj2afau2blecnuyljf0o.png",
+        "name": "Gray ",
+        "nameAr": "رومادى",
+        "sizes": [
+          {
+            "inStock": false,
+            "size": "S"
+          },
+          {
+            "size": "M",
+            "inStock": false
+          },
+          {
+            "inStock": true,
+            "size": "L"
+          },
+          {
+            "inStock": false,
+            "size": "XL"
+          },
+          {
+            "size": "XXL",
+            "inStock": true
+          }
+        ],
+        "hex": "#5c5c5c"
+      }
+    ],
+    "subtitleAr": "تشكيلة توزا الكاجوال الفاخرة",
+    "category": "suit",
+    "showOnHome": true,
+    "sizes": [
+      {
+        "inStock": true,
+        "size": "S"
+      },
+      {
+        "inStock": true,
+        "size": "L"
+      },
+      {
+        "inStock": true,
+        "size": "M"
+      },
+      {
+        "size": "XXL",
+        "inStock": true
+      }
+    ],
+    "price": 3900
   }
 ];
 

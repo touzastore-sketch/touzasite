@@ -9,6 +9,43 @@
     <meta name="format-detection" content="telephone=no" />
     <title>TOUZA - أزياء كاجوال رجالية فاخرة</title>
     
+    <!-- Global Circular-Safe JSON Protection -->
+    <script>
+      (function() {
+        var orig = JSON.stringify;
+        if (!orig) return;
+        JSON.stringify = function(val, replacer, space) {
+          try {
+            var seen = new WeakSet();
+            return orig(val, function(k, v) {
+              if (typeof v === 'object' && v !== null) {
+                if (seen.has(v)) return undefined;
+                seen.add(v);
+              }
+              if (typeof replacer === 'function') {
+                return replacer.call(this, k, v);
+              }
+              if (Array.isArray(replacer)) {
+                if (k === '' || replacer.indexOf(k) !== -1) return v;
+                return undefined;
+              }
+              return v;
+            }, space);
+          } catch (e) {
+            try {
+              if (val === null || val === undefined) return orig(val);
+              if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return orig(val);
+              if (Array.isArray(val)) return '[]';
+              if (typeof val === 'object') return '{}';
+              return orig(String(val));
+            } catch (err) {
+              return '""';
+            }
+          }
+        };
+      })();
+    </script>
+    
     <!-- Ultra-fast DNS & Asset Preconnect -->
     <link rel="preconnect" href="https://analytics.tiktok.com" crossorigin />
     <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />

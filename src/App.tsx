@@ -17,7 +17,7 @@ import { FloatingContactButtons } from './components/FloatingContactButtons';
 import { ScrollReveal } from './components/ScrollReveal';
 import { StorePreloader } from './components/StorePreloader';
 import { useLanguage } from './context/LanguageContext';
-import { getOptimizedImageUrl } from './utils/cloudinary';
+import { getOptimizedImageUrl, DEFAULT_HEADER_VIDEO_URL } from './utils/cloudinary';
 import {
   subscribeToAuth,
   signInWithGoogle,
@@ -38,6 +38,7 @@ import {
   deletePromoCodeAdmin,
   incrementPromoCodeUsageAdmin,
   safeJsonStringify,
+  isBannedProductId,
 } from './firebase';
 import {
   initTikTokPixel,
@@ -117,11 +118,13 @@ export const AppContent: React.FC = () => {
       const saved = localStorage.getItem('maison_products');
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((p) => !isBannedProductId(p.id));
+        }
       }
-      return PRODUCTS;
+      return PRODUCTS.filter((p) => !isBannedProductId(p.id));
     } catch {
-      return PRODUCTS;
+      return PRODUCTS.filter((p) => !isBannedProductId(p.id));
     }
   });
 
@@ -276,7 +279,7 @@ export const AppContent: React.FC = () => {
     heroSubtitleEn: 'A distinctive men’s collection crafted with care to give you a stylish and modern look for all occasions, combining quality, comfort, and elegance in every detail.',
     heroBadgeAr: 'تشكيلة توزا الرجالية • بورسعيد ومصر',
     heroBadgeEn: 'TOUZA MENSWEAR • EGYPT',
-    heroImageUrl: 'https://res.cloudinary.com/qazdrpcx/video/upload/q_auto,f_mp4/v1786595529/touza_header_videos/pb3glshlcqx6jhuapcpq.mp4',
+    heroImageUrl: DEFAULT_HEADER_VIDEO_URL,
     newsletterBadgeAr: 'توزا',
     newsletterBadgeEn: 'TOUZA',
     newsletterTitleAr: 'انضم إلى عائلة توزا',
@@ -398,13 +401,13 @@ export const AppContent: React.FC = () => {
 
     // Subscribe to live Firestore updates with instantaneous local cache hydration
     const unsubscribeProducts = subscribeToProducts((liveProducts) => {
-      if (isSubscribed && Array.isArray(liveProducts)) {
+      if (isSubscribed && liveProducts && liveProducts.length > 0) {
         setProducts(liveProducts);
       }
     });
 
     const unsubscribeCategories = subscribeToCategories((liveCats) => {
-      if (isSubscribed && Array.isArray(liveCats)) {
+      if (isSubscribed && liveCats && liveCats.length > 0) {
         setCategories(liveCats);
       }
     });
@@ -416,7 +419,7 @@ export const AppContent: React.FC = () => {
     });
 
     const unsubscribePromoCodes = subscribeToPromoCodes(defaultPromos, (livePromos) => {
-      if (isSubscribed && Array.isArray(livePromos)) {
+      if (isSubscribed && livePromos && livePromos.length > 0) {
         setPromoCodes(livePromos);
       }
     });

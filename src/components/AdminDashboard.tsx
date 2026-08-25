@@ -68,6 +68,7 @@ import {
   subscribeToNewsletterCampaigns,
   exportFirestoreProductsBackup,
   syncAllProductsToFirestore,
+  safeJsonStringify,
 } from '../firebase';
 
 interface AdminDashboardProps {
@@ -699,7 +700,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setIsExportingProducts(true);
       const backupData = await exportFirestoreProductsBackup();
 
-      const blob = new Blob([JSON.stringify(backupData, null, 2)], {
+      const blob = new Blob([safeJsonStringify(backupData, 2)], {
         type: 'application/json',
       });
       const url = URL.createObjectURL(blob);
@@ -997,7 +998,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleCopyGeneralSizesToColor = (colorIdx: number) => {
     setFormData((prev) => {
       const updatedColors = [...(prev.colors || [])];
-      const generalSizes = prev.sizes ? JSON.parse(JSON.stringify(prev.sizes)) : [];
+      const generalSizes = Array.isArray(prev.sizes)
+        ? prev.sizes.map((s) => (typeof s === 'object' && s ? { ...s } : s))
+        : [];
       updatedColors[colorIdx] = {
         ...updatedColors[colorIdx],
         sizes: generalSizes,
