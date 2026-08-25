@@ -16,7 +16,56 @@ export interface VideoUploadProgressCallback {
 }
 
 /**
- * Unsigned upload to Cloudinary for images. Returns the secure_url string.
+ * Ensures any Cloudinary image URL contains f_auto,q_auto right after /image/upload/ or /upload/ (for images).
+ * E.g.:
+ * https://res.cloudinary.com/qazdrpcx/image/upload/v12345/touza_products/abc.jpg
+ * -> https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v12345/touza_products/abc.jpg
+ */
+export function ensureAutoOptimizedCloudinaryUrl(url?: string): string {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+
+  // Only apply to Cloudinary URLs
+  if (!trimmed.includes('res.cloudinary.com') && !trimmed.includes('cloudinary.com')) {
+    return trimmed;
+  }
+
+  // If URL is for video resource, do not apply image format auto
+  if (
+    trimmed.includes('/video/upload/') ||
+    trimmed.includes('touza_header_videos') ||
+    trimmed.includes('touza_videos') ||
+    trimmed.match(/\.(mp4|webm|mov|ogg|m4v)(\?.*)?$/i)
+  ) {
+    return trimmed;
+  }
+
+  // If URL already has f_auto,q_auto or transformations
+  if (
+    trimmed.includes('/image/upload/f_auto') ||
+    trimmed.includes('/image/upload/q_auto') ||
+    trimmed.includes('/upload/f_auto') ||
+    trimmed.includes('/upload/q_auto')
+  ) {
+    return trimmed;
+  }
+
+  // Handle standard /image/upload/
+  if (trimmed.includes('/image/upload/')) {
+    return trimmed.replace('/image/upload/', '/image/upload/f_auto,q_auto/');
+  }
+
+  // Handle generic /upload/
+  if (trimmed.includes('/upload/')) {
+    return trimmed.replace('/upload/', '/upload/f_auto,q_auto/');
+  }
+
+  return trimmed;
+}
+
+/**
+ * Unsigned upload to Cloudinary for images. Returns the secure_url string with f_auto,q_auto.
  * Falls back to compressed base64 if network/Cloudinary upload encounters an error.
  */
 export async function uploadToCloudinary(
@@ -50,7 +99,7 @@ export async function uploadToCloudinary(
 
     const data = await response.json();
     if (data && data.secure_url) {
-      return data.secure_url;
+      return ensureAutoOptimizedCloudinaryUrl(data.secure_url);
     }
     throw new Error('No secure_url returned from Cloudinary');
   } catch (error) {

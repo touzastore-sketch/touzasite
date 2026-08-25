@@ -36,6 +36,7 @@ import { DEFAULT_REVIEWS } from './data/defaultReviews';
 import { DEFAULT_CATEGORIES, CATEGORIES_VERSION } from './data/defaultCategories';
 import { PRODUCTS, CATALOG_VERSION } from './data/products';
 import { Category, Product, StoreSettings, PromoCode, TouzaUser } from './types';
+import { ensureAutoOptimizedCloudinaryUrl } from './utils/cloudinary';
 export type { TouzaUser };
 
 // Initialize Firebase
@@ -1135,7 +1136,12 @@ export const getAllCategories = async (): Promise<Category[]> => {
 
     snapshot.forEach((docSnap) => {
       if (!deletedSet.has(docSnap.id.trim())) {
-        categories.push({ id: docSnap.id, ...docSnap.data() } as Category);
+        const cData = docSnap.data() as Category;
+        categories.push({
+          id: docSnap.id,
+          ...cData,
+          imageUrl: ensureAutoOptimizedCloudinaryUrl(cData.imageUrl),
+        } as Category);
       }
     });
 
@@ -1146,7 +1152,10 @@ export const getAllCategories = async (): Promise<Category[]> => {
       return categories;
     }
 
-    const filteredDefaults = DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id));
+    const filteredDefaults = DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)).map((c) => ({
+      ...c,
+      imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
+    }));
     return filteredDefaults;
   } catch (error) {
     console.warn('Using offline fallback for categories:', error);
@@ -1154,10 +1163,17 @@ export const getAllCategories = async (): Promise<Category[]> => {
       const saved = localStorage.getItem('maison_categories');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed.filter((c: Category) => !deletedSet.has(c.id));
+        if (Array.isArray(parsed)) {
+          return parsed
+            .filter((c: Category) => !deletedSet.has(c.id))
+            .map((c) => ({ ...c, imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl) }));
+        }
       }
     } catch {}
-    return DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id));
+    return DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)).map((c) => ({
+      ...c,
+      imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
+    }));
   }
 };
 
@@ -1175,15 +1191,34 @@ export const subscribeToCategories = (
     if (saved) {
       const parsed: Category[] = JSON.parse(saved);
       if (Array.isArray(parsed)) {
-        callback(parsed.filter((c: Category) => !deletedSet.has(c.id)));
+        callback(
+          parsed
+            .filter((c: Category) => !deletedSet.has(c.id))
+            .map((c) => ({ ...c, imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl) }))
+        );
       } else {
-        callback(DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)));
+        callback(
+          DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)).map((c) => ({
+            ...c,
+            imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
+          }))
+        );
       }
     } else {
-      callback(DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)));
+      callback(
+        DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)).map((c) => ({
+          ...c,
+          imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
+        }))
+      );
     }
   } catch {
-    callback(DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)));
+    callback(
+      DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)).map((c) => ({
+        ...c,
+        imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
+      }))
+    );
   }
 
   try {
@@ -1194,7 +1229,12 @@ export const subscribeToCategories = (
         const firestoreCats: Category[] = [];
         snapshot.forEach((docSnap) => {
           if (!deletedSet.has(docSnap.id.trim())) {
-            firestoreCats.push({ id: docSnap.id, ...docSnap.data() } as Category);
+            const cData = docSnap.data() as Category;
+            firestoreCats.push({
+              id: docSnap.id,
+              ...cData,
+              imageUrl: ensureAutoOptimizedCloudinaryUrl(cData.imageUrl),
+            } as Category);
           }
         });
         try {
@@ -1218,9 +1258,13 @@ export const saveCategoryAdmin = async (
   currentCategories: Category[] = []
 ): Promise<Category[]> => {
   const newCatId = 'cat-' + (categoryData.nameEn ? categoryData.nameEn.toLowerCase().replace(/[^a-z0-9]/g, '-') : Date.now());
+  const sanitizedCatData = {
+    ...categoryData,
+    imageUrl: ensureAutoOptimizedCloudinaryUrl(categoryData.imageUrl),
+  };
   const newCat: Category = {
     id: newCatId,
-    ...categoryData,
+    ...sanitizedCatData,
   };
 
   // Remove from deleted tracking if re-added
@@ -1253,8 +1297,12 @@ export const updateCategoryAdmin = async (
   updatedData: Partial<Category>,
   currentCategories: Category[] = []
 ): Promise<Category[]> => {
+  const sanitizedUpdatedData = {
+    ...updatedData,
+    ...(updatedData.imageUrl ? { imageUrl: ensureAutoOptimizedCloudinaryUrl(updatedData.imageUrl) } : {}),
+  };
   const updatedList = currentCategories.map((c) =>
-    c.id === categoryId ? { ...c, ...updatedData } : c
+    c.id === categoryId ? { ...c, ...sanitizedUpdatedData } : c
   );
   try {
     localStorage.setItem('maison_categories', safeJsonStringify(updatedList));
@@ -1262,7 +1310,7 @@ export const updateCategoryAdmin = async (
 
   try {
     const catDocRef = doc(db, 'categories', categoryId);
-    await setDoc(catDocRef, sanitizeForFirestore(updatedData), { merge: true });
+    await setDoc(catDocRef, sanitizeForFirestore(sanitizedUpdatedData), { merge: true });
   } catch (error) {
     console.error('Failed to update category in Firestore:', error);
     throw error;
@@ -1687,9 +1735,10 @@ const DEFAULT_FALLBACK_PRODUCT_IMAGE =
 
 const sanitizeProduct = (p: Product): Product => {
   if (!p) return p;
-  const images = (p.images || [])
+  const rawImages = Array.isArray(p.images) ? p.images : ((p as any).imageUrl ? [(p as any).imageUrl] : []);
+  const images = rawImages
     .filter((img) => img && typeof img === 'string' && img.trim() !== '')
-    .map((img) => img.trim());
+    .map((img) => ensureAutoOptimizedCloudinaryUrl(img.trim()));
 
   if (images.length === 0) {
     images.push(DEFAULT_FALLBACK_PRODUCT_IMAGE);
@@ -1698,7 +1747,7 @@ const sanitizeProduct = (p: Product): Product => {
   const colors = (p.colors || []).map((c) => ({
     ...c,
     imageUrl: (c.imageUrl && typeof c.imageUrl === 'string' && c.imageUrl.trim() !== '')
-      ? c.imageUrl.trim()
+      ? ensureAutoOptimizedCloudinaryUrl(c.imageUrl.trim())
       : images[0] || DEFAULT_FALLBACK_PRODUCT_IMAGE,
     sizes: Array.isArray(c.sizes) ? c.sizes : undefined,
   }));
@@ -1986,10 +2035,15 @@ function sanitizeSettings(settings: Partial<StoreSettings>, defaultSettings: Sto
     heroImageUrl = 'https://res.cloudinary.com/qazdrpcx/video/upload/v1787597556/touza_header_videos/vz8cdlvj2jqpd9ueb9uk.mp4';
   }
 
+  const philosophyImageUrl = settings.philosophyImageUrl
+    ? ensureAutoOptimizedCloudinaryUrl(settings.philosophyImageUrl)
+    : defaultSettings.philosophyImageUrl;
+
   const merged: StoreSettings = {
     ...defaultSettings,
     ...settings,
     heroImageUrl,
+    philosophyImageUrl,
     // Ensure boolean and numeric shipping fields are preserved properly
     shippingFree: settings.shippingFree !== undefined ? settings.shippingFree : (defaultSettings.shippingFree ?? true),
     shippingFee: settings.shippingFee !== undefined ? Number(settings.shippingFee) : (defaultSettings.shippingFee ?? 0),
@@ -2289,6 +2343,173 @@ export const incrementPromoCodeUsageAdmin = async (
     console.error('Failed to increment promo code usage in Firestore:', error);
     return 1;
   }
+};
+
+/**
+ * Migrates all existing stored image URLs in Firestore (products, categories, settings, reviews)
+ * to ensure any Cloudinary image URLs include 'f_auto,q_auto/'.
+ */
+export const migrateFirestoreCloudinaryUrls = async (): Promise<{
+  migratedProducts: number;
+  migratedCategories: number;
+  migratedSettings: boolean;
+  migratedReviews: number;
+}> => {
+  let migratedProducts = 0;
+  let migratedCategories = 0;
+  let migratedSettings = false;
+  let migratedReviews = 0;
+
+  try {
+    // 1. Products Migration
+    const productsRef = collection(db, 'products');
+    const prodSnap = await getDocs(productsRef);
+    const prodUpdates: Promise<void>[] = [];
+
+    prodSnap.forEach((docSnap) => {
+      if (isBannedProductId(docSnap.id)) return;
+      const data = docSnap.data() as Product;
+      const originalImages = Array.isArray(data.images) ? data.images : ((data as any).imageUrl ? [(data as any).imageUrl] : []);
+      const originalColors = Array.isArray(data.colors) ? data.colors : [];
+
+      let needsUpdate = false;
+      const updatedImages = originalImages.map((img) => {
+        const optimized = ensureAutoOptimizedCloudinaryUrl(img);
+        if (optimized !== img) needsUpdate = true;
+        return optimized;
+      });
+
+      const updatedColors = originalColors.map((col) => {
+        const optimized = ensureAutoOptimizedCloudinaryUrl(col.imageUrl);
+        if (optimized !== col.imageUrl) needsUpdate = true;
+        return { ...col, imageUrl: optimized };
+      });
+
+      if (needsUpdate) {
+        migratedProducts++;
+        const sanitized = sanitizeProduct({
+          ...data,
+          id: docSnap.id,
+          images: updatedImages,
+          colors: updatedColors,
+        });
+        prodUpdates.push(
+          setDoc(doc(db, 'products', docSnap.id), sanitizeForFirestore(sanitized), { merge: true })
+        );
+      }
+    });
+    await Promise.all(prodUpdates);
+
+    // 2. Categories Migration
+    const catsRef = collection(db, 'categories');
+    const catSnap = await getDocs(catsRef);
+    const catUpdates: Promise<void>[] = [];
+
+    catSnap.forEach((docSnap) => {
+      const data = docSnap.data() as Category;
+      if (data.imageUrl) {
+        const optimized = ensureAutoOptimizedCloudinaryUrl(data.imageUrl);
+        if (optimized !== data.imageUrl) {
+          migratedCategories++;
+          catUpdates.push(
+            setDoc(doc(db, 'categories', docSnap.id), { imageUrl: optimized }, { merge: true })
+          );
+        }
+      }
+    });
+    await Promise.all(catUpdates);
+
+    // 3. Settings Migration
+    const settingsDocRef = doc(db, 'settings', 'store');
+    const settingsSnap = await getDoc(settingsDocRef);
+    if (settingsSnap.exists()) {
+      const sData = settingsSnap.data() as StoreSettings;
+      let sUpdateNeeded = false;
+      const updatedS: any = {};
+
+      if (sData.philosophyImageUrl) {
+        const opt = ensureAutoOptimizedCloudinaryUrl(sData.philosophyImageUrl);
+        if (opt !== sData.philosophyImageUrl) {
+          updatedS.philosophyImageUrl = opt;
+          sUpdateNeeded = true;
+        }
+      }
+      if ((sData as any).logoUrl) {
+        const opt = ensureAutoOptimizedCloudinaryUrl((sData as any).logoUrl);
+        if (opt !== (sData as any).logoUrl) {
+          updatedS.logoUrl = opt;
+          sUpdateNeeded = true;
+        }
+      }
+      if ((sData as any).bannerImageUrl) {
+        const opt = ensureAutoOptimizedCloudinaryUrl((sData as any).bannerImageUrl);
+        if (opt !== (sData as any).bannerImageUrl) {
+          updatedS.bannerImageUrl = opt;
+          sUpdateNeeded = true;
+        }
+      }
+
+      if (sUpdateNeeded) {
+        migratedSettings = true;
+        await setDoc(settingsDocRef, sanitizeForFirestore(updatedS), { merge: true });
+      }
+    }
+
+    // 4. Reviews Migration
+    const revsRef = collection(db, 'reviews');
+    const revsSnap = await getDocs(revsRef);
+    const revUpdates: Promise<void>[] = [];
+
+    revsSnap.forEach((docSnap) => {
+      const rData = docSnap.data() as SavedReview;
+      let rNeedsUpdate = false;
+      let userPhoto = rData.userPhoto;
+      if (userPhoto) {
+        const opt = ensureAutoOptimizedCloudinaryUrl(userPhoto);
+        if (opt !== userPhoto) {
+          userPhoto = opt;
+          rNeedsUpdate = true;
+        }
+      }
+
+      let images = (rData as any).images;
+      if (Array.isArray(images)) {
+        images = images.map((img: string) => {
+          const opt = ensureAutoOptimizedCloudinaryUrl(img);
+          if (opt !== img) rNeedsUpdate = true;
+          return opt;
+        });
+      }
+
+      if (rNeedsUpdate) {
+        migratedReviews++;
+        revUpdates.push(
+          setDoc(
+            doc(db, 'reviews', docSnap.id),
+            {
+              ...(userPhoto ? { userPhoto } : {}),
+              ...(images ? { images } : {}),
+            },
+            { merge: true }
+          )
+        );
+      }
+    });
+    await Promise.all(revUpdates);
+
+    console.log(
+      `Cloudinary URL Migration completed: ${migratedProducts} products, ${migratedCategories} categories, ${migratedReviews} reviews updated.`
+    );
+  } catch (err) {
+    console.warn('Cloudinary URL migration notice:', err);
+  }
+
+  return {
+    migratedProducts,
+    migratedCategories,
+    migratedSettings,
+    migratedReviews,
+  };
 };
 
 

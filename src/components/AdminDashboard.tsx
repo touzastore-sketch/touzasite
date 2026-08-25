@@ -41,7 +41,12 @@ import { Category, Product, ProductColor, ProductSize, PromoCode, StoreSettings 
 import { useLanguage } from '../context/LanguageContext';
 import { DEFAULT_CATEGORIES } from '../data/defaultCategories';
 import { compressImageFile } from '../utils/imageCompressor';
-import { uploadToCloudinary, uploadVideoToCloudinary, getOptimizedVideoUrl } from '../utils/cloudinary';
+import {
+  uploadToCloudinary,
+  uploadVideoToCloudinary,
+  getOptimizedVideoUrl,
+  ensureAutoOptimizedCloudinaryUrl,
+} from '../utils/cloudinary';
 import { AiStudioSyncTab } from './AiStudioSyncTab';
 import {
   SavedOrder,
@@ -68,6 +73,7 @@ import {
   subscribeToNewsletterCampaigns,
   exportFirestoreProductsBackup,
   syncAllProductsToFirestore,
+  migrateFirestoreCloudinaryUrls,
   safeJsonStringify,
 } from '../firebase';
 
@@ -232,6 +238,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isExportingProducts, setIsExportingProducts] = useState(false);
   const [isSyncingProducts, setIsSyncingProducts] = useState(false);
+  const [isMigratingCloudinary, setIsMigratingCloudinary] = useState(false);
 
   const handleSyncAllProducts = async () => {
     try {
@@ -251,6 +258,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       );
     } finally {
       setIsSyncingProducts(false);
+    }
+  };
+
+  const handleMigrateCloudinaryUrls = async () => {
+    try {
+      setIsMigratingCloudinary(true);
+      const res = await migrateFirestoreCloudinaryUrls();
+      alert(
+        language === 'ar'
+          ? `✅ تم فحص وتحديث روابط الصور في قاعدة البيانات بنجاح!\n• المنتجات المحدثة: ${res.migratedProducts}\n• التصنيفات المحدثة: ${res.migratedCategories}\n• التقييمات المحدثة: ${res.migratedReviews}\n• إعدادات الموقع: ${res.migratedSettings ? 'تم التحديث' : 'محدثة بالفعل'}`
+          : `✅ Cloudinary URLs optimized successfully in Firestore!\n• Products: ${res.migratedProducts}\n• Categories: ${res.migratedCategories}\n• Reviews: ${res.migratedReviews}`
+      );
+    } catch (err) {
+      console.error('Failed to migrate Cloudinary URLs in database:', err);
+      alert(
+        language === 'ar'
+          ? 'حدث خطأ أثناء تحديث روابط الصور في قاعدة البيانات.'
+          : 'Failed to optimize image URLs in Firestore.'
+      );
+    } finally {
+      setIsMigratingCloudinary(false);
     }
   };
 
@@ -877,6 +905,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const assignedCategory = formData.category || (categories[0]?.nameEn || 'Shirts');
     const assignedCategoryAr = formData.categoryAr || (categories[0]?.nameAr || 'قميص');
 
+    const cleanedImages = (formData.images || [])
+      .filter((img) => img && typeof img === 'string' && img.trim() !== '')
+      .map((img) => ensureAutoOptimizedCloudinaryUrl(img.trim()));
+
+    const fallbackImages = cleanedImages.length > 0
+      ? cleanedImages
+      : ['https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=600'];
+
+    const cleanedColors = (formData.colors || []).map((col) => ({
+      ...col,
+      imageUrl: col.imageUrl ? ensureAutoOptimizedCloudinaryUrl(col.imageUrl) : fallbackImages[0],
+    }));
+
     if (editingProduct) {
       const updated: Product = {
         ...editingProduct,
@@ -885,6 +926,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         categoryAr: assignedCategoryAr,
         price: Number(formData.price),
         originalPrice: cleanedOriginalPrice,
+        images: fallbackImages,
+        colors: cleanedColors.length > 0 ? cleanedColors : editingProduct.colors,
       };
       onUpdateProduct(updated);
     } else {
@@ -900,14 +943,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         originalPrice: cleanedOriginalPrice,
         description: formData.description || '',
         descriptionAr: formData.descriptionAr || formData.description || '',
-        colors: formData.colors && formData.colors.length > 0 ? formData.colors : [{ name: 'Black', nameAr: 'أسود', hex: '#111111' }],
+        colors: cleanedColors.length > 0 ? cleanedColors : [{ name: 'Black', nameAr: 'أسود', hex: '#111111', imageUrl: fallbackImages[0] }],
         sizes: formData.sizes && formData.sizes.length > 0 ? formData.sizes : [
           { size: 'M', inStock: true },
           { size: 'L', inStock: true },
           { size: 'XL', inStock: true },
           { size: 'XXL', inStock: true }
         ],
-        images: formData.images && formData.images.length > 0 ? formData.images : ['https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=600'],
+        images: fallbackImages,
         isNewArrival: formData.isNewArrival ?? true,
         isFeatured: formData.isFeatured ?? true,
         showOnHome: formData.showOnHome ?? true,
@@ -926,9 +969,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const handleUpdateImageUrl = (index: number, url: string) => {
+    const formatted = ensureAutoOptimizedCloudinaryUrl(url);
     setFormData((prev) => {
       const imgs = [...(prev.images || [])];
-      imgs[index] = url;
+      imgs[index] = formatted;
       return { ...prev, images: imgs };
     });
   };
@@ -951,11 +995,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const handleUpdateColor = (index: number, key: keyof ProductColor, value: string) => {
+    const finalVal = key === 'imageUrl' ? ensureAutoOptimizedCloudinaryUrl(value) : value;
     setFormData((prev) => {
       const updatedColors = [...(prev.colors || [])];
       updatedColors[index] = {
         ...updatedColors[index],
-        [key]: value,
+        [key]: finalVal,
       };
       return { ...prev, colors: updatedColors };
     });
@@ -1233,14 +1278,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       return;
     }
 
+    const sanitizedCategoryForm = {
+      ...categoryForm,
+      imageUrl: ensureAutoOptimizedCloudinaryUrl(categoryForm.imageUrl || ''),
+    };
+
     try {
       if (editingCategory) {
         if (onUpdateCategory) {
-          await onUpdateCategory(editingCategory.id, categoryForm);
+          await onUpdateCategory(editingCategory.id, sanitizedCategoryForm);
         }
       } else {
         if (onAddCategory) {
-          await onAddCategory(categoryForm);
+          await onAddCategory(sanitizedCategoryForm);
         }
       }
       setIsCategoryModalOpen(false);
@@ -1281,7 +1331,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     try {
       const url = await uploadToCloudinary(file, { folder: 'touza_categories' });
       if (url) {
-        setCategoryForm((prev) => ({ ...prev, imageUrl: url }));
+        setCategoryForm((prev) => ({ ...prev, imageUrl: ensureAutoOptimizedCloudinaryUrl(url) }));
       }
     } catch (err) {
       console.error('Cloudinary category upload error:', err);
@@ -1321,7 +1371,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Settings Save
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateStoreSettings(settingsForm);
+    const sanitizedSettings = {
+      ...settingsForm,
+      ...(settingsForm.philosophyImageUrl ? { philosophyImageUrl: ensureAutoOptimizedCloudinaryUrl(settingsForm.philosophyImageUrl) } : {}),
+      ...(settingsForm.logoUrl ? { logoUrl: ensureAutoOptimizedCloudinaryUrl(settingsForm.logoUrl) } : {}),
+      ...(settingsForm.bannerImageUrl ? { bannerImageUrl: ensureAutoOptimizedCloudinaryUrl(settingsForm.bannerImageUrl) } : {}),
+    };
+    onUpdateStoreSettings(sanitizedSettings);
     alert(language === 'ar' ? 'تم حفظ إعدادات الموقع بنجاح!' : 'Store settings updated successfully!');
   };
 
@@ -2111,6 +2167,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       : language === 'ar'
                       ? 'مزامنة المنتجات مع السحابة ☁️'
                       : 'Sync to Cloud ☁️'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleMigrateCloudinaryUrls}
+                  disabled={isMigratingCloudinary}
+                  className="flex-1 md:flex-initial bg-[#6b21a8] text-white px-4 py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#581c87] active:bg-[#581c87] transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2 text-[13px] disabled:opacity-60 disabled:cursor-not-allowed"
+                  title={language === 'ar' ? 'فحص وتحديث كل روابط الصور الحالية في قاعدة البيانات لتضمين f_auto,q_auto' : 'Optimize all Cloudinary URLs in database with f_auto,q_auto'}
+                >
+                  <RefreshCw className={`w-4 h-4 text-white ${isMigratingCloudinary ? 'animate-spin' : ''}`} />
+                  <span>
+                    {isMigratingCloudinary
+                      ? language === 'ar'
+                        ? 'جارٍ تحديث الروابط...'
+                        : 'Optimizing URLs...'
+                      : language === 'ar'
+                      ? 'تحسين روابط الصور (f_auto,q_auto) ⚡'
+                      : 'Optimize Image URLs ⚡'}
                   </span>
                 </button>
 
