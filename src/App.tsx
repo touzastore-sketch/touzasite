@@ -32,6 +32,7 @@ import {
   deleteProductAdmin,
   subscribeToStoreSettings,
   saveStoreSettingsAdmin,
+  fetchInitialStoreData,
   subscribeToPromoCodes,
   getAllPromoCodesAdmin,
   savePromoCodeAdmin,
@@ -243,6 +244,10 @@ export const AppContent: React.FC = () => {
     },
   ];
 
+  // App Initial Database Synchronization & Loading State
+  const [isInitialSyncDone, setIsInitialSyncDone] = useState(false);
+  const [isSiteLoaded, setIsSiteLoaded] = useState(false);
+
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>(() => {
     try {
       const saved = localStorage.getItem('maison_promos');
@@ -395,26 +400,51 @@ export const AppContent: React.FC = () => {
     }
   }, [storeSettings]);
 
-  // Streamlined Real-time Firestore synchronization (uses cache-first listener for instantaneous load)
+  // Streamlined Real-time Firestore synchronization with guaranteed fresh initial server load
   useEffect(() => {
     let isSubscribed = true;
 
-    // Subscribe to live Firestore updates with instantaneous local cache hydration
+    // 1. High-priority direct initial fetch from Firestore server to guarantee 100% fresh data on first load
+    fetchInitialStoreData(defaultSettings)
+      .then((initialData) => {
+        if (!isSubscribed) return;
+        if (initialData.settings) {
+          setStoreSettings(initialData.settings);
+        }
+        if (initialData.products && initialData.products.length > 0) {
+          setProducts(initialData.products);
+        }
+        if (initialData.categories && initialData.categories.length > 0) {
+          setCategories(initialData.categories);
+        }
+        setIsInitialSyncDone(true);
+      })
+      .catch((err) => {
+        console.warn('Initial store data fetch note:', err);
+        if (isSubscribed) {
+          setIsInitialSyncDone(true);
+        }
+      });
+
+    // 2. Subscribe to continuous live Firestore updates with instantaneous local cache hydration
     const unsubscribeProducts = subscribeToProducts((liveProducts) => {
       if (isSubscribed && liveProducts && liveProducts.length > 0) {
         setProducts(liveProducts);
+        setIsInitialSyncDone(true);
       }
     });
 
     const unsubscribeCategories = subscribeToCategories((liveCats) => {
       if (isSubscribed && liveCats && liveCats.length > 0) {
         setCategories(liveCats);
+        setIsInitialSyncDone(true);
       }
     });
 
     const unsubscribeSettings = subscribeToStoreSettings(defaultSettings, (liveSettings) => {
       if (isSubscribed && liveSettings) {
         setStoreSettings(liveSettings);
+        setIsInitialSyncDone(true);
       }
     });
 
@@ -424,8 +454,25 @@ export const AppContent: React.FC = () => {
       }
     });
 
+    // 3. Listen for internal admin updates dispatched within the same or other tabs
+    const handleSettingsUpdated = (e: any) => {
+      if (isSubscribed && e.detail) {
+        setStoreSettings(e.detail);
+      }
+    };
+    window.addEventListener('touza_settings_updated', handleSettingsUpdated);
+
+    // Fallback safety: ensure isInitialSyncDone becomes true within 1.5s even under extreme latency
+    const fallbackTimer = setTimeout(() => {
+      if (isSubscribed) {
+        setIsInitialSyncDone(true);
+      }
+    }, 1500);
+
     return () => {
       isSubscribed = false;
+      clearTimeout(fallbackTimer);
+      window.removeEventListener('touza_settings_updated', handleSettingsUpdated);
       unsubscribeProducts();
       unsubscribeCategories();
       unsubscribeSettings();
@@ -622,9 +669,6 @@ export const AppContent: React.FC = () => {
     }
   }, [wishlistIds]);
 
-  // App Loading & Database Sync State
-  const [isSiteLoaded, setIsSiteLoaded] = useState(false);
-
   // Modals / Overlays state
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
@@ -777,6 +821,7 @@ export const AppContent: React.FC = () => {
           products={products}
           categories={categories}
           storeSettings={storeSettings}
+          isInitialSyncDone={isInitialSyncDone}
           onFinishLoading={() => setIsSiteLoaded(true)}
         />
       )}

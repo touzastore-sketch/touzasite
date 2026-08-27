@@ -8,6 +8,7 @@ interface StorePreloaderProps {
   products: Product[];
   categories: Category[];
   storeSettings?: StoreSettings;
+  isInitialSyncDone?: boolean;
   onFinishLoading: () => void;
 }
 
@@ -15,10 +16,11 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
   products,
   categories,
   storeSettings,
+  isInitialSyncDone = false,
   onFinishLoading,
 }) => {
   const { language } = useLanguage();
-  const [progress, setProgress] = useState(15);
+  const [progress, setProgress] = useState(25);
   const [statusMessage, setStatusMessage] = useState({
     ar: 'جاري الاتصال بقاعدة بيانات توزا...',
     en: 'Connecting to TOUZA database...',
@@ -29,21 +31,21 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
     let isMounted = true;
     const startTime = Date.now();
 
-    // Step 1: Connecting to data
+    // Step 1: Connecting & syncing state progression
     const t1 = setTimeout(() => {
       if (!isMounted) return;
-      setProgress((prev) => Math.max(prev, 35));
+      setProgress((prev) => Math.max(prev, 55));
       setStatusMessage({
-        ar: 'جاري مزامنة التشكيلات والمنتجات...',
-        en: 'Synchronizing collections & products...',
+        ar: 'جاري تحميل أحدث المنتجات والتحديثات...',
+        en: 'Loading latest products & updates...',
       });
-    }, 400);
+    }, 350);
 
-    // Step 2: Preload critical visuals (Hero + first top products)
-    const preloadVisuals = async () => {
+    // Step 2: Preload critical visuals (Hero + first top products) once data is synchronized or after short safety period
+    const preloadVisualsAndFinish = async () => {
       const urlsToPreload: string[] = [];
 
-      // Hero banner image
+      // Hero banner image (if static image)
       if (storeSettings?.heroImageUrl && !storeSettings.heroImageUrl.endsWith('.mp4')) {
         urlsToPreload.push(storeSettings.heroImageUrl);
       }
@@ -77,23 +79,23 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
         });
       });
 
-      // Wait for images with 2.5s maximum timeout
+      // Wait for images with 2.0s maximum timeout
       await Promise.race([
         Promise.all(promises),
-        new Promise((resolve) => setTimeout(resolve, 2500)),
+        new Promise((resolve) => setTimeout(resolve, 2000)),
       ]);
 
       if (!isMounted) return;
 
-      setProgress(85);
+      setProgress(90);
       setStatusMessage({
         ar: 'جاري تهيئة العرض والصور الفاخرة...',
         en: 'Finalizing luxury visuals...',
       });
 
-      // Ensure minimum 1.2s total smooth experience for luxury feel
+      // Ensure minimum 800ms total smooth experience for luxury feel
       const elapsed = Date.now() - startTime;
-      const remainingTime = Math.max(0, 1200 - elapsed);
+      const remainingTime = Math.max(0, 850 - elapsed);
 
       setTimeout(() => {
         if (!isMounted) return;
@@ -111,29 +113,45 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
           setTimeout(() => {
             if (!isMounted) return;
             onFinishLoading();
-          }, 600);
-        }, 350);
+          }, 500);
+        }, 300);
       }, remainingTime);
     };
 
-    preloadVisuals();
+    // If initial live sync is done or when it becomes true
+    if (isInitialSyncDone) {
+      preloadVisualsAndFinish();
+    } else {
+      // Wait for isInitialSyncDone with a maximum 2-second fallback timeout
+      const syncWaitTimer = setTimeout(() => {
+        if (isMounted) {
+          preloadVisualsAndFinish();
+        }
+      }, 2000);
 
-    // Absolute fallback safety timeout (4 seconds max)
+      return () => {
+        isMounted = false;
+        clearTimeout(t1);
+        clearTimeout(syncWaitTimer);
+      };
+    }
+
+    // Absolute fallback safety timeout (3.5 seconds max)
     const safetyTimeout = setTimeout(() => {
       if (!isMounted) return;
       setProgress(100);
       setIsFadingOut(true);
       setTimeout(() => {
         if (isMounted) onFinishLoading();
-      }, 500);
-    }, 4000);
+      }, 400);
+    }, 3500);
 
     return () => {
       isMounted = false;
       clearTimeout(t1);
       clearTimeout(safetyTimeout);
     };
-  }, [products.length, categories.length, storeSettings?.heroImageUrl, onFinishLoading]);
+  }, [isInitialSyncDone, products.length, categories.length, storeSettings?.heroImageUrl, onFinishLoading]);
 
   return (
     <div

@@ -2097,6 +2097,92 @@ export const getStoreSettingsAdmin = async (
   }
 };
 
+export const fetchInitialStoreData = async (
+  defaultSettings: StoreSettings
+): Promise<{
+  settings: StoreSettings;
+  products: Product[];
+  categories: Category[];
+}> => {
+  try {
+    const settingsPromise = fetchWithTimeout(getDoc(doc(db, 'settings', 'store')), 4000)
+      .then((docSnap) => {
+        if (docSnap && docSnap.exists()) {
+          const remote = sanitizeSettings({ ...defaultSettings, ...(docSnap.data() as StoreSettings) }, defaultSettings);
+          try {
+            localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(remote));
+            localStorage.setItem('maison_settings', safeJsonStringify(remote));
+          } catch {}
+          return remote;
+        }
+        return defaultSettings;
+      })
+      .catch(() => defaultSettings);
+
+    const productsPromise = fetchWithTimeout(getDocs(collection(db, 'products')), 4000)
+      .then((snap) => {
+        if (snap && !snap.empty) {
+          const list: Product[] = [];
+          snap.forEach((d) => {
+            if (!isBannedProductId(d.id)) {
+              list.push(sanitizeProduct({ id: d.id, ...d.data() } as Product));
+            }
+          });
+          if (list.length > 0) {
+            try {
+              localStorage.setItem('maison_products', safeJsonStringify(list));
+            } catch {}
+            return list;
+          }
+        }
+        return [];
+      })
+      .catch(() => []);
+
+    const categoriesPromise = fetchWithTimeout(getDocs(collection(db, 'categories')), 4000)
+      .then((snap) => {
+        if (snap && !snap.empty) {
+          const list: Category[] = [];
+          const deletedCats: string[] = JSON.parse(localStorage.getItem('maison_deleted_categories') || '[]');
+          const deletedSet = new Set(deletedCats.map((id) => id.trim()));
+          snap.forEach((d) => {
+            if (!deletedSet.has(d.id.trim())) {
+              const cData = d.data() as Category;
+              list.push({
+                id: d.id,
+                ...cData,
+                imageUrl: ensureAutoOptimizedCloudinaryUrl(cData.imageUrl),
+              } as Category);
+            }
+          });
+          if (list.length > 0) {
+            try {
+              localStorage.setItem('maison_categories', safeJsonStringify(list));
+            } catch {}
+            return list;
+          }
+        }
+        return [];
+      })
+      .catch(() => []);
+
+    const [settings, products, categories] = await Promise.all([
+      settingsPromise,
+      productsPromise,
+      categoriesPromise,
+    ]);
+
+    return { settings, products, categories };
+  } catch (e) {
+    console.warn('fetchInitialStoreData fallback:', e);
+    return {
+      settings: defaultSettings,
+      products: [],
+      categories: [],
+    };
+  }
+};
+
 export const subscribeToStoreSettings = (
   defaultSettings: StoreSettings,
   callback: (settings: StoreSettings) => void
