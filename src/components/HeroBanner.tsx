@@ -15,7 +15,7 @@ const isDev = process.env.NODE_ENV !== 'production';
 const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings, onVideoReady }) => {
   const { language, t } = useLanguage();
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const containerRef = useRef<HTMLElement | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [usingFallbackVideo, setUsingFallbackVideo] = useState(false);
@@ -61,14 +61,15 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
     setVideoError(false);
     setUsingFallbackVideo(false);
     isPlayingRef.current = false;
+    setIsVideoLoaded(false);
   }, [rawMedia]);
 
-  // Robust programmatic play with promise & retry handling
+  // Programmatic play helper that ensures Safari WebKit compatibility
   const attemptPlay = useCallback((reason = 'direct') => {
     const video = videoRef.current;
     if (!video || !isMountedRef.current) return;
 
-    // Strict Safari / WebKit setup before requesting play
+    // Strict WebKit / Safari muted setup
     video.muted = true;
     video.defaultMuted = true;
     video.playsInline = true;
@@ -80,33 +81,52 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
     } catch {}
 
     if (isDev) {
-      console.log(`[Hero Video] attempting autoplay (${reason})`);
+      console.log(`[Hero Video] attempting autoplay (${reason}, readyState: ${video.readyState})`);
     }
 
-    const playPromise = video.play();
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          if (!isMountedRef.current) return;
-          isPlayingRef.current = true;
-          setIsVideoLoaded(true);
-          if (onVideoReady) {
-            onVideoReady();
-          }
-          if (isDev) {
-            console.log('[Hero Video] autoplay success via', reason);
-          }
-        })
-        .catch((err) => {
-          if (!isMountedRef.current) return;
-          if (isDev) {
-            console.warn('[Hero Video] autoplay failed (' + reason + '):', err?.name || 'Error', err?.message || err);
-          }
-        });
+    try {
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            if (!isMountedRef.current) return;
+            isPlayingRef.current = true;
+            setIsVideoLoaded(true);
+            if (onVideoReady) {
+              onVideoReady();
+            }
+            if (isDev) {
+              console.log('[Hero Video] autoplay success via', reason);
+            }
+          })
+          .catch((err) => {
+            if (!isMountedRef.current) return;
+            if (isDev) {
+              console.warn('[Hero Video] autoplay rejected (' + reason + '):', err?.name || 'Error', err?.message || err);
+            }
+          });
+      }
+    } catch (e) {
+      if (isDev) console.warn('[Hero Video] play exception:', e);
     }
   }, [onVideoReady]);
 
-  // Apply strict WebKit / Safari muted properties as soon as DOM mounts
+  // Set up video ref callback to immediately configure DOM properties before media loading starts
+  const setVideoRef = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+    if (el) {
+      el.defaultMuted = true;
+      el.muted = true;
+      el.playsInline = true;
+      el.volume = 0;
+      el.setAttribute('muted', '');
+      el.setAttribute('playsinline', '');
+      el.setAttribute('webkit-playsinline', '');
+      el.setAttribute('x5-playsinline', '');
+    }
+  }, []);
+
+  // Ensure DOM element attributes are maintained whenever media changes
   useLayoutEffect(() => {
     if (isVideo && videoRef.current) {
       const video = videoRef.current;
@@ -121,38 +141,44 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
     }
   }, [isVideo, videoSrc]);
 
-  // Lifecycle listeners and initial play triggers
+  // Global listeners for Safari Desktop and general browser autoplay triggers
   useEffect(() => {
     isMountedRef.current = true;
 
-    if (isVideo && videoRef.current) {
-      const video = videoRef.current;
+    if (!isVideo) {
+      setIsVideoLoaded(true);
+      if (onVideoReady) onVideoReady();
+      return;
+    }
 
-      // Ensure video is configured and attempt immediate play
-      video.muted = true;
-      video.defaultMuted = true;
-      video.playsInline = true;
-      video.volume = 0;
-      video.setAttribute('muted', '');
-      video.setAttribute('playsinline', '');
-      video.setAttribute('webkit-playsinline', '');
-      video.setAttribute('x5-playsinline', '');
+    const video = videoRef.current;
+    if (video) {
+      // If already ready, attempt play immediately
+      if (video.readyState >= 2) {
+        attemptPlay('immediate-ready');
+      }
 
-      // Trigger immediate play attempt
-      attemptPlay('mounted');
+      // Intersection Observer: Trigger play when hero enters viewport
+      let observer: IntersectionObserver | null = null;
+      if (sectionRef.current && typeof IntersectionObserver !== 'undefined') {
+        observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting && videoRef.current && videoRef.current.paused) {
+                attemptPlay('intersection-visible');
+              }
+            });
+          },
+          { threshold: 0.1 }
+        );
+        observer.observe(sectionRef.current);
+      }
 
-      // Immediate secondary tick
-      const initialTimer = setTimeout(() => {
+      // Safari Desktop Activation: Listen to user interactions anywhere on the window/document
+      // Any mouse movement, hover, touch, click, keydown or scroll instantly unlocks audio-less video in Safari
+      const handleUserActivity = () => {
         if (isMountedRef.current && videoRef.current && videoRef.current.paused) {
-          attemptPlay('initial-timer-tick');
-        }
-      }, 100);
-
-      // Desktop Autoplay Unlock: Listen to any user movement/interaction on the entire window/document
-      // (Desktop Safari/Chrome allow muted video playback immediately upon any mouse move, scroll, hover, or keydown)
-      const handleUserInteraction = () => {
-        if (isMountedRef.current && videoRef.current && videoRef.current.paused) {
-          attemptPlay('user-interaction');
+          attemptPlay('user-activity');
         }
       };
 
@@ -160,37 +186,42 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
         'mousemove',
         'pointermove',
         'mouseenter',
+        'mouseover',
+        'mousedown',
+        'mouseup',
+        'pointerdown',
+        'pointerup',
+        'touchstart',
+        'touchend',
         'wheel',
         'scroll',
-        'touchstart',
-        'pointerdown',
-        'mousedown',
         'keydown',
         'focus',
+        'click',
       ];
 
       interactionEvents.forEach((evt) => {
-        window.addEventListener(evt, handleUserInteraction, { passive: true, capture: true });
-        document.addEventListener(evt, handleUserInteraction, { passive: true, capture: true });
+        window.addEventListener(evt, handleUserActivity, { passive: true, capture: true });
+        document.addEventListener(evt, handleUserActivity, { passive: true, capture: true });
       });
 
-      // Handle pageshow event (Safari bfcache restoration)
+      // Handle pageshow event (Safari macOS/iOS bfcache restoration)
       const handlePageShow = (e: PageTransitionEvent) => {
-        if (e.persisted && videoRef.current) {
-          if (isDev) console.log('[Hero Video] pageshow persisted event, resuming');
+        if (videoRef.current) {
+          if (isDev) console.log('[Hero Video] pageshow event, attempting play');
           attemptPlay('pageshow');
         }
       };
 
-      // Handle document visibility changes (tab switching / app foreground)
+      // Handle document visibility changes (switching tabs and coming back)
       const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible' && videoRef.current && videoRef.current.paused) {
-          if (isDev) console.log('[Hero Video] tab became visible, resuming autoplay');
+          if (isDev) console.log('[Hero Video] visibility changed to visible, resuming');
           attemptPlay('visibilitychange');
         }
       };
 
-      // Handle window focus
+      // Handle window focus (switching desktop apps / windows)
       const handleWindowFocus = () => {
         if (videoRef.current && videoRef.current.paused) {
           attemptPlay('window-focus');
@@ -201,41 +232,58 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
       window.addEventListener('focus', handleWindowFocus);
       document.addEventListener('visibilitychange', handleVisibilityChange);
 
-      // Periodic check during first 4 seconds to guarantee autoplay kicks in
+      // Failsafe timer checks
+      const t1 = setTimeout(() => {
+        if (videoRef.current && videoRef.current.paused) {
+          attemptPlay('failsafe-300ms');
+        }
+      }, 300);
+
+      const t2 = setTimeout(() => {
+        if (videoRef.current && videoRef.current.paused) {
+          attemptPlay('failsafe-1000ms');
+        }
+      }, 1000);
+
       const interval = setInterval(() => {
         if (!isMountedRef.current) {
           clearInterval(interval);
           return;
         }
         if (videoRef.current && videoRef.current.paused) {
-          attemptPlay('interval-check');
+          attemptPlay('interval-poll');
         } else if (videoRef.current && !videoRef.current.paused) {
+          isPlayingRef.current = true;
           clearInterval(interval);
         }
-      }, 600);
+      }, 1000);
 
       return () => {
         isMountedRef.current = false;
-        clearTimeout(initialTimer);
+        clearTimeout(t1);
+        clearTimeout(t2);
         clearInterval(interval);
+        if (observer) observer.disconnect();
         window.removeEventListener('pageshow', handlePageShow);
         window.removeEventListener('focus', handleWindowFocus);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         interactionEvents.forEach((evt) => {
-          window.removeEventListener(evt, handleUserInteraction, { capture: true });
-          document.removeEventListener(evt, handleUserInteraction, { capture: true });
+          window.removeEventListener(evt, handleUserActivity, { capture: true });
+          document.removeEventListener(evt, handleUserActivity, { capture: true });
         });
       };
-    } else if (!isVideo) {
-      setIsVideoLoaded(true);
-      if (onVideoReady) onVideoReady();
     }
   }, [isVideo, videoSrc, attemptPlay, onVideoReady]);
 
-  // Handlers for video media events
+  // Video media event handlers
   const handleLoadedMetadata = () => {
     if (isDev) console.log('[Hero Video] loadedmetadata');
     attemptPlay('loadedmetadata');
+  };
+
+  const handleLoadedData = () => {
+    if (isDev) console.log('[Hero Video] loadeddata');
+    attemptPlay('loadeddata');
   };
 
   const handleCanPlay = () => {
@@ -317,7 +365,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
 
   return (
     <section
-      ref={containerRef}
+      ref={sectionRef}
       onMouseEnter={handleSectionInteraction}
       onMouseMove={handleSectionInteraction}
       onPointerDown={handleSectionInteraction}
@@ -335,19 +383,8 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
       {/* Hero Media Background Video (Layer 1) */}
       {isVideo && !videoError && (
         <video
-          ref={(el) => {
-            if (el) {
-              el.defaultMuted = true;
-              el.muted = true;
-              el.playsInline = true;
-              el.volume = 0;
-              el.setAttribute('muted', '');
-              el.setAttribute('playsinline', '');
-              el.setAttribute('webkit-playsinline', '');
-              el.setAttribute('x5-playsinline', '');
-            }
-            videoRef.current = el;
-          }}
+          ref={setVideoRef}
+          key={videoSrc}
           src={videoSrc}
           poster="/images/philosophy_model.jpg"
           autoPlay
@@ -355,9 +392,11 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
           loop
           playsInline
           preload="auto"
+          crossOrigin="anonymous"
           disablePictureInPicture
+          controls={false}
           onLoadedMetadata={handleLoadedMetadata}
-          onLoadedData={handleCanPlay}
+          onLoadedData={handleLoadedData}
           onCanPlay={handleCanPlay}
           onCanPlayThrough={handleCanPlayThrough}
           onPlaying={handleVideoPlaying}
@@ -367,7 +406,9 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
           className={`hero-video absolute inset-0 w-full h-full object-cover object-center z-[1] pointer-events-none bg-transparent transition-opacity duration-700 ease-out ${
             isVideoLoaded ? 'opacity-100' : 'opacity-90'
           }`}
-        />
+        >
+          <source src={videoSrc} type="video/mp4" />
+        </video>
       )}
 
       {/* If mediaUrl is a custom static image URL */}
