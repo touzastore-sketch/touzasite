@@ -236,11 +236,12 @@ export function getOptimizedImageUrl(
 }
 
 export const DEFAULT_HEADER_VIDEO_URL =
-  'https://res.cloudinary.com/qazdrpcx/video/upload/v1787597556/touza_header_videos/vz8cdlvj2jqpd9ueb9uk.mp4';
+  'https://res.cloudinary.com/qazdrpcx/video/upload/ac_none,vc_h264,q_auto/v1787597556/touza_header_videos/vz8cdlvj2jqpd9ueb9uk.mp4';
 
 /**
  * Formats a Cloudinary video URL or public ID to deliver a reliable, directly playable HTTPS video URL.
- * Guarantees compatibility with iOS Safari, Chrome, and desktop browsers.
+ * Strips the audio track (`ac_none`) and ensures H.264 encoding (`vc_h264`) so Safari on macOS / iOS
+ * never classifies it as 'Media with sound', ensuring 100% automatic playback without user gestures.
  */
 export function getOptimizedVideoUrl(url?: string): string {
   if (!url || typeof url !== 'string' || !url.trim()) {
@@ -268,25 +269,26 @@ export function getOptimizedVideoUrl(url?: string): string {
     const cleanPublicId = formattedUrl.replace(/^\/+/, '');
     const hasExt = cleanPublicId.match(/\.(mp4|webm|mov|ogg|m4v)$/i);
     const finalId = hasExt ? cleanPublicId : `${cleanPublicId}.mp4`;
-    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${finalId}`;
+    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/ac_none,vc_h264,q_auto/${finalId}`;
   }
 
   // Handle Cloudinary domain URLs
   if (formattedUrl.includes('res.cloudinary.com') || formattedUrl.includes('cloudinary.com')) {
     // Fix accidental image/upload resource type for video files
-    if (formattedUrl.includes('/image/upload/') && (
-      formattedUrl.match(/\.(mp4|webm|mov|ogg|m4v)(\?.*)?$/i) ||
-      formattedUrl.includes('touza_header_videos') ||
-      formattedUrl.includes('touza_videos')
-    )) {
+    if (formattedUrl.includes('/image/upload/')) {
       formattedUrl = formattedUrl.replace('/image/upload/', '/video/upload/');
     }
 
-    // Clean up redundant or conflicting transformations so native H.264 MP4 streams directly
-    formattedUrl = formattedUrl.replace(
-      /\/upload\/(q_auto,f_mp4|f_auto,q_auto,vc_auto|f_mp4|q_auto)\//,
-      '/upload/'
-    );
+    // Ensure Cloudinary video upload URL has ac_none,vc_h264,q_auto for Safari macOS autoplay
+    if (formattedUrl.includes('/video/upload/')) {
+      // If already contains ac_none, keep as is or normalize
+      if (!formattedUrl.includes('ac_none')) {
+        formattedUrl = formattedUrl.replace(
+          /\/video\/upload\/(?:[a-zA-Z0-9_,:-]+\/)?/,
+          '/video/upload/ac_none,vc_h264,q_auto/'
+        );
+      }
+    }
   }
 
   return formattedUrl;

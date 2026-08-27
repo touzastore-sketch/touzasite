@@ -406,9 +406,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
           className={`hero-video absolute inset-0 w-full h-full object-cover object-center z-[1] pointer-events-none bg-transparent transition-opacity duration-700 ease-out ${
             isVideoLoaded ? 'opacity-100' : 'opacity-90'
           }`}
-        >
-          <source src={videoSrc} type="video/mp4" />
-        </video>
+        />
       )}
 
       {/* If mediaUrl is a custom static image URL */}
