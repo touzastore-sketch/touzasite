@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useLayoutEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { StoreSettings } from '../types';
 import { SocialLinks } from './SocialLinks';
@@ -15,12 +15,12 @@ const isDev = process.env.NODE_ENV !== 'production';
 const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings, onVideoReady }) => {
   const { language, t } = useLanguage();
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [usingFallbackVideo, setUsingFallbackVideo] = useState(false);
-  const playAttemptsRef = useRef(0);
-  const maxAttempts = 3;
   const isMountedRef = useRef(true);
+  const isPlayingRef = useRef(false);
 
   const heroTitle = (language === 'ar'
     ? storeSettings?.heroTitleAr
@@ -60,7 +60,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
   useEffect(() => {
     setVideoError(false);
     setUsingFallbackVideo(false);
-    playAttemptsRef.current = 0;
+    isPlayingRef.current = false;
   }, [rawMedia]);
 
   // Robust programmatic play with promise & retry handling
@@ -73,9 +73,14 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
     video.defaultMuted = true;
     video.playsInline = true;
     video.volume = 0;
+    try {
+      video.setAttribute('muted', '');
+      video.setAttribute('playsinline', '');
+      video.setAttribute('webkit-playsinline', '');
+    } catch {}
 
     if (isDev) {
-      console.log(`[Hero Video] attempting autoplay (${reason}, attempt ${playAttemptsRef.current + 1})`);
+      console.log(`[Hero Video] attempting autoplay (${reason})`);
     }
 
     const playPromise = video.play();
@@ -83,34 +88,38 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
       playPromise
         .then(() => {
           if (!isMountedRef.current) return;
-          if (isDev) {
-            console.log('[Hero Video] autoplay success');
-          }
+          isPlayingRef.current = true;
           setIsVideoLoaded(true);
           if (onVideoReady) {
             onVideoReady();
+          }
+          if (isDev) {
+            console.log('[Hero Video] autoplay success via', reason);
           }
         })
         .catch((err) => {
           if (!isMountedRef.current) return;
           if (isDev) {
-            console.warn('[Hero Video] autoplay failed:', err?.name || 'Error', err?.message || err);
-          }
-
-          // Retry logic (safely bounded)
-          if (playAttemptsRef.current < maxAttempts) {
-            playAttemptsRef.current += 1;
-            const delays = [250, 750, 1500];
-            const delay = delays[playAttemptsRef.current - 1] || 1000;
-            setTimeout(() => {
-              if (isMountedRef.current && videoRef.current && videoRef.current.paused) {
-                attemptPlay(`retry-${playAttemptsRef.current}`);
-              }
-            }, delay);
+            console.warn('[Hero Video] autoplay failed (' + reason + '):', err?.name || 'Error', err?.message || err);
           }
         });
     }
   }, [onVideoReady]);
+
+  // Apply strict WebKit / Safari muted properties as soon as DOM mounts
+  useLayoutEffect(() => {
+    if (isVideo && videoRef.current) {
+      const video = videoRef.current;
+      video.muted = true;
+      video.defaultMuted = true;
+      video.playsInline = true;
+      video.volume = 0;
+      video.setAttribute('muted', '');
+      video.setAttribute('playsinline', '');
+      video.setAttribute('webkit-playsinline', '');
+      video.setAttribute('x5-playsinline', '');
+    }
+  }, [isVideo, videoSrc]);
 
   // Lifecycle listeners and initial play triggers
   useEffect(() => {
@@ -119,12 +128,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
     if (isVideo && videoRef.current) {
       const video = videoRef.current;
 
-      if (isDev) {
-        console.log('[Hero Video] source:', videoSrc);
-        console.log('[Hero Video] loading:', videoSrc);
-      }
-
-      // Configure DOM attributes directly for strict mobile Safari compliance
+      // Ensure video is configured and attempt immediate play
       video.muted = true;
       video.defaultMuted = true;
       video.playsInline = true;
@@ -134,8 +138,41 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
       video.setAttribute('webkit-playsinline', '');
       video.setAttribute('x5-playsinline', '');
 
-      // Trigger initial play
+      // Trigger immediate play attempt
       attemptPlay('mounted');
+
+      // Immediate secondary tick
+      const initialTimer = setTimeout(() => {
+        if (isMountedRef.current && videoRef.current && videoRef.current.paused) {
+          attemptPlay('initial-timer-tick');
+        }
+      }, 100);
+
+      // Desktop Autoplay Unlock: Listen to any user movement/interaction on the entire window/document
+      // (Desktop Safari/Chrome allow muted video playback immediately upon any mouse move, scroll, hover, or keydown)
+      const handleUserInteraction = () => {
+        if (isMountedRef.current && videoRef.current && videoRef.current.paused) {
+          attemptPlay('user-interaction');
+        }
+      };
+
+      const interactionEvents = [
+        'mousemove',
+        'pointermove',
+        'mouseenter',
+        'wheel',
+        'scroll',
+        'touchstart',
+        'pointerdown',
+        'mousedown',
+        'keydown',
+        'focus',
+      ];
+
+      interactionEvents.forEach((evt) => {
+        window.addEventListener(evt, handleUserInteraction, { passive: true, capture: true });
+        document.addEventListener(evt, handleUserInteraction, { passive: true, capture: true });
+      });
 
       // Handle pageshow event (Safari bfcache restoration)
       const handlePageShow = (e: PageTransitionEvent) => {
@@ -153,13 +190,41 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
         }
       };
 
+      // Handle window focus
+      const handleWindowFocus = () => {
+        if (videoRef.current && videoRef.current.paused) {
+          attemptPlay('window-focus');
+        }
+      };
+
       window.addEventListener('pageshow', handlePageShow);
+      window.addEventListener('focus', handleWindowFocus);
       document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      // Periodic check during first 4 seconds to guarantee autoplay kicks in
+      const interval = setInterval(() => {
+        if (!isMountedRef.current) {
+          clearInterval(interval);
+          return;
+        }
+        if (videoRef.current && videoRef.current.paused) {
+          attemptPlay('interval-check');
+        } else if (videoRef.current && !videoRef.current.paused) {
+          clearInterval(interval);
+        }
+      }, 600);
 
       return () => {
         isMountedRef.current = false;
+        clearTimeout(initialTimer);
+        clearInterval(interval);
         window.removeEventListener('pageshow', handlePageShow);
+        window.removeEventListener('focus', handleWindowFocus);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
+        interactionEvents.forEach((evt) => {
+          window.removeEventListener(evt, handleUserInteraction, { capture: true });
+          document.removeEventListener(evt, handleUserInteraction, { capture: true });
+        });
       };
     } else if (!isVideo) {
       setIsVideoLoaded(true);
@@ -184,6 +249,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
   };
 
   const handleVideoPlaying = () => {
+    isPlayingRef.current = true;
     setIsVideoLoaded(true);
     if (onVideoReady) {
       onVideoReady();
@@ -192,6 +258,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
 
   const handleTimeUpdate = () => {
     if (videoRef.current && videoRef.current.currentTime > 0.05 && !isVideoLoaded) {
+      isPlayingRef.current = true;
       setIsVideoLoaded(true);
       if (onVideoReady) {
         onVideoReady();
@@ -226,7 +293,6 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
       }
       setUsingFallbackVideo(true);
       setVideoError(false);
-      playAttemptsRef.current = 0;
       setTimeout(() => {
         if (videoRef.current) {
           try {
@@ -242,8 +308,22 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
     }
   };
 
+  // Section interactive fallback triggers
+  const handleSectionInteraction = () => {
+    if (videoRef.current && videoRef.current.paused) {
+      attemptPlay('section-interaction');
+    }
+  };
+
   return (
-    <section className="relative h-[100dvh] min-h-[550px] sm:min-h-[600px] w-full flex items-end justify-center pb-10 sm:pb-16 md:pb-20 pt-24 sm:pt-28 px-4 overflow-hidden bg-[#0c0c0e]">
+    <section
+      ref={containerRef}
+      onMouseEnter={handleSectionInteraction}
+      onMouseMove={handleSectionInteraction}
+      onPointerDown={handleSectionInteraction}
+      onClick={handleSectionInteraction}
+      className="relative h-[100dvh] min-h-[550px] sm:min-h-[600px] w-full flex items-end justify-center pb-10 sm:pb-16 md:pb-20 pt-24 sm:pt-28 px-4 overflow-hidden bg-[#0c0c0e] select-none"
+    >
       {/* Primary Visual Poster Backdrop (Guarantees elegant visual instantly while media loads) */}
       <div
         className="absolute inset-0 z-0 bg-cover bg-center pointer-events-none"
@@ -287,9 +367,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
           className={`hero-video absolute inset-0 w-full h-full object-cover object-center z-[1] pointer-events-none bg-transparent transition-opacity duration-700 ease-out ${
             isVideoLoaded ? 'opacity-100' : 'opacity-90'
           }`}
-        >
-          <source src={videoSrc} type="video/mp4" />
-        </video>
+        />
       )}
 
       {/* If mediaUrl is a custom static image URL */}
@@ -308,7 +386,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/80 z-[2] pointer-events-none" />
 
       {/* Hero Content positioned elegantly - renders immediately upon page load (Layer 10) */}
-      <div className="relative z-10 text-center px-4 flex flex-col items-center max-w-2xl mx-auto pb-2 sm:pb-4">
+      <div className="relative z-10 text-center px-4 flex flex-col items-center max-w-2xl mx-auto pb-2 sm:pb-4 pointer-events-auto">
         <span className="font-label-caps text-white/95 text-[11px] md:text-[13px] tracking-widest mb-3 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 shadow-xs">
           {heroBadge}
         </span>
