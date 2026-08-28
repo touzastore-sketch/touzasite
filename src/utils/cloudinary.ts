@@ -1,7 +1,9 @@
+import { auth } from '../firebase';
+
 export const CLOUDINARY_CLOUD_NAME =
-  import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'qazdrpcx';
+  import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 's1vv6dqw';
 export const CLOUDINARY_UPLOAD_PRESET =
-  import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'touza1_imgg';
+  import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'touza_img';
 
 export const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 export const CLOUDINARY_VIDEO_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
@@ -79,9 +81,12 @@ export async function uploadToCloudinary(
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
-    if (options.folder) {
-      formData.append('folder', options.folder);
-    }
+    // 1. Associate new image uploads with current authenticated Firebase user UID (users/{uid}/images/)
+    const currentUid = auth?.currentUser?.uid;
+    const baseFolder = currentUid ? `users/${currentUid}/images` : 'users/guest/images';
+    const finalFolder = options.folder ? `${baseFolder}/${options.folder}` : baseFolder;
+    formData.append('folder', finalFolder);
+
     if (options.tags && options.tags.length > 0) {
       formData.append('tags', options.tags.join(','));
     }
@@ -134,11 +139,11 @@ export function uploadVideoToCloudinary(
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
-    if (options.folder) {
-      formData.append('folder', options.folder);
-    } else {
-      formData.append('folder', 'touza_videos');
-    }
+    // Associate video uploads with authenticated Firebase user UID
+    const currentUid = auth?.currentUser?.uid;
+    const baseFolder = currentUid ? `users/${currentUid}/images` : 'users/guest/images';
+    const videoFolder = options.folder ? `${baseFolder}/${options.folder}` : `${baseFolder}/touza_videos`;
+    formData.append('folder', videoFolder);
 
     if (options.tags && options.tags.length > 0) {
       formData.append('tags', options.tags.join(','));
