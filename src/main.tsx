@@ -4,13 +4,22 @@ import App from './App.tsx';
 import { LanguageProvider } from './context/LanguageContext.tsx';
 import './index.css';
 
-// Unregister any stale or legacy service workers so updates are instantaneous
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then((registrations) => {
-    for (const registration of registrations) {
-      registration.unregister();
-    }
-  }).catch(() => {});
+// Unregister any stale or legacy service workers and clear CacheStorage so updates are instantaneous
+if (typeof window !== 'undefined') {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister();
+      }
+    }).catch(() => {});
+  }
+  if ('caches' in window) {
+    caches.keys().then((keys) => {
+      keys.forEach((key) => {
+        caches.delete(key);
+      });
+    }).catch(() => {});
+  }
 }
 
 // Ensure JSON.stringify never throws cyclic structure errors anywhere in the app lifecycle

@@ -500,12 +500,12 @@ export const AppContent: React.FC = () => {
     };
     window.addEventListener('touza_settings_updated', handleSettingsUpdated);
 
-    // Fallback safety: ensure isInitialSyncDone becomes true within 2.0s even under extreme latency
+    // Fallback safety: ensure isInitialSyncDone becomes true within 6.0s even under extreme offline latency
     const fallbackTimer = setTimeout(() => {
       if (isSubscribed) {
         setIsInitialSyncDone(true);
       }
-    }, 2000);
+    }, 6000);
 
     return () => {
       isSubscribed = false;

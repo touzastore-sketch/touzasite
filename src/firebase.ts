@@ -1697,22 +1697,12 @@ export const subscribeToNewsletterCampaigns = (
 };
 
 // ==========================================
+// ==========================================
 // PRODUCTS FIRESTORE PERSISTENCE
 // ==========================================
 
-export const BANNED_DEPRECATED_PRODUCT_IDS = new Set<string>([
-  'touza-summer-striped-shirt-brown',
-  'touza-summer-striped-shirt-green',
-  'touza-summer-striped-shirt-orange',
-  'touza-summer-striped-shirt-yellow',
-]);
-
-export const isBannedProductId = (id?: string): boolean => {
-  if (!id || typeof id !== 'string') return false;
-  return (
-    BANNED_DEPRECATED_PRODUCT_IDS.has(id.trim()) ||
-    id.toLowerCase().includes('touza-summer-striped-shirt')
-  );
+export const isBannedProductId = (_id?: string): boolean => {
+  return false;
 };
 
 const DEFAULT_FALLBACK_PRODUCT_IMAGE =
@@ -1749,16 +1739,11 @@ const sanitizeProduct = (p: Product): Product => {
 export const getAllProductsAdmin = async (): Promise<Product[]> => {
   try {
     const productsRef = collection(db, 'products');
-    const snapshot = await fetchWithTimeout(getDocs(productsRef), 10000);
+    const snapshot = await fetchWithTimeout(getDocs(productsRef), 12000);
     
     if (!snapshot.empty) {
       const firestoreProducts: Product[] = [];
       snapshot.forEach((docSnap) => {
-        if (isBannedProductId(docSnap.id)) {
-          // Permanently purge any banned or deprecated products from Firestore
-          deleteDoc(doc(db, 'products', docSnap.id)).catch(() => {});
-          return;
-        }
         const data = docSnap.data();
         firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
       });
@@ -1771,8 +1756,8 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
       }
     }
 
-    // If Firestore is empty, seed initial default products (excluding any banned IDs)
-    const initialProducts = PRODUCTS.filter((p) => !isBannedProductId(p.id)).map(sanitizeProduct);
+    // If Firestore is empty, seed initial default products
+    const initialProducts = PRODUCTS.map(sanitizeProduct);
     for (const prod of initialProducts) {
       setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true }).catch(() => {});
     }
@@ -1787,11 +1772,11 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.filter((p) => !isBannedProductId(p.id)).map(sanitizeProduct);
+          return parsed.map(sanitizeProduct);
         }
       }
     } catch {}
-    return PRODUCTS.filter((p) => !isBannedProductId(p.id)).map(sanitizeProduct);
+    return PRODUCTS.map(sanitizeProduct);
   }
 };
 
@@ -1806,11 +1791,6 @@ export const subscribeToProducts = (
         if (!snapshot.empty) {
           const firestoreProducts: Product[] = [];
           snapshot.forEach((docSnap) => {
-            if (isBannedProductId(docSnap.id)) {
-              // Automatically delete banned deprecated document if encountered
-              deleteDoc(doc(db, 'products', docSnap.id)).catch(() => {});
-              return;
-            }
             const data = docSnap.data();
             firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
           });
@@ -1822,8 +1802,8 @@ export const subscribeToProducts = (
             callback(firestoreProducts);
           }
         } else {
-          // If Firestore is completely empty (e.g. first initial setup), seed the default products
-          const initialProducts = PRODUCTS.filter((p) => !isBannedProductId(p.id)).map(sanitizeProduct);
+          // If Firestore is completely empty, seed default products
+          const initialProducts = PRODUCTS.map(sanitizeProduct);
           for (const prod of initialProducts) {
             setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true }).catch(() => {});
           }
@@ -2076,7 +2056,7 @@ export const fetchInitialStoreData = async (
   promoCodes: PromoCode[];
 }> => {
   try {
-    const settingsPromise = fetchWithTimeout(getDoc(doc(db, 'settings', 'store')), 4000)
+    const settingsPromise = fetchWithTimeout(getDoc(doc(db, 'settings', 'store')), 10000)
       .then((docSnap) => {
         if (docSnap && docSnap.exists()) {
           const remote = sanitizeSettings({ ...defaultSettings, ...(docSnap.data() as StoreSettings) }, defaultSettings);
@@ -2090,14 +2070,12 @@ export const fetchInitialStoreData = async (
       })
       .catch(() => defaultSettings);
 
-    const productsPromise = fetchWithTimeout(getDocs(collection(db, 'products')), 4000)
+    const productsPromise = fetchWithTimeout(getDocs(collection(db, 'products')), 10000)
       .then((snap) => {
         if (snap && !snap.empty) {
           const list: Product[] = [];
           snap.forEach((d) => {
-            if (!isBannedProductId(d.id)) {
-              list.push(sanitizeProduct({ id: d.id, ...d.data() } as Product));
-            }
+            list.push(sanitizeProduct({ id: d.id, ...d.data() } as Product));
           });
           if (list.length > 0) {
             try {
@@ -2110,21 +2088,17 @@ export const fetchInitialStoreData = async (
       })
       .catch(() => []);
 
-    const categoriesPromise = fetchWithTimeout(getDocs(collection(db, 'categories')), 4000)
+    const categoriesPromise = fetchWithTimeout(getDocs(collection(db, 'categories')), 10000)
       .then((snap) => {
         if (snap && !snap.empty) {
           const list: Category[] = [];
-          const deletedCats: string[] = JSON.parse(localStorage.getItem('maison_deleted_categories') || '[]');
-          const deletedSet = new Set(deletedCats.map((id) => id.trim()));
           snap.forEach((d) => {
-            if (!deletedSet.has(d.id.trim())) {
-              const cData = d.data() as Category;
-              list.push({
-                id: d.id,
-                ...cData,
-                imageUrl: ensureAutoOptimizedCloudinaryUrl(cData.imageUrl),
-              } as Category);
-            }
+            const cData = d.data() as Category;
+            list.push({
+              id: d.id,
+              ...cData,
+              imageUrl: ensureAutoOptimizedCloudinaryUrl(cData.imageUrl),
+            } as Category);
           });
           if (list.length > 0) {
             try {
@@ -2137,16 +2111,12 @@ export const fetchInitialStoreData = async (
       })
       .catch(() => []);
 
-    const promoCodesPromise = fetchWithTimeout(getDocs(collection(db, 'promoCodes')), 4000)
+    const promoCodesPromise = fetchWithTimeout(getDocs(collection(db, 'promoCodes')), 10000)
       .then((snap) => {
         if (snap && !snap.empty) {
           const list: PromoCode[] = [];
-          const deletedPromos: string[] = JSON.parse(localStorage.getItem('maison_deleted_promos') || '[]');
-          const deletedSet = new Set(deletedPromos.map((id) => id.trim()));
           snap.forEach((d) => {
-            if (!deletedSet.has(d.id.trim())) {
-              list.push({ id: d.id, ...d.data() } as PromoCode);
-            }
+            list.push({ id: d.id, ...d.data() } as PromoCode);
           });
           if (list.length > 0) {
             try {

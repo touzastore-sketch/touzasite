@@ -122,12 +122,12 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
     if (isInitialSyncDone) {
       preloadVisualsAndFinish();
     } else {
-      // Wait for isInitialSyncDone with a maximum 2-second fallback timeout
+      // Wait for isInitialSyncDone with an offline fallback safety timeout (6 seconds max)
       const syncWaitTimer = setTimeout(() => {
         if (isMounted) {
           preloadVisualsAndFinish();
         }
-      }, 2000);
+      }, 6000);
 
       return () => {
         isMounted = false;
@@ -136,7 +136,7 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
       };
     }
 
-    // Absolute fallback safety timeout (3.5 seconds max)
+    // Absolute fallback safety timeout (7 seconds max)
     const safetyTimeout = setTimeout(() => {
       if (!isMounted) return;
       setProgress(100);
@@ -144,7 +144,7 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
       setTimeout(() => {
         if (isMounted) onFinishLoading();
       }, 400);
-    }, 3500);
+    }, 7000);
 
     return () => {
       isMounted = false;
