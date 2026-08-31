@@ -417,6 +417,9 @@ export const AppContent: React.FC = () => {
         if (initialData.categories && initialData.categories.length > 0) {
           setCategories(initialData.categories);
         }
+        if (initialData.promoCodes && initialData.promoCodes.length > 0) {
+          setPromoCodes(initialData.promoCodes);
+        }
         setIsInitialSyncDone(true);
       })
       .catch((err) => {
@@ -426,7 +429,7 @@ export const AppContent: React.FC = () => {
         }
       });
 
-    // 2. Subscribe to continuous live Firestore updates with instantaneous local cache hydration
+    // 2. Subscribe to continuous live Firestore updates with real snapshot triggers
     const unsubscribeProducts = subscribeToProducts((liveProducts) => {
       if (isSubscribed && liveProducts && liveProducts.length > 0) {
         setProducts(liveProducts);
@@ -454,7 +457,42 @@ export const AppContent: React.FC = () => {
       }
     });
 
-    // 3. Listen for internal admin updates dispatched within the same or other tabs
+    // 3. Listen for internal admin updates dispatched within the same or other tabs via BroadcastChannel & CustomEvents
+    const handleStoreSyncEvent = (e: any) => {
+      if (!isSubscribed) return;
+      const { type, data } = e.detail || {};
+      if (type === 'products' && Array.isArray(data) && data.length > 0) {
+        setProducts(data);
+      } else if (type === 'categories' && Array.isArray(data) && data.length > 0) {
+        setCategories(data);
+      } else if (type === 'settings' && data) {
+        setStoreSettings(data);
+      } else if (type === 'promos' && Array.isArray(data)) {
+        setPromoCodes(data);
+      }
+    };
+    window.addEventListener('touza_store_sync', handleStoreSyncEvent);
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('touza_store_channel');
+        bc.onmessage = (event) => {
+          if (!isSubscribed) return;
+          const { type, data } = event.data || {};
+          if (type === 'products' && Array.isArray(data) && data.length > 0) {
+            setProducts(data);
+          } else if (type === 'categories' && Array.isArray(data) && data.length > 0) {
+            setCategories(data);
+          } else if (type === 'settings' && data) {
+            setStoreSettings(data);
+          } else if (type === 'promos' && Array.isArray(data)) {
+            setPromoCodes(data);
+          }
+        };
+      }
+    } catch {}
+
     const handleSettingsUpdated = (e: any) => {
       if (isSubscribed && e.detail) {
         setStoreSettings(e.detail);
@@ -462,17 +500,23 @@ export const AppContent: React.FC = () => {
     };
     window.addEventListener('touza_settings_updated', handleSettingsUpdated);
 
-    // Fallback safety: ensure isInitialSyncDone becomes true within 1.5s even under extreme latency
+    // Fallback safety: ensure isInitialSyncDone becomes true within 2.0s even under extreme latency
     const fallbackTimer = setTimeout(() => {
       if (isSubscribed) {
         setIsInitialSyncDone(true);
       }
-    }, 1500);
+    }, 2000);
 
     return () => {
       isSubscribed = false;
       clearTimeout(fallbackTimer);
+      window.removeEventListener('touza_store_sync', handleStoreSyncEvent);
       window.removeEventListener('touza_settings_updated', handleSettingsUpdated);
+      if (bc) {
+        try {
+          bc.close();
+        } catch {}
+      }
       unsubscribeProducts();
       unsubscribeCategories();
       unsubscribeSettings();

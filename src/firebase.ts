@@ -1177,6 +1177,19 @@ export const getAllCategories = async (): Promise<Category[]> => {
   }
 };
 
+export const notifyStoreStateChanged = (type: 'products' | 'categories' | 'settings' | 'promos', data?: any) => {
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('touza_store_sync', { detail: { type, data } }));
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('touza_store_channel');
+        bc.postMessage({ type, data, timestamp: Date.now() });
+        bc.close();
+      }
+    }
+  } catch {}
+};
+
 export const subscribeToCategories = (
   callback: (categories: Category[]) => void
 ): (() => void) => {
@@ -1184,42 +1197,6 @@ export const subscribeToCategories = (
     localStorage.getItem('maison_deleted_categories') || '[]'
   );
   const deletedSet = new Set(deletedCatsLocal.map((id) => id.trim()));
-
-  // Instant visual hydration from local cache
-  try {
-    const saved = localStorage.getItem('maison_categories');
-    if (saved) {
-      const parsed: Category[] = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
-        callback(
-          parsed
-            .filter((c: Category) => !deletedSet.has(c.id))
-            .map((c) => ({ ...c, imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl) }))
-        );
-      } else {
-        callback(
-          DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)).map((c) => ({
-            ...c,
-            imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
-          }))
-        );
-      }
-    } else {
-      callback(
-        DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)).map((c) => ({
-          ...c,
-          imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
-        }))
-      );
-    }
-  } catch {
-    callback(
-      DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)).map((c) => ({
-        ...c,
-        imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
-      }))
-    );
-  }
 
   try {
     const catsRef = collection(db, 'categories');
@@ -1237,10 +1214,12 @@ export const subscribeToCategories = (
             } as Category);
           }
         });
-        try {
-          localStorage.setItem('maison_categories', safeJsonStringify(firestoreCats));
-        } catch {}
-        callback(firestoreCats);
+        if (firestoreCats.length > 0) {
+          try {
+            localStorage.setItem('maison_categories', safeJsonStringify(firestoreCats));
+          } catch {}
+          callback(firestoreCats);
+        }
       },
       (err) => {
         console.warn('Realtime categories listener notice:', err);
@@ -1289,6 +1268,8 @@ export const saveCategoryAdmin = async (
     throw error;
   }
 
+  notifyStoreStateChanged('categories', updatedList);
+
   return updatedList;
 };
 
@@ -1315,6 +1296,8 @@ export const updateCategoryAdmin = async (
     console.error('Failed to update category in Firestore:', error);
     throw error;
   }
+
+  notifyStoreStateChanged('categories', updatedList);
 
   return updatedList;
 };
@@ -1344,6 +1327,8 @@ export const deleteCategoryAdmin = async (
     console.error('Failed to delete category from Firestore:', error);
     throw error;
   }
+
+  notifyStoreStateChanged('categories', updatedList);
 
   return updatedList;
 };
@@ -1813,24 +1798,6 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
 export const subscribeToProducts = (
   callback: (products: Product[]) => void
 ): (() => void) => {
-  // Emit initial/cached state for instant visual feedback on cold start
-  try {
-    const saved = localStorage.getItem('maison_products');
-    if (saved) {
-      const parsed: Product[] = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const filteredCached = parsed.filter((p) => !isBannedProductId(p.id));
-        callback(filteredCached.map(sanitizeProduct));
-      } else {
-        callback(PRODUCTS.filter((p) => !isBannedProductId(p.id)).map(sanitizeProduct));
-      }
-    } else {
-      callback(PRODUCTS.filter((p) => !isBannedProductId(p.id)).map(sanitizeProduct));
-    }
-  } catch {
-    callback(PRODUCTS.filter((p) => !isBannedProductId(p.id)).map(sanitizeProduct));
-  }
-
   try {
     const productsRef = collection(db, 'products');
     const unsubscribe = onSnapshot(
@@ -1970,6 +1937,8 @@ export const saveProductAdmin = async (
     localStorage.setItem('maison_products', safeJsonStringify(list));
   } catch {}
 
+  notifyStoreStateChanged('products', list);
+
   return list;
 };
 
@@ -1985,6 +1954,7 @@ export const deleteProductAdmin = async (
         const list: Product[] = JSON.parse(saved);
         const filtered = list.filter((p) => p.id !== productId);
         localStorage.setItem('maison_products', safeJsonStringify(filtered));
+        notifyStoreStateChanged('products', filtered);
       }
     } catch {}
     return true;
@@ -2103,6 +2073,7 @@ export const fetchInitialStoreData = async (
   settings: StoreSettings;
   products: Product[];
   categories: Category[];
+  promoCodes: PromoCode[];
 }> => {
   try {
     const settingsPromise = fetchWithTimeout(getDoc(doc(db, 'settings', 'store')), 4000)
@@ -2166,19 +2137,43 @@ export const fetchInitialStoreData = async (
       })
       .catch(() => []);
 
-    const [settings, products, categories] = await Promise.all([
+    const promoCodesPromise = fetchWithTimeout(getDocs(collection(db, 'promoCodes')), 4000)
+      .then((snap) => {
+        if (snap && !snap.empty) {
+          const list: PromoCode[] = [];
+          const deletedPromos: string[] = JSON.parse(localStorage.getItem('maison_deleted_promos') || '[]');
+          const deletedSet = new Set(deletedPromos.map((id) => id.trim()));
+          snap.forEach((d) => {
+            if (!deletedSet.has(d.id.trim())) {
+              list.push({ id: d.id, ...d.data() } as PromoCode);
+            }
+          });
+          if (list.length > 0) {
+            try {
+              localStorage.setItem('maison_promos', safeJsonStringify(list));
+            } catch {}
+            return list;
+          }
+        }
+        return [];
+      })
+      .catch(() => []);
+
+    const [settings, products, categories, promoCodes] = await Promise.all([
       settingsPromise,
       productsPromise,
       categoriesPromise,
+      promoCodesPromise,
     ]);
 
-    return { settings, products, categories };
+    return { settings, products, categories, promoCodes };
   } catch (e) {
     console.warn('fetchInitialStoreData fallback:', e);
     return {
       settings: defaultSettings,
       products: [],
       categories: [],
+      promoCodes: [],
     };
   }
 };
@@ -2187,17 +2182,6 @@ export const subscribeToStoreSettings = (
   defaultSettings: StoreSettings,
   callback: (settings: StoreSettings) => void
 ): (() => void) => {
-  // Immediately emit cached settings from localStorage for instant render on Safari
-  try {
-    const saved = localStorage.getItem(SETTINGS_STORAGE_KEY) || localStorage.getItem('maison_settings');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed) {
-        callback(sanitizeSettings({ ...defaultSettings, ...parsed }, defaultSettings));
-      }
-    }
-  } catch {}
-
   try {
     const settingsDocRef = doc(db, 'settings', 'store');
     const unsubscribe = onSnapshot(
@@ -2230,6 +2214,8 @@ export const saveStoreSettingsAdmin = async (
     localStorage.setItem('maison_settings', safeJsonStringify(newSettings));
     window.dispatchEvent(new CustomEvent('touza_settings_updated', { detail: newSettings }));
   } catch {}
+
+  notifyStoreStateChanged('settings', newSettings);
 
   // 2. Persist to Firestore
   try {
@@ -2304,17 +2290,6 @@ export const subscribeToPromoCodes = (
   );
   const deletedSet = new Set(deletedPromosLocal.map((id) => id.trim()));
 
-  // Local cache emission
-  try {
-    const saved = localStorage.getItem('maison_promos');
-    if (saved) {
-      const parsed: PromoCode[] = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
-        callback(parsed.filter((p) => !deletedSet.has(p.id)));
-      }
-    }
-  } catch {}
-
   try {
     const promosRef = collection(db, 'promoCodes');
     const unsubscribe = onSnapshot(
@@ -2326,8 +2301,10 @@ export const subscribeToPromoCodes = (
             firestorePromos.push({ id: docSnap.id, ...docSnap.data() } as PromoCode);
           }
         });
-        localStorage.setItem('maison_promos', safeJsonStringify(firestorePromos));
-        callback(firestorePromos);
+        if (firestorePromos.length > 0) {
+          localStorage.setItem('maison_promos', safeJsonStringify(firestorePromos));
+          callback(firestorePromos);
+        }
       },
       (err) => {
         console.warn('Realtime promo codes listener error:', err);
@@ -2354,6 +2331,14 @@ export const savePromoCodeAdmin = async (
 
     const promoDocRef = doc(db, 'promoCodes', promoData.id);
     await setDoc(promoDocRef, sanitizeForFirestore(promoData), { merge: true });
+    
+    try {
+      const existing: PromoCode[] = JSON.parse(localStorage.getItem('maison_promos') || '[]');
+      const updated = [promoData, ...existing.filter((p) => p.id !== promoData.id)];
+      localStorage.setItem('maison_promos', safeJsonStringify(updated));
+      notifyStoreStateChanged('promos', updated);
+    } catch {}
+
     return true;
   } catch (error) {
     console.error('Failed to save promo code to Firestore:', error);
@@ -2371,6 +2356,7 @@ export const deletePromoCodeAdmin = async (
       const existing: PromoCode[] = JSON.parse(localStorage.getItem('maison_promos') || '[]');
       const filtered = existing.filter((p) => p.id !== promoId);
       localStorage.setItem('maison_promos', safeJsonStringify(filtered));
+      notifyStoreStateChanged('promos', filtered);
 
       const deletedPromos: string[] = JSON.parse(localStorage.getItem('maison_deleted_promos') || '[]');
       if (!deletedPromos.includes(promoId)) {
