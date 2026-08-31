@@ -411,22 +411,19 @@ export const AppContent: React.FC = () => {
         if (initialData.settings) {
           setStoreSettings(initialData.settings);
         }
-        if (initialData.products && initialData.products.length > 0) {
-          setProducts(initialData.products);
-        }
         if (initialData.categories && initialData.categories.length > 0) {
           setCategories(initialData.categories);
         }
         if (initialData.promoCodes && initialData.promoCodes.length > 0) {
           setPromoCodes(initialData.promoCodes);
         }
-        setIsInitialSyncDone(true);
+        if (initialData.products && initialData.products.length > 0) {
+          setProducts(initialData.products);
+          setIsInitialSyncDone(true);
+        }
       })
       .catch((err) => {
         console.warn('Initial store data fetch note:', err);
-        if (isSubscribed) {
-          setIsInitialSyncDone(true);
-        }
       });
 
     // 2. Subscribe to continuous live Firestore updates with real snapshot triggers
@@ -440,14 +437,12 @@ export const AppContent: React.FC = () => {
     const unsubscribeCategories = subscribeToCategories((liveCats) => {
       if (isSubscribed && liveCats && liveCats.length > 0) {
         setCategories(liveCats);
-        setIsInitialSyncDone(true);
       }
     });
 
     const unsubscribeSettings = subscribeToStoreSettings(defaultSettings, (liveSettings) => {
       if (isSubscribed && liveSettings) {
         setStoreSettings(liveSettings);
-        setIsInitialSyncDone(true);
       }
     });
 
