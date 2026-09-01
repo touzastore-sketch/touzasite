@@ -116,13 +116,19 @@ export const AppContent: React.FC = () => {
   // Dynamic Products state initialized from local cache or fallback
   const [products, setProducts] = useState<Product[]>(() => {
     try {
+      const savedVersion = localStorage.getItem('maison_catalog_version');
       const saved = localStorage.getItem('maison_products');
-      if (saved) {
+      if (saved && savedVersion === CATALOG_VERSION) {
         const parsed: Product[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length >= PRODUCTS.length) {
           return parsed.filter((p) => !isBannedProductId(p.id));
         }
       }
+      // If no cache or cache was from an older version, immediately use the latest complete PRODUCTS catalog
+      try {
+        localStorage.setItem('maison_catalog_version', CATALOG_VERSION);
+        localStorage.setItem('maison_products', safeJsonStringify(PRODUCTS));
+      } catch {}
       return PRODUCTS.filter((p) => !isBannedProductId(p.id));
     } catch {
       return PRODUCTS.filter((p) => !isBannedProductId(p.id));
@@ -131,6 +137,7 @@ export const AppContent: React.FC = () => {
 
   useEffect(() => {
     try {
+      localStorage.setItem('maison_catalog_version', CATALOG_VERSION);
       localStorage.setItem('maison_products', safeJsonStringify(products));
     } catch (err) {
       console.error('Failed to store products in local cache:', err);

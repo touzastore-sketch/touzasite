@@ -1771,7 +1771,7 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
       const saved = localStorage.getItem('maison_products');
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed) && parsed.length >= PRODUCTS.length) {
           return parsed.map(sanitizeProduct);
         }
       }
