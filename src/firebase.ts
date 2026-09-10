@@ -1117,32 +1117,18 @@ export const subscribeToProductReviews = (
 // ==========================================
 
 export const getAllCategories = async (): Promise<Category[]> => {
-  const deletedCatsLocal: string[] = JSON.parse(
-    localStorage.getItem('maison_deleted_categories') || '[]'
-  );
-  const deletedSet = new Set(deletedCatsLocal.map((id) => id.trim()));
-
-  try {
-    const deletedSnap = await fetchWithTimeout(getDocs(collection(db, 'deleted_categories')));
-    deletedSnap.forEach((d) => {
-      deletedSet.add(d.id.trim());
-    });
-  } catch {}
-
   try {
     const catsRef = collection(db, 'categories');
-    const snapshot = await fetchWithTimeout(getDocs(catsRef), 8000);
+    const snapshot = await fetchWithTimeout(getDocs(catsRef), 5000);
     const categories: Category[] = [];
 
     snapshot.forEach((docSnap) => {
-      if (!deletedSet.has(docSnap.id.trim())) {
-        const cData = docSnap.data() as Category;
-        categories.push({
-          id: docSnap.id,
-          ...cData,
-          imageUrl: ensureAutoOptimizedCloudinaryUrl(cData.imageUrl),
-        } as Category);
-      }
+      const cData = docSnap.data() as Category;
+      categories.push({
+        id: docSnap.id,
+        ...cData,
+        imageUrl: ensureAutoOptimizedCloudinaryUrl(cData.imageUrl),
+      } as Category);
     });
 
     if (categories.length > 0) {
@@ -1152,25 +1138,25 @@ export const getAllCategories = async (): Promise<Category[]> => {
       return categories;
     }
 
-    const filteredDefaults = DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)).map((c) => ({
+    return DEFAULT_CATEGORIES.map((c) => ({
       ...c,
       imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
     }));
-    return filteredDefaults;
   } catch (error) {
     console.warn('Using offline fallback for categories:', error);
     try {
       const saved = localStorage.getItem('maison_categories');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed
-            .filter((c: Category) => !deletedSet.has(c.id))
-            .map((c) => ({ ...c, imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl) }));
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((c: Category) => ({
+            ...c,
+            imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
+          }));
         }
       }
     } catch {}
-    return DEFAULT_CATEGORIES.filter((c) => !deletedSet.has(c.id)).map((c) => ({
+    return DEFAULT_CATEGORIES.map((c) => ({
       ...c,
       imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
     }));
@@ -1193,32 +1179,40 @@ export const notifyStoreStateChanged = (type: 'products' | 'categories' | 'setti
 export const subscribeToCategories = (
   callback: (categories: Category[]) => void
 ): (() => void) => {
-  const deletedCatsLocal: string[] = JSON.parse(
-    localStorage.getItem('maison_deleted_categories') || '[]'
-  );
-  const deletedSet = new Set(deletedCatsLocal.map((id) => id.trim()));
-
   try {
     const catsRef = collection(db, 'categories');
     const unsubscribe = onSnapshot(
       catsRef,
       (snapshot) => {
-        const firestoreCats: Category[] = [];
-        snapshot.forEach((docSnap) => {
-          if (!deletedSet.has(docSnap.id.trim())) {
+        if (!snapshot.empty) {
+          const firestoreCats: Category[] = [];
+          snapshot.forEach((docSnap) => {
             const cData = docSnap.data() as Category;
             firestoreCats.push({
               id: docSnap.id,
               ...cData,
               imageUrl: ensureAutoOptimizedCloudinaryUrl(cData.imageUrl),
             } as Category);
+          });
+          if (firestoreCats.length > 0) {
+            try {
+              localStorage.setItem('maison_categories', safeJsonStringify(firestoreCats));
+            } catch {}
+            callback(firestoreCats);
           }
-        });
-        if (firestoreCats.length > 0) {
+        } else {
+          // If Firestore categories collection is empty, seed defaults
+          const defaultCats = DEFAULT_CATEGORIES.map((c) => ({
+            ...c,
+            imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
+          }));
+          for (const cat of defaultCats) {
+            setDoc(doc(db, 'categories', cat.id), sanitizeForFirestore(cat), { merge: true }).catch(() => {});
+          }
           try {
-            localStorage.setItem('maison_categories', safeJsonStringify(firestoreCats));
+            localStorage.setItem('maison_categories', safeJsonStringify(defaultCats));
           } catch {}
-          callback(firestoreCats);
+          callback(defaultCats);
         }
       },
       (err) => {
@@ -1236,7 +1230,11 @@ export const saveCategoryAdmin = async (
   categoryData: Omit<Category, 'id'>,
   currentCategories: Category[] = []
 ): Promise<Category[]> => {
-  const newCatId = 'cat-' + (categoryData.nameEn ? categoryData.nameEn.toLowerCase().replace(/[^a-z0-9]/g, '-') : Date.now());
+  const slug = (categoryData.nameEn || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-');
+  const newCatId = 'cat-' + (slug && slug !== '-' ? slug : Date.now());
   const sanitizedCatData = {
     ...categoryData,
     imageUrl: ensureAutoOptimizedCloudinaryUrl(categoryData.imageUrl),
@@ -1245,14 +1243,6 @@ export const saveCategoryAdmin = async (
     id: newCatId,
     ...sanitizedCatData,
   };
-
-  // Remove from deleted tracking if re-added
-  try {
-    const deletedCats: string[] = JSON.parse(localStorage.getItem('maison_deleted_categories') || '[]');
-    const filtered = deletedCats.filter((id) => id !== newCatId);
-    localStorage.setItem('maison_deleted_categories', safeJsonStringify(filtered));
-    await deleteDoc(doc(db, 'deleted_categories', newCatId)).catch(() => {});
-  } catch {}
 
   const updatedList = [newCat, ...currentCategories.filter((c) => c.id !== newCatId)];
   try {
@@ -1309,20 +1299,11 @@ export const deleteCategoryAdmin = async (
   const updatedList = currentCategories.filter((c) => c.id !== categoryId);
   try {
     localStorage.setItem('maison_categories', safeJsonStringify(updatedList));
-    const deletedCats: string[] = JSON.parse(localStorage.getItem('maison_deleted_categories') || '[]');
-    if (!deletedCats.includes(categoryId)) {
-      deletedCats.push(categoryId);
-      localStorage.setItem('maison_deleted_categories', safeJsonStringify(deletedCats));
-    }
   } catch {}
 
   try {
     const catDocRef = doc(db, 'categories', categoryId);
     await deleteDoc(catDocRef);
-    await setDoc(doc(db, 'deleted_categories', categoryId), {
-      categoryId,
-      deletedAt: new Date().toISOString(),
-    }, { merge: true }).catch(() => {});
   } catch (error) {
     console.error('Failed to delete category from Firestore:', error);
     throw error;
@@ -1343,20 +1324,19 @@ export const resetDefaultCategoriesAdmin = async (): Promise<Category[]> => {
     });
     await Promise.all(deletePromises);
 
-    // Clear deleted categories tracking
-    try {
-      localStorage.removeItem('maison_deleted_categories');
-      const delSnap = await getDocs(collection(db, 'deleted_categories'));
-      delSnap.forEach((d) => deleteDoc(doc(db, 'deleted_categories', d.id)).catch(() => {}));
-    } catch {}
+    const defaultCats = DEFAULT_CATEGORIES.map((c) => ({
+      ...c,
+      imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
+    }));
 
-    for (const c of DEFAULT_CATEGORIES) {
+    for (const c of defaultCats) {
       await setDoc(doc(db, 'categories', c.id), sanitizeForFirestore(c), { merge: true });
     }
     try {
-      localStorage.setItem('maison_categories', safeJsonStringify(DEFAULT_CATEGORIES));
+      localStorage.setItem('maison_categories', safeJsonStringify(defaultCats));
     } catch {}
-    return DEFAULT_CATEGORIES;
+    notifyStoreStateChanged('categories', defaultCats);
+    return defaultCats;
   } catch (error) {
     console.error('Failed to reset default categories:', error);
     try {
@@ -2071,7 +2051,7 @@ export const fetchInitialStoreData = async (
   promoCodes: PromoCode[];
 }> => {
   try {
-    const FAST_TIMEOUT = 15000;
+    const FAST_TIMEOUT = 5000;
 
     const settingsPromise = fetchWithTimeout(getDoc(doc(db, 'settings', 'store')), FAST_TIMEOUT)
       .then((docSnap) => {

@@ -437,6 +437,7 @@ export const AppContent: React.FC = () => {
     const unsubscribeCategories = subscribeToCategories((liveCats) => {
       if (isSubscribed && liveCats && liveCats.length > 0) {
         setCategories(liveCats);
+        setIsInitialSyncDone(true);
       }
     });
 
@@ -458,7 +459,7 @@ export const AppContent: React.FC = () => {
       const { type, data } = e.detail || {};
       if (type === 'products' && Array.isArray(data) && data.length > 0) {
         setProducts(data);
-      } else if (type === 'categories' && Array.isArray(data) && data.length > 0) {
+      } else if (type === 'categories' && Array.isArray(data)) {
         setCategories(data);
       } else if (type === 'settings' && data) {
         setStoreSettings(data);
@@ -477,7 +478,7 @@ export const AppContent: React.FC = () => {
           const { type, data } = event.data || {};
           if (type === 'products' && Array.isArray(data) && data.length > 0) {
             setProducts(data);
-          } else if (type === 'categories' && Array.isArray(data) && data.length > 0) {
+          } else if (type === 'categories' && Array.isArray(data)) {
             setCategories(data);
           } else if (type === 'settings' && data) {
             setStoreSettings(data);
@@ -923,6 +924,18 @@ export const AppContent: React.FC = () => {
               onShopNow={() => handleNavigate('shop', 'All')}
               storeSettings={storeSettings}
             />
+
+            {/* Store Categories Showcase */}
+            {categories && categories.length > 0 && (
+              <ScrollReveal>
+                <CategorySection
+                  categories={categories}
+                  selectedCategory={categoryFilter}
+                  onSelectCategory={(catName) => handleNavigate('shop', catName)}
+                  products={products}
+                />
+              </ScrollReveal>
+            )}
 
             {/* Featured Collection Grid */}
             <ScrollReveal>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TouzaLogo } from './TouzaLogo';
 import { Product, Category, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
@@ -20,138 +20,84 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
   onFinishLoading,
 }) => {
   const { language } = useLanguage();
-  const [progress, setProgress] = useState(25);
+  const [progress, setProgress] = useState(35);
   const [statusMessage, setStatusMessage] = useState({
-    ar: 'جاري الاتصال بقاعدة بيانات توزا...',
-    en: 'Connecting to TOUZA database...',
+    ar: 'جاري تحميل أحدث التشكيلات والمنتجات...',
+    en: 'Loading latest collections & products...',
   });
   const [isFadingOut, setIsFadingOut] = useState(false);
+  const hasFinishedRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
-    const startTime = Date.now();
 
-    // Step 1: Connecting & syncing state progression
+    // Fast progressive progress steps
     const t1 = setTimeout(() => {
-      if (!isMounted) return;
-      setProgress((prev) => Math.max(prev, 55));
+      if (!isMounted || hasFinishedRef.current) return;
+      setProgress(65);
+    }, 150);
+
+    const t2 = setTimeout(() => {
+      if (!isMounted || hasFinishedRef.current) return;
+      setProgress(85);
       setStatusMessage({
-        ar: 'جاري تحميل أحدث المنتجات والتحديثات...',
-        en: 'Loading latest products & updates...',
+        ar: 'جاري تجهيز العرض الفاخر...',
+        en: 'Preparing luxury storefront...',
       });
     }, 350);
 
-    // Step 2: Preload critical visuals (Hero + first top products) once data is synchronized or after short safety period
-    const preloadVisualsAndFinish = async () => {
-      const urlsToPreload: string[] = [];
+    // Function to gracefully finalize and fade out
+    const finishAndDismiss = () => {
+      if (hasFinishedRef.current || !isMounted) return;
+      hasFinishedRef.current = true;
 
-      // Hero banner image (if static image)
-      if (storeSettings?.heroImageUrl && !storeSettings.heroImageUrl.endsWith('.mp4')) {
-        urlsToPreload.push(storeSettings.heroImageUrl);
-      }
-
-      // First batch of product images
-      if (products && products.length > 0) {
-        products.slice(0, 6).forEach((prod) => {
-          const rawImg = prod.colors?.[0]?.imageUrl || prod.images?.[0];
-          if (rawImg && rawImg.trim()) {
-            urlsToPreload.push(getOptimizedImageUrl(rawImg, { width: 500, quality: 'auto:good' }));
-          }
-        });
-      }
-
-      // Preload categories icons/images
-      if (categories && categories.length > 0) {
-        categories.slice(0, 4).forEach((cat) => {
-          if (cat.imageUrl) {
-            urlsToPreload.push(getOptimizedImageUrl(cat.imageUrl, { width: 400 }));
-          }
-        });
-      }
-
-      // Execute non-blocking image preloading
-      const promises = urlsToPreload.map((url) => {
-        return new Promise<void>((resolve) => {
-          const img = new Image();
-          img.onload = () => resolve();
-          img.onerror = () => resolve(); // Don't block if one image fails
-          img.src = url;
-        });
-      });
-
-      // Wait for images with 2.0s maximum timeout
-      await Promise.race([
-        Promise.all(promises),
-        new Promise((resolve) => setTimeout(resolve, 2000)),
-      ]);
-
-      if (!isMounted) return;
-
-      setProgress(90);
+      setProgress(100);
       setStatusMessage({
-        ar: 'جاري تهيئة العرض والصور الفاخرة...',
-        en: 'Finalizing luxury visuals...',
+        ar: 'مرحباً بك في توزا كاجوال',
+        en: 'Welcome to TOUZA',
       });
 
-      // Ensure minimum 800ms total smooth experience for luxury feel
-      const elapsed = Date.now() - startTime;
-      const remainingTime = Math.max(0, 850 - elapsed);
-
+      // Quick smooth fade out
       setTimeout(() => {
         if (!isMounted) return;
-        setProgress(100);
-        setStatusMessage({
-          ar: 'مرحباً بك في توزا كاجوال',
-          en: 'Welcome to TOUZA',
-        });
+        setIsFadingOut(true);
 
-        // Trigger smooth fade out
         setTimeout(() => {
           if (!isMounted) return;
-          setIsFadingOut(true);
-
-          setTimeout(() => {
-            if (!isMounted) return;
-            onFinishLoading();
-          }, 500);
-        }, 300);
-      }, remainingTime);
+          onFinishLoading();
+        }, 250);
+      }, 150);
     };
 
-    // If initial live sync is done or when it becomes true
-    if (isInitialSyncDone) {
-      preloadVisualsAndFinish();
-    } else {
-      // Wait for isInitialSyncDone with an offline fallback safety timeout (6 seconds max)
-      const syncWaitTimer = setTimeout(() => {
-        if (isMounted) {
-          preloadVisualsAndFinish();
-        }
-      }, 6000);
+    // Preload hero banner in background without blocking
+    if (storeSettings?.heroImageUrl && !storeSettings.heroImageUrl.endsWith('.mp4')) {
+      const img = new Image();
+      img.src = storeSettings.heroImageUrl;
+    }
 
+    // If initial sync is already finished, complete quickly
+    if (isInitialSyncDone) {
+      const finishTimer = setTimeout(finishAndDismiss, 400);
       return () => {
         isMounted = false;
         clearTimeout(t1);
-        clearTimeout(syncWaitTimer);
+        clearTimeout(t2);
+        clearTimeout(finishTimer);
       };
     }
 
-    // Absolute fallback safety timeout (7 seconds max)
-    const safetyTimeout = setTimeout(() => {
-      if (!isMounted) return;
-      setProgress(100);
-      setIsFadingOut(true);
-      setTimeout(() => {
-        if (isMounted) onFinishLoading();
-      }, 400);
-    }, 7000);
+    // Safety timeout: Maximum 800ms total preloader time under all conditions
+    const safetyTimer = setTimeout(() => {
+      finishAndDismiss();
+    }, 750);
 
     return () => {
       isMounted = false;
       clearTimeout(t1);
-      clearTimeout(safetyTimeout);
+      clearTimeout(t2);
+      clearTimeout(safetyTimer);
     };
-  }, [isInitialSyncDone, products.length, categories.length, storeSettings?.heroImageUrl, onFinishLoading]);
+  }, [isInitialSyncDone, onFinishLoading, storeSettings?.heroImageUrl]);
 
   return (
     <div
