@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { Category, Product, CartItem, ViewMode, PromoCode, StoreSettings } from './types';
@@ -365,9 +365,13 @@ export const AppContent: React.FC = () => {
     }
   });
 
+  const hasServerSettingsLoadedRef = useRef(false);
+
   useEffect(() => {
+    // Only persist settings if we already loaded from cache or confirmed from server
     try {
       localStorage.setItem('maison_settings_v4', safeJsonStringify(storeSettings));
+      localStorage.setItem('maison_settings', safeJsonStringify(storeSettings));
     } catch (err) {
       console.error('Failed to store settings:', err);
     }
@@ -387,6 +391,7 @@ export const AppContent: React.FC = () => {
     fetchInitialStoreData(defaultSettings, {
       onSettings: (settings) => {
         if (!isSubscribed) return;
+        hasServerSettingsLoadedRef.current = true;
         setStoreSettings(settings);
       },
       onCategories: (cats) => {
@@ -401,13 +406,14 @@ export const AppContent: React.FC = () => {
         if (!isSubscribed) return;
         if (prods && prods.length > 0) {
           setProducts(prods);
-          setIsInitialSyncDone(true);
         }
+        setIsInitialSyncDone(true);
       },
     })
       .then((initialData) => {
         if (!isSubscribed) return;
         if (initialData.settings) {
+          hasServerSettingsLoadedRef.current = true;
           setStoreSettings(initialData.settings);
         }
         if (initialData.categories && initialData.categories.length > 0) {
@@ -418,11 +424,12 @@ export const AppContent: React.FC = () => {
         }
         if (initialData.products && initialData.products.length > 0) {
           setProducts(initialData.products);
-          setIsInitialSyncDone(true);
         }
+        setIsInitialSyncDone(true);
       })
       .catch((err) => {
         console.warn('Initial store data fetch note:', err);
+        setIsInitialSyncDone(true);
       });
 
     // 2. Subscribe to continuous live Firestore updates with real snapshot triggers

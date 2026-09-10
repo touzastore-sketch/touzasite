@@ -219,14 +219,17 @@ const PhilosophySectionComponent: React.FC<PhilosophySectionProps> = ({
 
               {/* Model Cutout Image - Seamless Transparent PNG with Ground Shadow */}
               <img
+                key={activeImageUrl}
                 src={activeImageUrl}
                 alt="Maison Atelier Model"
                 referrerPolicy="no-referrer"
-                loading="lazy"
+                loading="eager"
                 decoding="async"
-                fetchPriority="auto"
+                fetchPriority="high"
                 onError={(e) => {
-                  e.currentTarget.src = DEFAULT_MODEL_IMAGE;
+                  if (e.currentTarget.src !== DEFAULT_MODEL_IMAGE && !e.currentTarget.src.includes(DEFAULT_MODEL_IMAGE)) {
+                    e.currentTarget.src = DEFAULT_MODEL_IMAGE;
+                  }
                 }}
                 className="relative z-10 max-h-full max-w-full object-contain object-bottom transition-transform duration-700 ease-out group-hover:scale-[1.03]"
                 style={{

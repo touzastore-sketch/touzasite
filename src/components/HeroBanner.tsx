@@ -159,8 +159,15 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
       video.setAttribute('webkit-playsinline', '');
       video.setAttribute('x5-playsinline', '');
       video.setAttribute('loop', '');
+      if (video.src !== videoSrc) {
+        video.src = videoSrc;
+        try {
+          video.load();
+        } catch {}
+      }
+      attemptPlay('media-change');
     }
-  }, [isVideo, videoSrc]);
+  }, [isVideo, videoSrc, attemptPlay]);
 
   // Global listeners for Safari Desktop and general browser autoplay triggers
   useEffect(() => {
@@ -438,7 +445,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
       {isVideo && (
         <video
           ref={setVideoRef}
-          key={`${videoSrc}-${rawVideoUrl || ''}`}
+          src={videoSrc}
           poster={dynamicPoster || undefined}
           autoPlay
           muted

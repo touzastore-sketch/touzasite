@@ -75,9 +75,9 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
       img.src = storeSettings.heroImageUrl;
     }
 
-    // If initial sync is already finished, complete quickly
+    // If initial sync is already finished, complete quickly and smoothly
     if (isInitialSyncDone) {
-      const finishTimer = setTimeout(finishAndDismiss, 400);
+      const finishTimer = setTimeout(finishAndDismiss, 350);
       return () => {
         isMounted = false;
         clearTimeout(t1);
@@ -86,10 +86,12 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
       };
     }
 
-    // Safety timeout: Maximum 800ms total preloader time under all conditions
+    // Safety timeout: Maximum 1800ms total preloader time under all conditions
+    // This allows first-time visitors on mobile and desktop to fetch fresh Firestore settings
+    // so the hero video, About image, categories and products show fresh immediately without reload
     const safetyTimer = setTimeout(() => {
       finishAndDismiss();
-    }, 750);
+    }, 1800);
 
     return () => {
       isMounted = false;

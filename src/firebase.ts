@@ -1963,18 +1963,14 @@ function sanitizeSettings(settings: Partial<StoreSettings>, defaultSettings: Sto
   if (
     typeof heroImageUrl === 'string' &&
     (heroImageUrl.includes('pb3glshlcqx6jhuapcpq') ||
-      heroImageUrl.includes('vz8cdlvj2jqpd9ueb9uk') ||
-      heroImageUrl.includes('qazdrpcx'))
+      heroImageUrl.includes('vz8cdlvj2jqpd9ueb9uk'))
   ) {
     heroImageUrl = defaultSettings.heroImageUrl || 'https://res.cloudinary.com/s1vv6dqw/video/upload/ac_none,vc_h264,q_auto/v1788953187/touza_header_videos/qllptxwywqjkch6snkrm.mp4';
   }
 
-  let philosophyImageUrl = settings.philosophyImageUrl
+  const philosophyImageUrl = settings.philosophyImageUrl
     ? ensureAutoOptimizedCloudinaryUrl(settings.philosophyImageUrl)
     : defaultSettings.philosophyImageUrl;
-  if (typeof philosophyImageUrl === 'string' && philosophyImageUrl.includes('qazdrpcx')) {
-    philosophyImageUrl = 'https://res.cloudinary.com/s1vv6dqw/image/upload/f_auto,q_auto/v1788953397/touza_settings/gie9utj4pmyqsrmi3arp.jpg';
-  }
 
   const merged: StoreSettings = {
     ...defaultSettings,
@@ -2051,7 +2047,7 @@ export const fetchInitialStoreData = async (
   promoCodes: PromoCode[];
 }> => {
   try {
-    const FAST_TIMEOUT = 5000;
+    const FAST_TIMEOUT = 12000;
 
     const settingsPromise = fetchWithTimeout(getDoc(doc(db, 'settings', 'store')), FAST_TIMEOUT)
       .then((docSnap) => {
