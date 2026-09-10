@@ -17,7 +17,7 @@ import { FloatingContactButtons } from './components/FloatingContactButtons';
 import { ScrollReveal } from './components/ScrollReveal';
 import { StorePreloader } from './components/StorePreloader';
 import { useLanguage } from './context/LanguageContext';
-import { getOptimizedImageUrl, DEFAULT_HEADER_VIDEO_URL } from './utils/cloudinary';
+import { getOptimizedImageUrl, DEFAULT_HEADER_VIDEO_URL, withCacheBuster } from './utils/cloudinary';
 import {
   subscribeToAuth,
   signInWithGoogle,
@@ -113,22 +113,16 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Dynamic Products state initialized from local cache or fallback
+  // Dynamic Products state initialized from database cache or fallback
   const [products, setProducts] = useState<Product[]>(() => {
     try {
-      const savedVersion = localStorage.getItem('maison_catalog_version');
       const saved = localStorage.getItem('maison_products');
-      if (saved && savedVersion === CATALOG_VERSION) {
+      if (saved) {
         const parsed: Product[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= PRODUCTS.length) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed.filter((p) => !isBannedProductId(p.id));
         }
       }
-      // If no cache or cache was from an older version, immediately use the latest complete PRODUCTS catalog
-      try {
-        localStorage.setItem('maison_catalog_version', CATALOG_VERSION);
-        localStorage.setItem('maison_products', safeJsonStringify(PRODUCTS));
-      } catch {}
       return PRODUCTS.filter((p) => !isBannedProductId(p.id));
     } catch {
       return PRODUCTS.filter((p) => !isBannedProductId(p.id));
@@ -137,7 +131,6 @@ export const AppContent: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('maison_catalog_version', CATALOG_VERSION);
       localStorage.setItem('maison_products', safeJsonStringify(products));
     } catch (err) {
       console.error('Failed to store products in local cache:', err);
@@ -308,7 +301,7 @@ export const AppContent: React.FC = () => {
     philosophyParagraph1En: 'At TOUZA, we craft high-end casual menswear built with 280GSM Egyptian cotton, pure flax linen, and custom relaxed tailoring.',
     philosophyParagraph2Ar: 'تصاميم تعبر عن الثقة والأناقة الكاجوال مع توصيل سريع لجميع محافظات مصر.',
     philosophyParagraph2En: 'Designed for everyday confidence with fast express shipping across all Egyptian governorates.',
-    philosophyImageUrl: 'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786595579/touza_settings/mf5eckkcwerbrntmvvbs.png',
+    philosophyImageUrl: 'https://res.cloudinary.com/s1vv6dqw/image/upload/f_auto,q_auto/v1788953397/touza_settings/gie9utj4pmyqsrmi3arp.jpg',
     socialInstagramUrl: 'https://www.instagram.com/touzamenswear?igsh=MWlibDh0OThsOGY4dg%3D%3D&utm_source=qr',
     socialFacebookUrl: '',
     socialTiktokUrl: 'https://www.tiktok.com/@eltouza95?_r=1&_t=ZS-98m1NvL2Yo3',
@@ -360,32 +353,12 @@ export const AppContent: React.FC = () => {
 
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => {
     try {
-      // Clear out legacy cache to prevent stale data flashes
-      localStorage.removeItem('maison_settings');
-      localStorage.removeItem('maison_settings_v2');
-      localStorage.removeItem('maison_settings_v3');
-
-      const saved = localStorage.getItem('maison_settings_v4');
+      const saved = localStorage.getItem('maison_settings_v4') || localStorage.getItem('maison_settings');
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Upgrade legacy default hero text to new copy
-        if (!parsed.heroTitleAr || parsed.heroTitleAr.includes('تشكيلة الخريف والشتاء') || parsed.heroTitleAr.includes('الموضة العصرية')) {
-          parsed.heroTitleAr = defaultSettings.heroTitleAr;
+        if (parsed && typeof parsed === 'object') {
+          return { ...defaultSettings, ...parsed };
         }
-        if (!parsed.heroSubtitleAr || parsed.heroSubtitleAr.includes('تشكيلة راقية صُممت بعناية')) {
-          parsed.heroSubtitleAr = defaultSettings.heroSubtitleAr;
-        }
-        if (parsed.heroBadgeAr && parsed.heroBadgeAr.includes('تشكيلة الخريف والشتاء')) {
-          parsed.heroBadgeAr = defaultSettings.heroBadgeAr;
-        }
-        // Fallback for empty announcements
-        if (!parsed.announcementAr || !parsed.announcementAr.trim()) {
-          parsed.announcementAr = defaultSettings.announcementAr;
-        }
-        if (!parsed.announcementEn || !parsed.announcementEn.trim()) {
-          parsed.announcementEn = defaultSettings.announcementEn;
-        }
-        return { ...defaultSettings, ...parsed };
       }
       return defaultSettings;
     } catch {
@@ -411,8 +384,28 @@ export const AppContent: React.FC = () => {
   useEffect(() => {
     let isSubscribed = true;
 
-    // 1. High-priority direct initial fetch from Firestore server to guarantee 100% fresh data on first load
-    fetchInitialStoreData(defaultSettings)
+    // 1. High-priority direct initial fetch from Firestore server to guarantee 100% fresh data on first load with instant progressive rendering
+    fetchInitialStoreData(defaultSettings, {
+      onSettings: (settings) => {
+        if (!isSubscribed) return;
+        setStoreSettings(settings);
+      },
+      onCategories: (cats) => {
+        if (!isSubscribed) return;
+        if (cats && cats.length > 0) setCategories(cats);
+      },
+      onPromoCodes: (promos) => {
+        if (!isSubscribed) return;
+        if (promos && promos.length > 0) setPromoCodes(promos);
+      },
+      onProducts: (prods) => {
+        if (!isSubscribed) return;
+        if (prods && prods.length > 0) {
+          setProducts(prods);
+          setIsInitialSyncDone(true);
+        }
+      },
+    })
       .then((initialData) => {
         if (!isSubscribed) return;
         if (initialData.settings) {
@@ -672,9 +665,18 @@ export const AppContent: React.FC = () => {
   };
 
   const handleUpdateStoreSettings = async (newSettings: StoreSettings) => {
-    setStoreSettings(newSettings);
+    let settingsToSave = newSettings;
+    // When heroImageUrl is updated, ensure it carries a fresh cache-busting timestamp
+    if (newSettings.heroImageUrl && newSettings.heroImageUrl !== storeSettings?.heroImageUrl) {
+      settingsToSave = {
+        ...newSettings,
+        heroImageUrl: withCacheBuster(newSettings.heroImageUrl),
+      };
+    }
+
+    setStoreSettings(settingsToSave);
     try {
-      await saveStoreSettingsAdmin(newSettings);
+      await saveStoreSettingsAdmin(settingsToSave);
     } catch (err) {
       console.error('Failed to save store settings in Firestore:', err);
     }
@@ -884,6 +886,8 @@ export const AppContent: React.FC = () => {
           onOpenSearch={() => setIsSearchOpen(true)}
           onOpenAccount={() => setIsAccountOpen(true)}
           onOpenAdmin={() => handleNavigate('admin')}
+          onOpenSizeGuide={() => setIsSizeGuideOpen(true)}
+          categories={categories}
           storeSettings={storeSettings}
           user={user}
         />

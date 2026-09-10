@@ -985,7 +985,7 @@ export const addReviewAdmin = async (
     comment: reviewData.comment || '',
     userId: reviewData.userId || 'admin-added',
     userName: reviewData.userName || 'عميل توزا',
-    userPhoto: reviewData.userPhoto || 'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg',
+    userPhoto: reviewData.userPhoto || '/images/philosophy_model.jpg',
     orderNumber: reviewData.orderNumber || 'TOUZA-VIP',
     createdAt: new Date().toISOString(),
   };
@@ -1705,8 +1705,7 @@ export const isBannedProductId = (_id?: string): boolean => {
   return false;
 };
 
-const DEFAULT_FALLBACK_PRODUCT_IMAGE =
-  'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg';
+const DEFAULT_FALLBACK_PRODUCT_IMAGE = '/images/touza_brown_shirt.jpg';
 
 const sanitizeProduct = (p: Product): Product => {
   if (!p) return p;
@@ -1980,14 +1979,22 @@ export const resetDefaultProductsAdmin = async (): Promise<Product[]> => {
 
 function sanitizeSettings(settings: Partial<StoreSettings>, defaultSettings: StoreSettings): StoreSettings {
   if (!settings) return defaultSettings;
-  let heroImageUrl = settings.heroImageUrl || defaultSettings.heroImageUrl;
-  if (typeof heroImageUrl === 'string' && heroImageUrl.includes('pb3glshlcqx6jhuapcpq')) {
-    heroImageUrl = 'https://res.cloudinary.com/qazdrpcx/video/upload/v1787597556/touza_header_videos/vz8cdlvj2jqpd9ueb9uk.mp4';
+  let heroImageUrl = settings.heroImageUrl?.trim() || defaultSettings.heroImageUrl;
+  if (
+    typeof heroImageUrl === 'string' &&
+    (heroImageUrl.includes('pb3glshlcqx6jhuapcpq') ||
+      heroImageUrl.includes('vz8cdlvj2jqpd9ueb9uk') ||
+      heroImageUrl.includes('qazdrpcx'))
+  ) {
+    heroImageUrl = defaultSettings.heroImageUrl || 'https://res.cloudinary.com/s1vv6dqw/video/upload/ac_none,vc_h264,q_auto/v1788953187/touza_header_videos/qllptxwywqjkch6snkrm.mp4';
   }
 
-  const philosophyImageUrl = settings.philosophyImageUrl
+  let philosophyImageUrl = settings.philosophyImageUrl
     ? ensureAutoOptimizedCloudinaryUrl(settings.philosophyImageUrl)
     : defaultSettings.philosophyImageUrl;
+  if (typeof philosophyImageUrl === 'string' && philosophyImageUrl.includes('qazdrpcx')) {
+    philosophyImageUrl = 'https://res.cloudinary.com/s1vv6dqw/image/upload/f_auto,q_auto/v1788953397/touza_settings/gie9utj4pmyqsrmi3arp.jpg';
+  }
 
   const merged: StoreSettings = {
     ...defaultSettings,
@@ -2047,8 +2054,16 @@ export const getStoreSettingsAdmin = async (
   }
 };
 
+export interface InitialStoreDataCallbacks {
+  onSettings?: (settings: StoreSettings) => void;
+  onProducts?: (products: Product[]) => void;
+  onCategories?: (categories: Category[]) => void;
+  onPromoCodes?: (promoCodes: PromoCode[]) => void;
+}
+
 export const fetchInitialStoreData = async (
-  defaultSettings: StoreSettings
+  defaultSettings: StoreSettings,
+  callbacks?: InitialStoreDataCallbacks
 ): Promise<{
   settings: StoreSettings;
   products: Product[];
@@ -2056,7 +2071,9 @@ export const fetchInitialStoreData = async (
   promoCodes: PromoCode[];
 }> => {
   try {
-    const settingsPromise = fetchWithTimeout(getDoc(doc(db, 'settings', 'store')), 10000)
+    const FAST_TIMEOUT = 15000;
+
+    const settingsPromise = fetchWithTimeout(getDoc(doc(db, 'settings', 'store')), FAST_TIMEOUT)
       .then((docSnap) => {
         if (docSnap && docSnap.exists()) {
           const remote = sanitizeSettings({ ...defaultSettings, ...(docSnap.data() as StoreSettings) }, defaultSettings);
@@ -2064,13 +2081,16 @@ export const fetchInitialStoreData = async (
             localStorage.setItem(SETTINGS_STORAGE_KEY, safeJsonStringify(remote));
             localStorage.setItem('maison_settings', safeJsonStringify(remote));
           } catch {}
+          if (callbacks?.onSettings) {
+            try { callbacks.onSettings(remote); } catch {}
+          }
           return remote;
         }
         return defaultSettings;
       })
       .catch(() => defaultSettings);
 
-    const productsPromise = fetchWithTimeout(getDocs(collection(db, 'products')), 10000)
+    const productsPromise = fetchWithTimeout(getDocs(collection(db, 'products')), FAST_TIMEOUT)
       .then((snap) => {
         if (snap && !snap.empty) {
           const list: Product[] = [];
@@ -2081,6 +2101,9 @@ export const fetchInitialStoreData = async (
             try {
               localStorage.setItem('maison_products', safeJsonStringify(list));
             } catch {}
+            if (callbacks?.onProducts) {
+              try { callbacks.onProducts(list); } catch {}
+            }
             return list;
           }
         }
@@ -2088,7 +2111,7 @@ export const fetchInitialStoreData = async (
       })
       .catch(() => []);
 
-    const categoriesPromise = fetchWithTimeout(getDocs(collection(db, 'categories')), 10000)
+    const categoriesPromise = fetchWithTimeout(getDocs(collection(db, 'categories')), FAST_TIMEOUT)
       .then((snap) => {
         if (snap && !snap.empty) {
           const list: Category[] = [];
@@ -2104,6 +2127,9 @@ export const fetchInitialStoreData = async (
             try {
               localStorage.setItem('maison_categories', safeJsonStringify(list));
             } catch {}
+            if (callbacks?.onCategories) {
+              try { callbacks.onCategories(list); } catch {}
+            }
             return list;
           }
         }
@@ -2111,7 +2137,7 @@ export const fetchInitialStoreData = async (
       })
       .catch(() => []);
 
-    const promoCodesPromise = fetchWithTimeout(getDocs(collection(db, 'promoCodes')), 10000)
+    const promoCodesPromise = fetchWithTimeout(getDocs(collection(db, 'promoCodes')), FAST_TIMEOUT)
       .then((snap) => {
         if (snap && !snap.empty) {
           const list: PromoCode[] = [];
@@ -2122,6 +2148,9 @@ export const fetchInitialStoreData = async (
             try {
               localStorage.setItem('maison_promos', safeJsonStringify(list));
             } catch {}
+            if (callbacks?.onPromoCodes) {
+              try { callbacks.onPromoCodes(list); } catch {}
+            }
             return list;
           }
         }

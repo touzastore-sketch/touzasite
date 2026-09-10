@@ -35,16 +35,20 @@ import {
   XCircle,
   TrendingUp,
   Download,
+  UploadCloud,
 } from 'lucide-react';
 import { Category, Product, ProductColor, ProductSize, PromoCode, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { DEFAULT_CATEGORIES } from '../data/defaultCategories';
 import { compressImageFile } from '../utils/imageCompressor';
+import { CloudMediaCenter } from './CloudMediaCenter';
 import {
   uploadToCloudinary,
   uploadVideoToCloudinary,
   getOptimizedVideoUrl,
+  getRawVideoUrl,
   ensureAutoOptimizedCloudinaryUrl,
+  withCacheBuster,
 } from '../utils/cloudinary';
 import {
   SavedOrder,
@@ -74,6 +78,7 @@ import {
   migrateFirestoreCloudinaryUrls,
   safeJsonStringify,
 } from '../firebase';
+import { ProductImageManagerModal } from './ProductImageManagerModal';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -127,7 +132,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newPin, setNewPin] = useState('');
 
   // Admin Navigation state
-  const [activeTab, setActiveTab] = useState<'overview' | 'categories' | 'products' | 'orders' | 'users' | 'promos' | 'reviews' | 'newsletter' | 'settings' | 'payment_settings'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'cloud_media' | 'categories' | 'products' | 'orders' | 'users' | 'promos' | 'reviews' | 'newsletter' | 'settings' | 'payment_settings'
+  >('overview');
+
+  // Cloud upload loading states
+  const [uploadingMainImageIndex, setUploadingMainImageIndex] = useState<number | null>(null);
+  const [uploadingColorIndex, setUploadingColorIndex] = useState<number | null>(null);
+  const [isBatchUploadingProductImages, setIsBatchUploadingProductImages] = useState(false);
+  const [batchUploadProgressText, setBatchUploadProgressText] = useState('');
+  const [isUploadingCategoryImage, setIsUploadingCategoryImage] = useState(false);
+  const [isUploadingPhilosophyImage, setIsUploadingPhilosophyImage] = useState(false);
 
   // Firestore Live Users
   const [users, setUsers] = useState<TouzaUser[]>([]);
@@ -234,6 +249,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [isImageManagerOpen, setIsImageManagerOpen] = useState(false);
+  const [imageManagerTargetProductId, setImageManagerTargetProductId] = useState<string | undefined>(undefined);
   const [isExportingProducts, setIsExportingProducts] = useState(false);
   const [isSyncingProducts, setIsSyncingProducts] = useState(false);
   const [isMigratingCloudinary, setIsMigratingCloudinary] = useState(false);
@@ -310,8 +327,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newPromoMaxUses, setNewPromoMaxUses] = useState<number | string>(1);
   const [newPromoNote, setNewPromoNote] = useState('');
 
+  // Header Video Upload state
+  const [headerVideoFile, setHeaderVideoFile] = useState<File | null>(null);
+  const [headerVideoFileName, setHeaderVideoFileName] = useState<string>('');
+  const [headerVideoFileSizeMB, setHeaderVideoFileSizeMB] = useState<string>('');
+  const [headerVideoPreviewUrl, setHeaderVideoPreviewUrl] = useState<string>('');
+  const [isUploadingHeaderVideo, setIsUploadingHeaderVideo] = useState<boolean>(false);
+  const [headerVideoUploadProgress, setHeaderVideoUploadProgress] = useState<number>(0);
+  const [stagedHeaderVideoUrl, setStagedHeaderVideoUrl] = useState<string>('');
+  const [headerVideoUploadError, setHeaderVideoUploadError] = useState<string>('');
+  const [headerVideoSuccessMsg, setHeaderVideoSuccessMsg] = useState<string>('');
+  const [isReplacingHeaderVideo, setIsReplacingHeaderVideo] = useState<boolean>(false);
+
   // Settings form state
   const [settingsForm, setSettingsForm] = useState<StoreSettings>(storeSettings);
+
+  // Keep settingsForm synchronized when storeSettings updates from outside or Firestore
+  useEffect(() => {
+    if (storeSettings) {
+      setSettingsForm((prev) => {
+        // Protect user's active upload or staged video from being overwritten by stale snapshots
+        const isEditingVideo = isUploadingHeaderVideo || Boolean(stagedHeaderVideoUrl);
+        return {
+          ...prev,
+          ...storeSettings,
+          heroImageUrl: isEditingVideo ? prev.heroImageUrl : (storeSettings.heroImageUrl || prev.heroImageUrl),
+        };
+      });
+    }
+  }, [storeSettings, isUploadingHeaderVideo, stagedHeaderVideoUrl]);
+
   const [paymentSaveSuccess, setPaymentSaveSuccess] = useState('');
   const [paymentSaveError, setPaymentSaveError] = useState('');
   const [isSavingShipping, setIsSavingShipping] = useState(false);
@@ -340,18 +385,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setIsSavingShipping(false);
     }
   };
-
-  // Header Video Upload state
-  const [headerVideoFile, setHeaderVideoFile] = useState<File | null>(null);
-  const [headerVideoFileName, setHeaderVideoFileName] = useState<string>('');
-  const [headerVideoFileSizeMB, setHeaderVideoFileSizeMB] = useState<string>('');
-  const [headerVideoPreviewUrl, setHeaderVideoPreviewUrl] = useState<string>('');
-  const [isUploadingHeaderVideo, setIsUploadingHeaderVideo] = useState<boolean>(false);
-  const [headerVideoUploadProgress, setHeaderVideoUploadProgress] = useState<number>(0);
-  const [stagedHeaderVideoUrl, setStagedHeaderVideoUrl] = useState<string>('');
-  const [headerVideoUploadError, setHeaderVideoUploadError] = useState<string>('');
-  const [headerVideoSuccessMsg, setHeaderVideoSuccessMsg] = useState<string>('');
-  const [isReplacingHeaderVideo, setIsReplacingHeaderVideo] = useState<boolean>(false);
 
   const handleHeaderVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -408,11 +441,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       if (url) {
         setStagedHeaderVideoUrl(url);
+        // Automatically optimize and apply directly to store settings & Firestore with cache-busting timestamp!
+        const targetUrl = withCacheBuster(getOptimizedVideoUrl(url));
+        const updatedSettings: StoreSettings = {
+          ...settingsForm,
+          heroImageUrl: targetUrl,
+        };
+        setSettingsForm(updatedSettings);
+        onUpdateStoreSettings(updatedSettings);
+
         setHeaderVideoSuccessMsg(
           language === 'ar'
-            ? '✓ تم رفع الفيديو إلى Cloudinary بنجاح! انقر على زر "حفظ واستخدام الفيديو" لتطبيقه فوراً.'
-            : '✓ Video uploaded to Cloudinary successfully! Click "Save & Use Video" to apply it now.'
+            ? '✓ تم رفع وتطبيق فيديو الهيدر بنجاح! أصبح الفيديو الجديد نشطاً على واجهة المتجر فوراً.'
+            : '✓ Header video uploaded and activated successfully! It is now live on the storefront.'
         );
+
+        // Reset temporary file picker state after short delay
+        setTimeout(() => {
+          setHeaderVideoFile(null);
+          setHeaderVideoFileName('');
+          setHeaderVideoFileSizeMB('');
+          setHeaderVideoPreviewUrl('');
+          setStagedHeaderVideoUrl('');
+          setIsReplacingHeaderVideo(false);
+        }, 2200);
       } else {
         throw new Error('لم يتم إرجاع رابط آمن من Cloudinary');
       }
@@ -433,7 +485,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (!rawTargetUrl) return;
 
     // Optimize Cloudinary video URL to ensure H.264/MP4 format for maximum browser compatibility
-    const targetUrl = getOptimizedVideoUrl(rawTargetUrl);
+    // and append cache-busting timestamp (?v=timestamp) so browsers treat it as a new resource
+    const targetUrl = withCacheBuster(getOptimizedVideoUrl(rawTargetUrl));
 
     const updatedSettings = {
       ...settingsForm,
@@ -443,9 +496,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSettingsForm(updatedSettings);
     onUpdateStoreSettings(updatedSettings);
 
-    alert(
+    setHeaderVideoSuccessMsg(
       language === 'ar'
-        ? '✓ تم حفظ واستخدام فيديو الهيدر الجديد بنجاح! أصبح الفيديو الجديد نشطاً على الموقع فوراً.'
+        ? '✓ تم تطبيق فيديو الهيدر بنجاح! أصبح الفيديو الجديد نشطاً على الموقع فوراً.'
         : '✓ New Header Video saved and activated successfully across the store!'
     );
 
@@ -456,7 +509,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setHeaderVideoPreviewUrl('');
     setStagedHeaderVideoUrl('');
     setHeaderVideoUploadError('');
-    setHeaderVideoSuccessMsg('');
     setIsReplacingHeaderVideo(false);
   };
 
@@ -880,10 +932,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleOpenEditModal = (prod: Product) => {
     setEditingProduct(prod);
+    const existingImages = Array.isArray(prod.images) && prod.images.length > 0
+      ? prod.images.filter(Boolean).map(img => ensureAutoOptimizedCloudinaryUrl(img))
+      : [];
     setFormData({
       ...prod,
       category: prod.category || (categories[0]?.nameEn || 'Shirts'),
       categoryAr: prod.categoryAr || (categories[0]?.nameAr || 'قميص'),
+      images: existingImages.length > 0 ? existingImages : [''],
+      colors: prod.colors && prod.colors.length > 0 ? [...prod.colors] : [],
       originalPrice: prod.originalPrice || 0
     });
     setIsProductModalOpen(true);
@@ -1220,26 +1277,99 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleFileUploadForColor = async (index: number, file: File) => {
     if (!file) return;
+    setUploadingColorIndex(index);
     try {
       const url = await uploadToCloudinary(file, { folder: 'touza_products' });
       if (url) {
         handleUpdateColor(index, 'imageUrl', url);
+        // If this is the primary color (index 0), synchronize with primary product image if empty or first
+        if (index === 0) {
+          setFormData((prev) => {
+            const currentImgs = [...(prev.images || [])];
+            if (currentImgs.length === 0 || !currentImgs[0] || currentImgs[0].trim() === '') {
+              currentImgs[0] = url;
+            }
+            return { ...prev, images: currentImgs };
+          });
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Cloudinary color upload error:', err);
+      alert(language === 'ar'
+        ? `خطأ أثناء رفع صورة اللون إلى Cloudinary: ${err?.message || 'تأكد من الاتصال'}`
+        : `Error uploading color image to Cloudinary: ${err?.message || 'Network error'}`
+      );
+    } finally {
+      setUploadingColorIndex(null);
     }
   };
 
   const handleFileUploadForMainImage = async (index: number, file: File) => {
     if (!file) return;
+    setUploadingMainImageIndex(index);
     try {
       const url = await uploadToCloudinary(file, { folder: 'touza_products' });
       if (url) {
         handleUpdateImageUrl(index, url);
+        // If updating primary image (index 0), synchronize with first color variant if available
+        if (index === 0) {
+          setFormData((prev) => {
+            if (!prev.colors || prev.colors.length === 0) return prev;
+            const updatedColors = [...prev.colors];
+            if (!updatedColors[0].imageUrl || updatedColors[0].imageUrl.includes('res.cloudinary.com')) {
+              updatedColors[0] = { ...updatedColors[0], imageUrl: url };
+            }
+            return { ...prev, colors: updatedColors };
+          });
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Cloudinary product upload error:', err);
+      alert(language === 'ar'
+        ? `خطأ أثناء رفع الصورة إلى Cloudinary: ${err?.message || 'تأكد من الاتصال'}`
+        : `Error uploading image to Cloudinary: ${err?.message || 'Network error'}`
+      );
+    } finally {
+      setUploadingMainImageIndex(null);
     }
+  };
+
+  const handleBatchUploadProductImages = async (files: FileList | File[]) => {
+    const list = Array.from(files);
+    if (list.length === 0) return;
+
+    setIsBatchUploadingProductImages(true);
+    const uploadedUrls: string[] = [];
+
+    for (let i = 0; i < list.length; i++) {
+      const file = list[i];
+      setBatchUploadProgressText(
+        language === 'ar'
+          ? `جاري رفع الصورة ${i + 1} من ${list.length} إلى السحابة...`
+          : `Uploading image ${i + 1} of ${list.length} to cloud...`
+      );
+      try {
+        const url = await uploadToCloudinary(file, { folder: 'touza_products' });
+        if (url) {
+          uploadedUrls.push(url);
+        }
+      } catch (err) {
+        console.error('Batch upload error on file:', file.name, err);
+      }
+    }
+
+    if (uploadedUrls.length > 0) {
+      setFormData((prev) => {
+        const currentImgs = (prev.images || []).filter((img) => img && img.trim() !== '');
+        return {
+          ...prev,
+          images: [...currentImgs, ...uploadedUrls],
+        };
+      });
+    }
+
+    setIsBatchUploadingProductImages(false);
+    setBatchUploadProgressText('');
   };
 
   // Category Handlers
@@ -1326,6 +1456,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleFileUploadForCategoryImage = async (file: File) => {
     if (!file) return;
+    setIsUploadingCategoryImage(true);
     try {
       const url = await uploadToCloudinary(file, { folder: 'touza_categories' });
       if (url) {
@@ -1333,6 +1464,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
     } catch (err) {
       console.error('Cloudinary category upload error:', err);
+    } finally {
+      setIsUploadingCategoryImage(false);
     }
   };
 
@@ -1369,8 +1502,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Settings Save
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
+    const resolvedHeroImageUrl = settingsForm.heroImageUrl
+      ? withCacheBuster(getOptimizedVideoUrl(settingsForm.heroImageUrl))
+      : (storeSettings?.heroImageUrl || '/hero-video.mp4');
+
     const sanitizedSettings = {
       ...settingsForm,
+      heroImageUrl: resolvedHeroImageUrl,
       ...(settingsForm.philosophyImageUrl ? { philosophyImageUrl: ensureAutoOptimizedCloudinaryUrl(settingsForm.philosophyImageUrl) } : {}),
       ...(settingsForm.logoUrl ? { logoUrl: ensureAutoOptimizedCloudinaryUrl(settingsForm.logoUrl) } : {}),
       ...(settingsForm.bannerImageUrl ? { bannerImageUrl: ensureAutoOptimizedCloudinaryUrl(settingsForm.bannerImageUrl) } : {}),
@@ -1672,6 +1810,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="max-w-[1500px] mx-auto px-2 sm:px-8 flex overflow-x-auto border-t border-[#222222] scrollbar-none">
           {[
             { id: 'overview', Icon: BarChart3, labelAr: 'الإحصائيات', labelEn: 'Overview' },
+            { id: 'cloud_media', Icon: UploadCloud, labelAr: 'مركز رفع Cloud ☁️', labelEn: 'Cloud Media Hub ☁️' },
             { id: 'categories', Icon: LayoutGrid, labelAr: `التصنيفات (${categories.length})`, labelEn: `Categories (${categories.length})` },
             { id: 'products', Icon: Shirt, labelAr: `المنتجات (${products.length})`, labelEn: `Products (${products.length})` },
             { id: 'orders', Icon: Truck, labelAr: `الطلبات (${orders.length})`, labelEn: `Orders (${orders.length})` },
@@ -1811,7 +1950,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <h2 className="font-display text-[20px] font-bold text-[#000000]">
                 {language === 'ar' ? 'إجراءات سريعة' : 'Quick Actions'}
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                <button
+                  onClick={() => setActiveTab('cloud_media')}
+                  className="p-4 bg-[#f0f4f9] hover:bg-[#000000] hover:text-white rounded-xl border border-[#000000]/10 flex flex-col items-center justify-center text-center gap-2 transition-all cursor-pointer group"
+                >
+                  <UploadCloud className="w-7 h-7 text-[#000000] group-hover:text-white transition-colors" />
+                  <span className="font-label-caps text-[13px] font-bold">
+                    {language === 'ar' ? 'مركز رفع Cloud ☁️' : 'Cloud Media Hub ☁️'}
+                  </span>
+                </button>
+
                 <button
                   onClick={() => {
                     setActiveTab('products');
@@ -1932,6 +2081,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               )}
             </div>
           </div>
+        )}
+
+        {/* TAB: CLOUD MEDIA CENTER */}
+        {activeTab === 'cloud_media' && (
+          <CloudMediaCenter
+            onSelectImageForProduct={(url) => {
+              handleOpenAddModal();
+              setFormData((prev) => ({
+                ...prev,
+                images: [url, ...(prev.images || []).filter((img) => img !== url)],
+              }));
+            }}
+            onSelectImageForCategory={(url) => {
+              handleOpenAddCategoryModal();
+              setCategoryForm((prev) => ({
+                ...prev,
+                imageUrl: url,
+              }));
+            }}
+            onSelectImageForPhilosophy={(url) => {
+              setSettingsForm((prev) => ({
+                ...prev,
+                philosophyImageUrl: url,
+              }));
+              setActiveTab('settings');
+            }}
+          />
         )}
 
         {/* TAB 2: CATEGORIES MANAGEMENT */}
@@ -2200,6 +2376,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
 
                 <button
+                  type="button"
+                  onClick={() => {
+                    setImageManagerTargetProductId(undefined);
+                    setIsImageManagerOpen(true);
+                  }}
+                  className="flex-1 md:flex-initial bg-[#111111] text-white px-4 py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#2e2e2e] active:bg-[#000000] transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2 text-[13px]"
+                  title={language === 'ar' ? 'أداة سريعة لرفع وتحديث صور المنتجات من جهازك على السحابة الجديدة' : 'Quick tool to upload and replace product images'}
+                >
+                  <span className="material-symbols-outlined text-[18px]">photo_library</span>
+                  <span>{language === 'ar' ? '📸 أداة تجديد صور المنتجات' : '📸 Image Manager'}</span>
+                </button>
+
+                <button
                   onClick={() => handleOpenAddModal()}
                   className="flex-1 md:flex-initial bg-[#000000] text-white px-5 py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#2f3131] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 text-[14px]"
                 >
@@ -2350,6 +2539,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                         <td className="p-4 text-center">
                           <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => {
+                                setImageManagerTargetProductId(prod.id);
+                                setIsImageManagerOpen(true);
+                              }}
+                              className="px-2.5 py-1.5 bg-[#f3f3f4] hover:bg-[#e4e4e5] text-[#111111] rounded-xl font-label-caps text-[12px] font-bold flex items-center gap-1 transition-all cursor-pointer border border-[#c4c7c7]/40 shadow-2xs"
+                              title={language === 'ar' ? 'رفع وتحديث صورة هذا المنتج من جهازك' : 'Upload and replace image for this product'}
+                            >
+                              <span className="material-symbols-outlined text-[16px]">add_a_photo</span>
+                              <span>{language === 'ar' ? 'الصورة' : 'Image'}</span>
+                            </button>
+
                             <button
                               onClick={() => handleOpenEditModal(prod)}
                               className="px-3 py-1.5 bg-[#000000] text-white hover:bg-[#222222] rounded-xl font-label-caps text-[12px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
@@ -3418,6 +3619,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           autoPlay
                           loop
                           playsInline
+                          onError={(e) => {
+                            const rawUrl = getRawVideoUrl(settingsForm.heroImageUrl);
+                            if (rawUrl && e.currentTarget.src !== rawUrl) {
+                              e.currentTarget.src = rawUrl;
+                              e.currentTarget.load();
+                              e.currentTarget.play().catch(() => {});
+                            }
+                          }}
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-md text-white text-[10px] font-mono px-2 py-1 rounded-md">
@@ -3900,26 +4109,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         placeholder="/images/philosophy_model.jpg"
                       />
                       <label className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-black text-white text-[12px] font-label-caps rounded-xl cursor-pointer hover:bg-neutral-800 transition-colors shrink-0">
-                        <span className="material-symbols-outlined text-[16px]">upload_file</span>
-                        <span>{language === 'ar' ? 'رفع صورة من جهازك' : 'Upload File'}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              try {
-                                const url = await uploadToCloudinary(file, { folder: 'touza_settings' });
-                                if (url) {
-                                  setSettingsForm((prev) => ({ ...prev, philosophyImageUrl: url }));
+                        {isUploadingPhilosophyImage ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+                            <span>{language === 'ar' ? 'جاري الرفع إلى السحابة...' : 'Uploading to Cloud...'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-[16px]">upload_file</span>
+                            <span>{language === 'ar' ? 'رفع صورة من جهازك' : 'Upload File'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              disabled={isUploadingPhilosophyImage}
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setIsUploadingPhilosophyImage(true);
+                                  try {
+                                    const url = await uploadToCloudinary(file, { folder: 'touza_settings' });
+                                    if (url) {
+                                      setSettingsForm((prev) => ({ ...prev, philosophyImageUrl: url }));
+                                    }
+                                  } catch (err) {
+                                    console.error('Cloudinary settings upload error:', err);
+                                  } finally {
+                                    setIsUploadingPhilosophyImage(false);
+                                  }
                                 }
-                              } catch (err) {
-                                console.error('Cloudinary settings upload error:', err);
-                              }
-                            }
-                          }}
-                        />
+                              }}
+                            />
+                          </>
+                        )}
                       </label>
                     </div>
                     <p className="text-[11px] text-[#777777] mt-1">
@@ -5501,6 +5723,116 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
 
+              {/* Primary Product Image & Cloudinary s1vv6dqw Section */}
+              <div className="p-4 bg-gradient-to-r from-[#f7f9f9] to-[#ffffff] rounded-2xl border-2 border-[#111111]/20 space-y-3 shadow-xs">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <div>
+                    <label className="block font-label-caps text-[13px] font-bold text-[#000000] flex items-center gap-1.5">
+                      <UploadCloud className="w-4 h-4 text-sky-500" />
+                      <span>{language === 'ar' ? 'صورة المنتج الرئيسية (سحابة s1vv6dqw)' : 'Primary Product Image (Cloudinary)'}</span>
+                    </label>
+                    <p className="text-[11px] text-[#747878]">
+                      {language === 'ar'
+                        ? 'تُرفع الصورة مباشرة إلى السحابة الجديدة مع رابط مباشر وتفعيل f_auto,q_auto'
+                        : 'Uploaded directly to new Cloudinary cloud with f_auto,q_auto optimization'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {formData.images?.[0] && formData.images[0].includes('s1vv6dqw') && (
+                      <span className="bg-[#2e7d32]/10 text-[#2e7d32] border border-[#2e7d32]/30 px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>سحابة s1vv6dqw المعتمدة</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  {/* Thumbnail Preview */}
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-black/10 shrink-0 bg-neutral-100 flex items-center justify-center">
+                    {formData.images?.[0] ? (
+                      <img
+                        src={formData.images[0]}
+                        alt="Product preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <UploadCloud className="w-8 h-8 text-neutral-400" />
+                    )}
+                    {uploadingMainImageIndex === 0 && (
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center text-white">
+                        <RefreshCw className="w-5 h-5 animate-spin" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Input with Link + Upload & Copy Buttons */}
+                  <div className="flex-1 w-full space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={formData.images?.[0] || ''}
+                        onChange={(e) => handleUpdateImageUrl(0, e.target.value)}
+                        placeholder="https://res.cloudinary.com/s1vv6dqw/image/upload/f_auto,q_auto/..."
+                        className="flex-1 border border-[#c4c7c7] rounded-xl py-2 px-3 text-[12px] font-mono dir-ltr bg-white focus:border-black focus:outline-none"
+                      />
+                      
+                      {/* Copy Link Button */}
+                      {formData.images?.[0] && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (formData.images?.[0]) {
+                              navigator.clipboard.writeText(formData.images[0]);
+                              alert(language === 'ar' ? 'تم نسخ رابط الصورة!' : 'Link copied!');
+                            }
+                          }}
+                          className="p-2 border border-neutral-300 hover:border-black hover:bg-neutral-100 rounded-xl text-neutral-700 transition-colors shrink-0"
+                          title="نسخ الرابط"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      )}
+
+                      {/* Direct Upload Button */}
+                      <label className="bg-[#000000] hover:bg-[#222222] text-white px-3.5 py-2 rounded-xl text-[12px] font-bold font-label-caps cursor-pointer shrink-0 flex items-center gap-1.5 shadow-2xs transition-colors">
+                        {uploadingMainImageIndex === 0 ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+                            <span>جاري الرفع...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4" />
+                            <span>{language === 'ar' ? 'رفع وتحديث الصورة ☁️' : 'Upload Image ☁️'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              disabled={uploadingMainImageIndex === 0}
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  handleFileUploadForMainImage(0, e.target.files[0]);
+                                  e.target.value = '';
+                                }
+                              }}
+                            />
+                          </>
+                        )}
+                      </label>
+                    </div>
+
+                    <p className="text-[11px] text-[#747878]">
+                      {formData.images?.[0]
+                        ? (formData.images[0].includes('s1vv6dqw')
+                            ? '✅ الرابط ظاهر ويعمل مباشرة على السحابة الجديدة مع جودة f_auto,q_auto'
+                            : '⚠️ الصورة الحالية تستخدم رابطاً قديماً. اضغط "رفع وتحديث الصورة" لنقلها إلى السحابة الجديدة.')
+                        : 'لم يتم رفع صورة رئيسية بعد. اضغط "رفع وتحديث الصورة" لرفعها إلى السحابة.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Category Selector */}
               <div className="p-4 bg-[#f9f9f9] rounded-2xl border border-[#c4c7c7]/40 space-y-3">
                 <div className="flex justify-between items-center">
@@ -5781,18 +6113,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             className="flex-1 w-full border border-[#c4c7c7] bg-white rounded-lg py-1 px-2.5 text-[12px] dir-ltr"
                           />
                           <label className="bg-[#000000] text-white hover:bg-[#2f3131] px-3 py-1 rounded-lg text-[11px] font-label-caps cursor-pointer shrink-0 flex items-center gap-1 transition-colors">
-                            <span className="material-symbols-outlined text-[14px]">upload</span>
-                            <span>رفع صورة</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => {
-                                if (e.target.files && e.target.files[0]) {
-                                  handleFileUploadForColor(idx, e.target.files[0]);
-                                }
-                              }}
-                            />
+                            {uploadingColorIndex === idx ? (
+                              <>
+                                <RefreshCw className="w-3 h-3 animate-spin text-amber-400" />
+                                <span>جاري الرفع...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="material-symbols-outlined text-[14px]">upload</span>
+                                <span>رفع صورة</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                      handleFileUploadForColor(idx, e.target.files[0]);
+                                      e.target.value = '';
+                                    }
+                                  }}
+                                />
+                              </>
+                            )}
                           </label>
                           {col.imageUrl && (
                             <img
@@ -6166,17 +6508,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Images URLs */}
               <div className="space-y-2 p-4 bg-[#f9f9f9] rounded-xl border border-[#c4c7c7]/20">
-                <div className="flex justify-between items-center">
-                  <label className="block font-label-caps text-[12px] font-bold text-[#000000]">
-                    معرض الصور العام للمنتج (General Product Gallery)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleAddImageField}
-                    className="text-[12px] font-label-caps text-[#000000] underline font-bold cursor-pointer"
-                  >
-                    + إضافة رابط صورة آخر
-                  </button>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <div>
+                    <label className="block font-label-caps text-[12px] font-bold text-[#000000]">
+                      معرض الصور العام للمنتج (General Product Gallery)
+                    </label>
+                    <p className="text-[11px] text-[#747878] font-body">
+                      ارفع صور المنتج مباشرة إلى سحابة Cloudinary أو ضع روابط الصور.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label className="bg-[#000000] text-white hover:bg-[#2f3131] px-3 py-1.5 rounded-xl text-[11px] font-label-caps font-bold cursor-pointer shrink-0 flex items-center gap-1.5 shadow-2xs transition-colors">
+                      {isBatchUploadingProductImages ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                          <span>{batchUploadProgressText || 'جاري الرفع إلى السحابة...'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloud className="w-3.5 h-3.5 text-sky-400" />
+                          <span>رفع عدة صور دفعة واحدة ☁️</span>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            disabled={isBatchUploadingProductImages}
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files.length > 0) {
+                                handleBatchUploadProductImages(e.target.files);
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                        </>
+                      )}
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={handleAddImageField}
+                      className="text-[12px] font-label-caps text-[#000000] underline font-bold cursor-pointer"
+                    >
+                      + إضافة رابط يدوي
+                    </button>
+                  </div>
                 </div>
 
                 {formData.images?.map((url, i) => (
@@ -6189,17 +6566,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       className="flex-1 border border-[#c4c7c7] rounded-xl py-1.5 px-3 text-[13px] dir-ltr"
                     />
                     <label className="bg-[#000000] text-white hover:bg-[#2f3131] px-2.5 py-1.5 rounded-xl text-[11px] font-label-caps cursor-pointer shrink-0 flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">upload</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            handleFileUploadForMainImage(i, e.target.files[0]);
-                          }
-                        }}
-                      />
+                      {uploadingMainImageIndex === i ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                          <span>جاري الرفع...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-[14px]">upload</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                handleFileUploadForMainImage(i, e.target.files[0]);
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                        </>
+                      )}
                     </label>
                     {url && (
                       <img src={url} alt="preview" className="w-8 h-8 rounded object-cover border" />
@@ -6650,6 +7037,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
+      {/* Cloudinary Product Image Manager Modal */}
+      <ProductImageManagerModal
+        isOpen={isImageManagerOpen}
+        onClose={() => {
+          setIsImageManagerOpen(false);
+          setImageManagerTargetProductId(undefined);
+        }}
+        products={products}
+        initialProductId={imageManagerTargetProductId}
+        onUpdateProduct={onUpdateProduct}
+        language={language}
+      />
+
       {/* Delete Review Confirmation Modal */}
       {reviewToDelete && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -6917,18 +7317,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     placeholder="https://images.unsplash.com/..."
                     className="flex-1 border border-[#c4c7c7] rounded-xl py-2 px-3 text-[13px] bg-white font-mono"
                   />
-                  <label className="bg-[#000000] text-white hover:bg-[#333333] px-4 py-2 rounded-xl font-label-caps text-[12px] font-bold cursor-pointer transition-colors shrink-0 flex items-center justify-center gap-1">
-                    <span className="material-symbols-outlined text-[16px]">upload_file</span>
-                    <span>رفع صورة</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUploadForCategoryImage(file);
-                      }}
-                    />
+                  <label className="bg-[#000000] text-white hover:bg-[#333333] px-4 py-2 rounded-xl font-label-caps text-[12px] font-bold cursor-pointer transition-colors shrink-0 flex items-center justify-center gap-1.5">
+                    {isUploadingCategoryImage ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+                        <span>جاري الرفع إلى السحابة...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[16px]">upload_file</span>
+                        <span>رفع صورة</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUploadForCategoryImage(file);
+                          }}
+                        />
+                      </>
+                    )}
                   </label>
                 </div>
 

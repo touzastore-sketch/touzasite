@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState, useCallback, useLayoutEffect } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useLayoutEffect, useMemo } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { StoreSettings } from '../types';
 import { SocialLinks } from './SocialLinks';
-import { getOptimizedVideoUrl, DEFAULT_HEADER_VIDEO_URL } from '../utils/cloudinary';
+import { getOptimizedVideoUrl, getVideoPosterUrl, getRawVideoUrl, DEFAULT_HEADER_VIDEO_URL } from '../utils/cloudinary';
 
 interface HeroBannerProps {
   onShopNow: () => void;
@@ -21,6 +21,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
   const [usingFallbackVideo, setUsingFallbackVideo] = useState(false);
   const isMountedRef = useRef(true);
   const isPlayingRef = useRef(false);
+  const retryCountRef = useRef(0);
 
   const heroTitle = (language === 'ar'
     ? storeSettings?.heroTitleAr
@@ -41,7 +42,28 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
 
   // Resolve video delivery URL
   const primaryVideoUrl = rawMedia ? getOptimizedVideoUrl(rawMedia) : DEFAULT_HEADER_VIDEO_URL;
-  const videoSrc = usingFallbackVideo ? DEFAULT_HEADER_VIDEO_URL : primaryVideoUrl;
+  const rawVideoUrl = rawMedia ? getRawVideoUrl(rawMedia) : undefined;
+  const [activeStreamUrl, setActiveStreamUrl] = useState<string>(primaryVideoUrl);
+  const hasAttemptedRawFallbackRef = useRef(false);
+
+  // Synchronize active stream whenever store settings change
+  useEffect(() => {
+    setActiveStreamUrl(primaryVideoUrl);
+    hasAttemptedRawFallbackRef.current = false;
+    setUsingFallbackVideo(false);
+    retryCountRef.current = 0;
+    setVideoError(false);
+    isPlayingRef.current = false;
+    setIsVideoLoaded(false);
+  }, [rawMedia, primaryVideoUrl]);
+
+  const videoSrc = usingFallbackVideo ? '/hero-video.mp4' : activeStreamUrl;
+
+  // Dynamically derive current video frame poster from the video itself (e.g. Cloudinary .jpg transformation)
+  // or return null to let the browser auto-select the first frame
+  const dynamicPoster = useMemo(() => {
+    return getVideoPosterUrl(videoSrc) || null;
+  }, [videoSrc]);
 
   const mediaLower = videoSrc.toLowerCase();
   const isVideo =
@@ -56,28 +78,23 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
     mediaLower.includes('soli') ||
     !mediaLower.match(/\.(jpg|jpeg|png|webp|gif|svg)$/);
 
-  // Reset state when rawMedia changes
-  useEffect(() => {
-    setVideoError(false);
-    setUsingFallbackVideo(false);
-    isPlayingRef.current = false;
-    setIsVideoLoaded(false);
-  }, [rawMedia]);
-
   // Programmatic play helper that ensures Safari WebKit compatibility
   const attemptPlay = useCallback((reason = 'direct') => {
     const video = videoRef.current;
     if (!video || !isMountedRef.current) return;
 
-    // Strict WebKit / Safari muted setup
+    // Strict WebKit / Safari muted & autoplay setup via DOM properties
     video.muted = true;
     video.defaultMuted = true;
     video.playsInline = true;
+    video.loop = true;
+    video.autoplay = true;
     video.volume = 0;
     try {
       video.setAttribute('muted', '');
-      video.setAttribute('playsinline', '');
       video.setAttribute('webkit-playsinline', '');
+      video.setAttribute('x5-playsinline', '');
+      video.setAttribute('loop', '');
     } catch {}
 
     if (isDev) {
@@ -118,11 +135,13 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
       el.defaultMuted = true;
       el.muted = true;
       el.playsInline = true;
+      el.loop = true;
+      el.autoplay = true;
       el.volume = 0;
       el.setAttribute('muted', '');
-      el.setAttribute('playsinline', '');
       el.setAttribute('webkit-playsinline', '');
       el.setAttribute('x5-playsinline', '');
+      el.setAttribute('loop', '');
     }
   }, []);
 
@@ -133,11 +152,13 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
       video.muted = true;
       video.defaultMuted = true;
       video.playsInline = true;
+      video.loop = true;
+      video.autoplay = true;
       video.volume = 0;
       video.setAttribute('muted', '');
-      video.setAttribute('playsinline', '');
       video.setAttribute('webkit-playsinline', '');
       video.setAttribute('x5-playsinline', '');
+      video.setAttribute('loop', '');
     }
   }, [isVideo, videoSrc]);
 
@@ -193,6 +214,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
         'pointerup',
         'touchstart',
         'touchend',
+        'touchmove',
         'wheel',
         'scroll',
         'keydown',
@@ -324,25 +346,65 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
   const handleVideoError = () => {
     const video = videoRef.current;
     if (isDev) {
-      console.error('[Hero Video] video error occurred:', {
+      console.warn('[Hero Video] video playback note:', {
+        activeStream: activeStreamUrl,
         src: video?.src,
         currentSrc: video?.currentSrc,
         readyState: video?.readyState,
         networkState: video?.networkState,
         errorCode: video?.error?.code,
         errorMessage: video?.error?.message,
+        retry: retryCountRef.current,
       });
     }
 
-    // If primary video failed and we haven't tried default fallback yet, switch to default fallback
-    if (!usingFallbackVideo && videoSrc !== DEFAULT_HEADER_VIDEO_URL) {
+    // Step 1: If optimized stream (ac_none,vc_h264,q_auto) is still transcoding on Cloudinary,
+    // immediately try the RAW uploaded video stream (which Cloudinary serves immediately without waiting!)
+    if (rawVideoUrl && activeStreamUrl !== rawVideoUrl && !hasAttemptedRawFallbackRef.current) {
+      hasAttemptedRawFallbackRef.current = true;
       if (isDev) {
-        console.warn('[Hero Video] primary video failed, switching to default fallback video');
+        console.log('[Hero Video] switching to raw video stream while Cloudinary encodes:', rawVideoUrl);
+      }
+      setActiveStreamUrl(rawVideoUrl);
+      setTimeout(() => {
+        if (videoRef.current && isMountedRef.current) {
+          try {
+            videoRef.current.load();
+            attemptPlay('raw-stream-switch');
+          } catch {}
+        }
+      }, 100);
+      return;
+    }
+
+    // Step 2: Cloudinary newly uploaded video processing: allow progressive retries
+    // This gives Cloudinary time to finalize on-the-fly streaming derivatives without abandoning the user's video!
+    if (retryCountRef.current < 6 && !usingFallbackVideo && rawMedia) {
+      retryCountRef.current += 1;
+      const delay = Math.min(retryCountRef.current * 1500, 4500);
+      if (isDev) {
+        console.log(`[Hero Video] Retrying video playback (attempt ${retryCountRef.current}) in ${delay}ms...`);
+      }
+      setTimeout(() => {
+        if (videoRef.current && isMountedRef.current) {
+          try {
+            videoRef.current.load();
+            attemptPlay(`retry-${retryCountRef.current}`);
+          } catch {}
+        }
+      }, delay);
+      return;
+    }
+
+    // Step 3: Only switch to bundled fallback if user's video permanently failed after all retries
+    if (!usingFallbackVideo && videoSrc !== '/hero-video.mp4') {
+      if (isDev) {
+        console.log('[Hero Video] switching to local fallback video /hero-video.mp4 after exhaustive retries');
       }
       setUsingFallbackVideo(true);
       setVideoError(false);
       setTimeout(() => {
-        if (videoRef.current) {
+        if (videoRef.current && isMountedRef.current) {
           try {
             videoRef.current.load();
             attemptPlay('fallback-switch');
@@ -372,21 +434,12 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
       onClick={handleSectionInteraction}
       className="relative h-[100dvh] min-h-[550px] sm:min-h-[600px] w-full flex items-end justify-center pb-10 sm:pb-16 md:pb-20 pt-24 sm:pt-28 px-4 overflow-hidden bg-[#0c0c0e] select-none"
     >
-      {/* Primary Visual Poster Backdrop (Guarantees elegant visual instantly while media loads) */}
-      <div
-        className="absolute inset-0 z-0 bg-cover bg-center pointer-events-none"
-        style={{
-          backgroundImage: `url('/images/philosophy_model.jpg')`,
-        }}
-      />
-
       {/* Hero Media Background Video (Layer 1) */}
-      {isVideo && !videoError && (
+      {isVideo && (
         <video
           ref={setVideoRef}
-          key={videoSrc}
-          src={videoSrc}
-          poster="/images/philosophy_model.jpg"
+          key={`${videoSrc}-${rawVideoUrl || ''}`}
+          poster={dynamicPoster || undefined}
           autoPlay
           muted
           loop
@@ -403,10 +456,23 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
           onTimeUpdate={handleTimeUpdate}
           onEnded={handleVideoEnded}
           onError={handleVideoError}
-          className={`hero-video absolute inset-0 w-full h-full object-cover object-center z-[1] pointer-events-none bg-transparent transition-opacity duration-700 ease-out ${
+          className={`hero-video absolute inset-0 w-full h-full object-cover object-center z-[1] pointer-events-none bg-[#0c0c0e] transition-opacity duration-500 ease-out ${
             isVideoLoaded ? 'opacity-100' : 'opacity-90'
           }`}
-        />
+        >
+          {/* Primary optimized video URL */}
+          <source
+            src={videoSrc}
+            type={videoSrc.toLowerCase().includes('.webm') ? 'video/webm' : 'video/mp4'}
+          />
+          {/* Direct raw Cloudinary video URL fallback for instant playback before derivative finishes */}
+          {rawVideoUrl && rawVideoUrl !== videoSrc && !usingFallbackVideo && (
+            <source
+              src={rawVideoUrl}
+              type={rawVideoUrl.toLowerCase().includes('.webm') ? 'video/webm' : 'video/mp4'}
+            />
+          )}
+        </video>
       )}
 
       {/* If mediaUrl is a custom static image URL */}
@@ -415,7 +481,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
           src={videoSrc}
           alt={heroTitle}
           onError={(e) => {
-            e.currentTarget.src = '/images/philosophy_model.jpg';
+            e.currentTarget.style.display = 'none';
           }}
           className="absolute inset-0 w-full h-full object-cover object-center z-[1] pointer-events-none"
         />
