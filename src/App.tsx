@@ -7,7 +7,6 @@ import { DEFAULT_CATEGORIES, CATEGORIES_VERSION } from './data/defaultCategories
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { HeroBanner } from './components/HeroBanner';
-import { CategorySection } from './components/CategorySection';
 import { ProductCard } from './components/ProductCard';
 import { CustomerReviewsSection } from './components/CustomerReviewsSection';
 import { PhilosophySection } from './components/PhilosophySection';
@@ -924,18 +923,6 @@ export const AppContent: React.FC = () => {
               onShopNow={() => handleNavigate('shop', 'All')}
               storeSettings={storeSettings}
             />
-
-            {/* Store Categories Showcase */}
-            {categories && categories.length > 0 && (
-              <ScrollReveal>
-                <CategorySection
-                  categories={categories}
-                  selectedCategory={categoryFilter}
-                  onSelectCategory={(catName) => handleNavigate('shop', catName)}
-                  products={products}
-                />
-              </ScrollReveal>
-            )}
 
             {/* Featured Collection Grid */}
             <ScrollReveal>

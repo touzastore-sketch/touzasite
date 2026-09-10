@@ -448,7 +448,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                     className="w-full py-3.5 px-6 text-start text-[15px] sm:text-[16px] font-medium text-[#1a1c1c] hover:text-[#c5a059] hover:bg-[#faf8f5] transition-colors flex items-center justify-between cursor-pointer"
                   >
                     <span className="flex items-center gap-2">
-                      <span>{language === 'ar' ? 'أزياء رجالية (التصنيفات)' : 'Men & Categories'}</span>
+                      <span>{language === 'ar' ? 'التصنيفات' : 'Categories'}</span>
                       <span className="text-[10px] font-semibold text-[#c5a059] bg-[#c5a059]/10 px-2 py-0.5 rounded-full">
                         {activeCategories.length} {language === 'ar' ? 'تصنيف' : 'categories'}
                       </span>
