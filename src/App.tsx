@@ -246,6 +246,7 @@ export const AppContent: React.FC = () => {
   // App Initial Database Synchronization & Loading State
   const [isInitialSyncDone, setIsInitialSyncDone] = useState(false);
   const [isSiteLoaded, setIsSiteLoaded] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
 
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>(() => {
     try {
@@ -407,7 +408,6 @@ export const AppContent: React.FC = () => {
         if (prods && prods.length > 0) {
           setProducts(prods);
         }
-        setIsInitialSyncDone(true);
       },
     })
       .then((initialData) => {
@@ -877,6 +877,7 @@ export const AppContent: React.FC = () => {
           categories={categories}
           storeSettings={storeSettings}
           isInitialSyncDone={isInitialSyncDone}
+          isVideoReady={isVideoReady}
           onFinishLoading={() => setIsSiteLoaded(true)}
         />
       )}
@@ -929,6 +930,7 @@ export const AppContent: React.FC = () => {
             <HeroBanner
               onShopNow={() => handleNavigate('shop', 'All')}
               storeSettings={storeSettings}
+              onVideoReady={() => setIsVideoReady(true)}
             />
 
             {/* Featured Collection Grid */}

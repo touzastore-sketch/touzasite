@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { TouzaLogo } from './TouzaLogo';
 import { Product, Category, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
-import { getOptimizedImageUrl } from '../utils/cloudinary';
+import { getOptimizedImageUrl, getVideoPosterUrl } from '../utils/cloudinary';
 
 interface StorePreloaderProps {
   products: Product[];
   categories: Category[];
   storeSettings?: StoreSettings;
   isInitialSyncDone?: boolean;
+  isVideoReady?: boolean;
   onFinishLoading: () => void;
 }
 
@@ -17,6 +18,7 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
   categories,
   storeSettings,
   isInitialSyncDone = false,
+  isVideoReady = false,
   onFinishLoading,
 }) => {
   const { language } = useLanguage();
@@ -46,6 +48,25 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
       });
     }, 350);
 
+    // Preload hero banner poster or image in background without blocking
+    if (storeSettings?.heroImageUrl) {
+      const heroUrl = storeSettings.heroImageUrl.trim();
+      if (
+        heroUrl.match(/\.(mp4|webm|mov|ogg|m4v)(\?.*)?$/i) ||
+        heroUrl.includes('/video/upload/') ||
+        heroUrl.includes('video')
+      ) {
+        const posterUrl = getVideoPosterUrl(heroUrl);
+        if (posterUrl) {
+          const posterImg = new Image();
+          posterImg.src = posterUrl;
+        }
+      } else {
+        const img = new Image();
+        img.src = heroUrl;
+      }
+    }
+
     // Function to gracefully finalize and fade out
     const finishAndDismiss = () => {
       if (hasFinishedRef.current || !isMounted) return;
@@ -65,19 +86,13 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
         setTimeout(() => {
           if (!isMounted) return;
           onFinishLoading();
-        }, 250);
-      }, 150);
+        }, 220);
+      }, 100);
     };
 
-    // Preload hero banner in background without blocking
-    if (storeSettings?.heroImageUrl && !storeSettings.heroImageUrl.endsWith('.mp4')) {
-      const img = new Image();
-      img.src = storeSettings.heroImageUrl;
-    }
-
-    // If initial sync is already finished, complete quickly and smoothly
-    if (isInitialSyncDone) {
-      const finishTimer = setTimeout(finishAndDismiss, 350);
+    // If both initial Firestore sync is done AND the video is ready, finish immediately
+    if (isInitialSyncDone && isVideoReady) {
+      const finishTimer = setTimeout(finishAndDismiss, 60);
       return () => {
         isMounted = false;
         clearTimeout(t1);
@@ -86,12 +101,21 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
       };
     }
 
-    // Safety timeout: Maximum 1800ms total preloader time under all conditions
-    // This allows first-time visitors on mobile and desktop to fetch fresh Firestore settings
-    // so the hero video, About image, categories and products show fresh immediately without reload
+    // If initial sync is done but video is still preparing initial frames
+    if (isInitialSyncDone && !isVideoReady) {
+      setProgress((prev) => Math.max(prev, 92));
+      setStatusMessage({
+        ar: 'جاري تشغيل الفيديو الافتتاحي...',
+        en: 'Starting video experience...',
+      });
+    }
+
+    // Safety timeout: Maximum 2200ms total preloader time under all conditions
+    // Guarantees that first-time visitors receive fresh Firestore settings and the video
+    // starts playing without delay, while ensuring the screen never hangs on slow connections
     const safetyTimer = setTimeout(() => {
       finishAndDismiss();
-    }, 1800);
+    }, 2200);
 
     return () => {
       isMounted = false;
@@ -99,7 +123,7 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
       clearTimeout(t2);
       clearTimeout(safetyTimer);
     };
-  }, [isInitialSyncDone, onFinishLoading, storeSettings?.heroImageUrl]);
+  }, [isInitialSyncDone, isVideoReady, onFinishLoading, storeSettings?.heroImageUrl]);
 
   return (
     <div

@@ -308,21 +308,33 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
   const handleLoadedMetadata = () => {
     if (isDev) console.log('[Hero Video] loadedmetadata');
     attemptPlay('loadedmetadata');
+    if (videoRef.current && videoRef.current.readyState >= 2 && onVideoReady) {
+      onVideoReady();
+    }
   };
 
   const handleLoadedData = () => {
     if (isDev) console.log('[Hero Video] loadeddata');
     attemptPlay('loadeddata');
+    if (onVideoReady) {
+      onVideoReady();
+    }
   };
 
   const handleCanPlay = () => {
     if (isDev) console.log('[Hero Video] canplay');
     attemptPlay('canplay');
+    if (onVideoReady) {
+      onVideoReady();
+    }
   };
 
   const handleCanPlayThrough = () => {
     if (isDev) console.log('[Hero Video] canplaythrough');
     attemptPlay('canplaythrough');
+    if (onVideoReady) {
+      onVideoReady();
+    }
   };
 
   const handleVideoPlaying = () => {

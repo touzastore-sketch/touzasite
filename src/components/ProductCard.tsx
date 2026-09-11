@@ -39,8 +39,8 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   const activeSizes = (activeColor?.sizes && activeColor.sizes.length > 0) ? activeColor.sizes : (product.sizes || []);
 
   const rawImg = activeColor?.imageUrl || product.images?.[0];
-  const fallbackImage = 'https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786595479/touza_products/reuodzuouk8woxkq38zz.jpg';
-  const displayImage = getOptimizedImageUrl(rawImg && rawImg.trim() ? rawImg : fallbackImage, { width: 450, quality: 'auto:good' });
+  const fallbackImage = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400"><rect width="100%" height="100%" fill="%23f5f5f7"/><text x="50%" y="50%" fill="%23888888" font-family="sans-serif" font-size="16" text-anchor="middle" font-weight="bold">TOUZA</text></svg>';
+  const displayImage = rawImg && rawImg.trim() ? getOptimizedImageUrl(rawImg, { width: 450, quality: 'auto:good' }) : fallbackImage;
 
   const displayName = getLocalizedProductName(product, language);
   const displaySubtitle = getLocalizedProductSubtitle(product, language);
