@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TouzaLogo } from './TouzaLogo';
 import { Product, Category, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
@@ -10,6 +10,7 @@ interface StorePreloaderProps {
   storeSettings?: StoreSettings;
   isInitialSyncDone?: boolean;
   isVideoReady?: boolean;
+  isHomeView?: boolean;
   onFinishLoading: () => void;
 }
 
@@ -19,6 +20,7 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
   storeSettings,
   isInitialSyncDone = false,
   isVideoReady = false,
+  isHomeView = true,
   onFinishLoading,
 }) => {
   const { language } = useLanguage();
@@ -28,27 +30,71 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
     en: 'Loading latest collections & products...',
   });
   const [isFadingOut, setIsFadingOut] = useState(false);
-  const hasFinishedRef = useRef(false);
 
+  // Guarantee that finish callback runs only once and is never interrupted by re-renders
+  const hasDismissedRef = useRef(false);
+  const onFinishLoadingRef = useRef(onFinishLoading);
+  onFinishLoadingRef.current = onFinishLoading;
+
+  const dismiss = useCallback(() => {
+    if (hasDismissedRef.current) return;
+    hasDismissedRef.current = true;
+
+    setProgress(100);
+    setStatusMessage({
+      ar: 'مرحباً بك في توزا كاجوال',
+      en: 'Welcome to TOUZA',
+    });
+
+    setIsFadingOut(true);
+
+    setTimeout(() => {
+      onFinishLoadingRef.current();
+    }, 180);
+  }, []);
+
+  // 1. Absolute hard safety limit on initial mount:
+  // Under ANY circumstance (Safari BFCache, slow network, autoplay restriction, or tab suspension),
+  // the preloader will unconditionally dismiss within 1400ms.
   useEffect(() => {
-    let isMounted = true;
+    const hardLimitTimer = setTimeout(() => {
+      dismiss();
+    }, 1400);
 
-    // Fast progressive progress steps
-    const t1 = setTimeout(() => {
-      if (!isMounted || hasFinishedRef.current) return;
-      setProgress(65);
-    }, 150);
+    // Safari BFCache restoration handler (e.g. user navigating back or typing URL in same tab)
+    const handlePageShow = () => {
+      dismiss();
+    };
 
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      clearTimeout(hardLimitTimer);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [dismiss]);
+
+  // 2. Progressive progress indicators
+  useEffect(() => {
+    const t1 = setTimeout(() => setProgress((p) => Math.max(p, 65)), 100);
     const t2 = setTimeout(() => {
-      if (!isMounted || hasFinishedRef.current) return;
-      setProgress(85);
+      setProgress((p) => Math.max(p, 85));
       setStatusMessage({
         ar: 'جاري تجهيز العرض الفاخر...',
         en: 'Preparing luxury storefront...',
       });
-    }, 350);
+    }, 250);
+    const t3 = setTimeout(() => setProgress((p) => Math.max(p, 95)), 550);
 
-    // Preload hero banner poster or image in background without blocking
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, []);
+
+  // 3. Preload hero banner poster or image in background without blocking
+  useEffect(() => {
     if (storeSettings?.heroImageUrl) {
       const heroUrl = storeSettings.heroImageUrl.trim();
       if (
@@ -66,68 +112,38 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
         img.src = heroUrl;
       }
     }
+  }, [storeSettings?.heroImageUrl]);
 
-    // Function to gracefully finalize and fade out
-    const finishAndDismiss = () => {
-      if (hasFinishedRef.current || !isMounted) return;
-      hasFinishedRef.current = true;
+  // 4. Reactive early dismissal based on state readiness
+  useEffect(() => {
+    // If not on home page (e.g. /admin, /shop, /checkout), dismiss immediately
+    if (!isHomeView) {
+      dismiss();
+      return;
+    }
 
-      setProgress(100);
-      setStatusMessage({
-        ar: 'مرحباً بك في توزا كاجوال',
-        en: 'Welcome to TOUZA',
-      });
-
-      // Quick smooth fade out
-      setTimeout(() => {
-        if (!isMounted) return;
-        setIsFadingOut(true);
-
-        setTimeout(() => {
-          if (!isMounted) return;
-          onFinishLoading();
-        }, 220);
-      }, 100);
-    };
-
-    // If both initial Firestore sync is done AND the video is ready, finish immediately
+    // If both initial Firestore sync is done AND the video is ready
     if (isInitialSyncDone && isVideoReady) {
-      const finishTimer = setTimeout(finishAndDismiss, 60);
-      return () => {
-        isMounted = false;
-        clearTimeout(t1);
-        clearTimeout(t2);
-        clearTimeout(finishTimer);
-      };
+      dismiss();
+      return;
     }
 
-    // If initial sync is done but video is still preparing initial frames
-    if (isInitialSyncDone && !isVideoReady) {
-      setProgress((prev) => Math.max(prev, 92));
-      setStatusMessage({
-        ar: 'جاري تشغيل الفيديو الافتتاحي...',
-        en: 'Starting video experience...',
-      });
+    // If initial sync is done, allow up to 400ms for video to start streaming, then dismiss
+    if (isInitialSyncDone) {
+      const timer = setTimeout(() => {
+        dismiss();
+      }, 400);
+      return () => clearTimeout(timer);
     }
-
-    // Safety timeout: Maximum 2200ms total preloader time under all conditions
-    // Guarantees that first-time visitors receive fresh Firestore settings and the video
-    // starts playing without delay, while ensuring the screen never hangs on slow connections
-    const safetyTimer = setTimeout(() => {
-      finishAndDismiss();
-    }, 2200);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(safetyTimer);
-    };
-  }, [isInitialSyncDone, isVideoReady, onFinishLoading, storeSettings?.heroImageUrl]);
+  }, [isHomeView, isInitialSyncDone, isVideoReady, dismiss]);
 
   return (
     <div
-      className={`fixed inset-0 z-[99999] bg-[#0c0c0d] text-white flex flex-col items-center justify-center p-6 transition-all duration-700 ease-out select-none ${
+      onClick={dismiss}
+      role="button"
+      tabIndex={0}
+      aria-label="Skip loading"
+      className={`fixed inset-0 z-[99999] bg-[#0c0c0d] text-white flex flex-col items-center justify-center p-6 transition-all duration-500 ease-out select-none cursor-pointer ${
         isFadingOut ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'
       }`}
       style={{

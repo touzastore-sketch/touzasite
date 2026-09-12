@@ -526,6 +526,63 @@ export const AppContent: React.FC = () => {
     };
   }, []);
 
+  // Cross-device and Safari BFCache synchronization hook:
+  // When a user unlocks their phone, switches back to the tab, or focuses the browser on mobile, laptop, or desktop,
+  // guarantee that the newest store settings, products, categories, and banners from Firestore are instantly fetched.
+  useEffect(() => {
+    let isMounted = true;
+    let throttleTimer: NodeJS.Timeout | null = null;
+
+    const syncLatestFromFirestore = () => {
+      if (!isMounted) return;
+      if (throttleTimer) return; // Prevent excessive rapid firing within 2 seconds
+      throttleTimer = setTimeout(() => {
+        throttleTimer = null;
+      }, 2000);
+
+      fetchInitialStoreData(defaultSettings, {
+        onSettings: (freshSettings) => {
+          if (isMounted && freshSettings) {
+            setStoreSettings(freshSettings);
+          }
+        },
+        onProducts: (freshProducts) => {
+          if (isMounted && freshProducts && freshProducts.length > 0) {
+            setProducts(freshProducts);
+          }
+        },
+        onCategories: (freshCategories) => {
+          if (isMounted && freshCategories && freshCategories.length > 0) {
+            setCategories(freshCategories);
+          }
+        },
+        onPromoCodes: (freshPromos) => {
+          if (isMounted && freshPromos && freshPromos.length > 0) {
+            setPromoCodes(freshPromos);
+          }
+        },
+      }).catch(() => {});
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncLatestFromFirestore();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', syncLatestFromFirestore);
+    window.addEventListener('pageshow', syncLatestFromFirestore);
+
+    return () => {
+      isMounted = false;
+      if (throttleTimer) clearTimeout(throttleTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', syncLatestFromFirestore);
+      window.removeEventListener('pageshow', syncLatestFromFirestore);
+    };
+  }, []);
+
   const [selectedProduct, setSelectedProduct] = useState<Product>(products[0] || PRODUCTS[0]);
   const [categoryFilter, setCategoryFilter] = useState<string>(initialUrlState.category || 'All');
 
@@ -878,6 +935,7 @@ export const AppContent: React.FC = () => {
           storeSettings={storeSettings}
           isInitialSyncDone={isInitialSyncDone}
           isVideoReady={isVideoReady}
+          isHomeView={currentView === 'home'}
           onFinishLoading={() => setIsSiteLoaded(true)}
         />
       )}
