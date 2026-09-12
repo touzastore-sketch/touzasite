@@ -60,9 +60,13 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
   const videoSrc = usingFallbackVideo ? '/hero-video.mp4' : activeStreamUrl;
 
   // Dynamically derive current video frame poster from the video itself (e.g. Cloudinary .jpg transformation)
-  // or return null to let the browser auto-select the first frame
+  // Guaranteed to always provide a valid high-resolution image so the hero banner is never black
   const dynamicPoster = useMemo(() => {
-    return getVideoPosterUrl(videoSrc) || null;
+    return (
+      getVideoPosterUrl(videoSrc) ||
+      getVideoPosterUrl(DEFAULT_HEADER_VIDEO_URL) ||
+      '/images/philosophy_model.jpg'
+    );
   }, [videoSrc]);
 
   const mediaLower = videoSrc.toLowerCase();
@@ -453,7 +457,18 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
       onClick={handleSectionInteraction}
       className="relative h-[100dvh] min-h-[550px] sm:min-h-[600px] w-full flex items-end justify-center pb-10 sm:pb-16 md:pb-20 pt-24 sm:pt-28 px-4 overflow-hidden bg-[#0c0c0e] select-none"
     >
-      {/* Hero Media Background Video (Layer 1) */}
+      {/* High-Resolution Luxury Poster Backdrop (Layer 1 - Guarantees zero black screen on Safari/iOS/Mobile) */}
+      <img
+        src={dynamicPoster}
+        alt={heroTitle}
+        decoding="async"
+        loading="eager"
+        className={`absolute inset-0 w-full h-full object-cover object-center z-[1] pointer-events-none transition-opacity duration-700 ease-out ${
+          isVideoLoaded ? 'opacity-0' : 'opacity-100'
+        }`}
+      />
+
+      {/* Hero Media Background Video (Layer 2) */}
       {isVideo && (
         <video
           ref={setVideoRef}
@@ -464,7 +479,6 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
           loop
           playsInline
           preload="auto"
-          crossOrigin="anonymous"
           disablePictureInPicture
           controls={false}
           onLoadedMetadata={handleLoadedMetadata}
@@ -475,8 +489,8 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
           onTimeUpdate={handleTimeUpdate}
           onEnded={handleVideoEnded}
           onError={handleVideoError}
-          className={`hero-video absolute inset-0 w-full h-full object-cover object-center z-[1] pointer-events-none bg-[#0c0c0e] transition-opacity duration-500 ease-out ${
-            isVideoLoaded ? 'opacity-100' : 'opacity-90'
+          className={`hero-video absolute inset-0 w-full h-full object-cover object-center z-[2] pointer-events-none bg-transparent transition-opacity duration-700 ease-out ${
+            isVideoLoaded ? 'opacity-100' : 'opacity-0'
           }`}
         >
           {/* Primary optimized video URL */}
@@ -502,12 +516,12 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
           onError={(e) => {
             e.currentTarget.style.display = 'none';
           }}
-          className="absolute inset-0 w-full h-full object-cover object-center z-[1] pointer-events-none"
+          className="absolute inset-0 w-full h-full object-cover object-center z-[2] pointer-events-none"
         />
       )}
 
-      {/* Gradient Overlay covering top navbar down to bottom text for readability (Layer 2) */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/80 z-[2] pointer-events-none" />
+      {/* Gradient Overlay covering top navbar down to bottom text for readability (Layer 3) */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/80 z-[3] pointer-events-none" />
 
       {/* Hero Content positioned elegantly - renders immediately upon page load (Layer 10) */}
       <div className="relative z-10 text-center px-4 flex flex-col items-center max-w-2xl mx-auto pb-2 sm:pb-4 pointer-events-auto">

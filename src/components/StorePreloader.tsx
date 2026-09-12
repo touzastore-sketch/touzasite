@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TouzaLogo } from './TouzaLogo';
 import { Product, Category, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
-import { getOptimizedImageUrl, getVideoPosterUrl } from '../utils/cloudinary';
+import { DEFAULT_HEADER_VIDEO_URL, getOptimizedImageUrl, getVideoPosterUrl } from '../utils/cloudinary';
 
 interface StorePreloaderProps {
   products: Product[];
@@ -31,6 +31,9 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
   });
   const [isFadingOut, setIsFadingOut] = useState(false);
 
+  const [isPosterReady, setIsPosterReady] = useState(false);
+  const [minDisplayPassed, setMinDisplayPassed] = useState(false);
+
   // Guarantee that finish callback runs only once and is never interrupted by re-renders
   const hasDismissedRef = useRef(false);
   const onFinishLoadingRef = useRef(onFinishLoading);
@@ -50,18 +53,24 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
 
     setTimeout(() => {
       onFinishLoadingRef.current();
-    }, 180);
+    }, 220);
   }, []);
 
-  // 1. Absolute hard safety limit on initial mount:
-  // Under ANY circumstance (Safari BFCache, slow network, autoplay restriction, or tab suspension),
-  // the preloader will unconditionally dismiss within 1400ms.
+  // 1. Minimum display time to ensure luxury presentation and smooth progress (1100ms)
   useEffect(() => {
-    const hardLimitTimer = setTimeout(() => {
-      dismiss();
-    }, 1400);
+    const minTimer = setTimeout(() => {
+      setMinDisplayPassed(true);
+    }, 1100);
+    return () => clearTimeout(minTimer);
+  }, []);
 
-    // Safari BFCache restoration handler (e.g. user navigating back or typing URL in same tab)
+  // 2. Absolute safety ceiling: never trap the user for more than 4000ms
+  useEffect(() => {
+    const safetyTimer = setTimeout(() => {
+      dismiss();
+    }, 4000);
+
+    // Safari BFCache restoration handler (e.g. user navigating back or re-entering tab)
     const handlePageShow = () => {
       dismiss();
     };
@@ -69,22 +78,22 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
     window.addEventListener('pageshow', handlePageShow);
 
     return () => {
-      clearTimeout(hardLimitTimer);
+      clearTimeout(safetyTimer);
       window.removeEventListener('pageshow', handlePageShow);
     };
   }, [dismiss]);
 
-  // 2. Progressive progress indicators
+  // 3. Progressive animated progress bar
   useEffect(() => {
-    const t1 = setTimeout(() => setProgress((p) => Math.max(p, 65)), 100);
+    const t1 = setTimeout(() => setProgress((p) => Math.max(p, 55)), 150);
     const t2 = setTimeout(() => {
-      setProgress((p) => Math.max(p, 85));
+      setProgress((p) => Math.max(p, 80));
       setStatusMessage({
         ar: 'جاري تجهيز العرض الفاخر...',
         en: 'Preparing luxury storefront...',
       });
-    }, 250);
-    const t3 = setTimeout(() => setProgress((p) => Math.max(p, 95)), 550);
+    }, 450);
+    const t3 = setTimeout(() => setProgress((p) => Math.max(p, 92)), 850);
 
     return () => {
       clearTimeout(t1);
@@ -93,28 +102,25 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
     };
   }, []);
 
-  // 3. Preload hero banner poster or image in background without blocking
+  // 4. Preload hero banner poster image to ensure instantaneous rendering
   useEffect(() => {
-    if (storeSettings?.heroImageUrl) {
-      const heroUrl = storeSettings.heroImageUrl.trim();
-      if (
-        heroUrl.match(/\.(mp4|webm|mov|ogg|m4v)(\?.*)?$/i) ||
-        heroUrl.includes('/video/upload/') ||
-        heroUrl.includes('video')
-      ) {
-        const posterUrl = getVideoPosterUrl(heroUrl);
-        if (posterUrl) {
-          const posterImg = new Image();
-          posterImg.src = posterUrl;
-        }
-      } else {
-        const img = new Image();
-        img.src = heroUrl;
-      }
+    const heroUrl = storeSettings?.heroImageUrl?.trim() || '';
+    const posterUrl =
+      getVideoPosterUrl(heroUrl) ||
+      getVideoPosterUrl(DEFAULT_HEADER_VIDEO_URL) ||
+      '/images/philosophy_model.jpg';
+
+    if (posterUrl) {
+      const img = new Image();
+      img.src = posterUrl;
+      img.onload = () => setIsPosterReady(true);
+      img.onerror = () => setIsPosterReady(true);
+    } else {
+      setIsPosterReady(true);
     }
   }, [storeSettings?.heroImageUrl]);
 
-  // 4. Reactive early dismissal based on state readiness
+  // 5. Intelligent dismissal: dismiss once initial sync is complete, media is ready, and minimum duration passed
   useEffect(() => {
     // If not on home page (e.g. /admin, /shop, /checkout), dismiss immediately
     if (!isHomeView) {
@@ -122,20 +128,20 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
       return;
     }
 
-    // If both initial Firestore sync is done AND the video is ready
-    if (isInitialSyncDone && isVideoReady) {
+    // When both store data is synced from Firestore and either video or poster is ready
+    if (isInitialSyncDone && minDisplayPassed && (isVideoReady || isPosterReady)) {
       dismiss();
       return;
     }
 
-    // If initial sync is done, allow up to 400ms for video to start streaming, then dismiss
-    if (isInitialSyncDone) {
-      const timer = setTimeout(() => {
+    // If initial sync and minimum time are done, allow up to 1.8s for video streaming before revealing
+    if (isInitialSyncDone && minDisplayPassed) {
+      const videoWaitTimer = setTimeout(() => {
         dismiss();
-      }, 400);
-      return () => clearTimeout(timer);
+      }, 1800);
+      return () => clearTimeout(videoWaitTimer);
     }
-  }, [isHomeView, isInitialSyncDone, isVideoReady, dismiss]);
+  }, [isHomeView, isInitialSyncDone, minDisplayPassed, isVideoReady, isPosterReady, dismiss]);
 
   return (
     <div
