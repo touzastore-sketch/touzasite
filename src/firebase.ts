@@ -16,6 +16,9 @@ import {
 } from 'firebase/auth';
 import {
   getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   setLogLevel,
   collection,
   collectionGroup,
@@ -62,10 +65,25 @@ try {
   setLogLevel('silent');
 } catch {}
 
-// Initialize Firestore with clean real-time connection across all mobile and desktop devices
-export const db = resolvedFirebaseConfig.firestoreDatabaseId
-  ? getFirestore(app, resolvedFirebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
+// Initialize Firestore with high-performance persistent local cache across all mobile & desktop browsers
+let firestoreInstance;
+try {
+  firestoreInstance = initializeFirestore(
+    app,
+    {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    },
+    resolvedFirebaseConfig.firestoreDatabaseId
+  );
+} catch {
+  firestoreInstance = resolvedFirebaseConfig.firestoreDatabaseId
+    ? getFirestore(app, resolvedFirebaseConfig.firestoreDatabaseId)
+    : getFirestore(app);
+}
+
+export const db = firestoreInstance;
 
 // Helper to timeout long-hanging Firestore requests (e.g. offline/network latency/Safari ITP)
 const fetchWithTimeout = <T>(promise: Promise<T>, timeoutMs = 15000): Promise<T> => {

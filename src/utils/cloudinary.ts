@@ -340,7 +340,7 @@ export function getOptimizedImageUrl(
 }
 
 export const DEFAULT_HEADER_VIDEO_URL =
-  'https://res.cloudinary.com/s1vv6dqw/video/upload/ac_none,vc_h264,q_auto/v1788953187/touza_header_videos/qllptxwywqjkch6snkrm.mp4';
+  'https://res.cloudinary.com/s1vv6dqw/video/upload/ac_none,vc_h264,q_auto/v1789030762/touza_header_videos/pmec37wvaue03zau8f4z.mp4?v=1789030817345';
 
 /**
  * Formats a Cloudinary video URL or public ID to deliver a reliable, directly playable HTTPS video URL.

@@ -265,7 +265,7 @@ export const AppContent: React.FC = () => {
     }
   }, [promoCodes]);
 
-  // Dynamic Store Banner & Appearance Settings
+  // Dynamic Store Banner & Appearance Settings (pre-seeded with latest live Firestore settings)
   const defaultSettings: StoreSettings = {
     storeNameAr: 'توزا TOUZA',
     storeNameEn: 'TOUZA CASUAL',
@@ -273,7 +273,7 @@ export const AppContent: React.FC = () => {
     taglineEn: 'Luxury Men Casual Wear - Portsaid | Egypt',
     announcementAr: "TOUZA MEN'S WEAR",
     announcementEn: "TOUZA MEN'S WEAR",
-    enableMarqueeBar: true,
+    enableMarqueeBar: false,
     marqueeSpeed: 'normal',
     marqueeBgColor: '#121212',
     marqueeTextColor: '#f3f3f3',
@@ -284,7 +284,7 @@ export const AppContent: React.FC = () => {
     heroSubtitleEn: 'A distinctive men’s collection crafted with care to give you a stylish and modern look for all occasions, combining quality, comfort, and elegance in every detail.',
     heroBadgeAr: 'تشكيلة توزا الرجالية • بورسعيد ومصر',
     heroBadgeEn: 'TOUZA MENSWEAR • EGYPT',
-    heroImageUrl: DEFAULT_HEADER_VIDEO_URL,
+    heroImageUrl: 'https://res.cloudinary.com/s1vv6dqw/video/upload/ac_none,vc_h264,q_auto/v1789030762/touza_header_videos/pmec37wvaue03zau8f4z.mp4?v=1789030817345',
     newsletterBadgeAr: 'توزا',
     newsletterBadgeEn: 'TOUZA',
     newsletterTitleAr: 'انضم إلى عائلة توزا',
@@ -301,7 +301,7 @@ export const AppContent: React.FC = () => {
     philosophyParagraph1En: 'At TOUZA, we craft high-end casual menswear built with 280GSM Egyptian cotton, pure flax linen, and custom relaxed tailoring.',
     philosophyParagraph2Ar: 'تصاميم تعبر عن الثقة والأناقة الكاجوال مع توصيل سريع لجميع محافظات مصر.',
     philosophyParagraph2En: 'Designed for everyday confidence with fast express shipping across all Egyptian governorates.',
-    philosophyImageUrl: 'https://res.cloudinary.com/s1vv6dqw/image/upload/f_auto,q_auto/v1788953397/touza_settings/gie9utj4pmyqsrmi3arp.jpg',
+    philosophyImageUrl: 'https://res.cloudinary.com/s1vv6dqw/image/upload/f_auto,q_auto/v1789030811/touza_settings/jhjelfzdn1bsix0plhm5.png',
     socialInstagramUrl: 'https://www.instagram.com/touzamenswear?igsh=MWlibDh0OThsOGY4dg%3D%3D&utm_source=qr',
     socialFacebookUrl: '',
     socialTiktokUrl: 'https://www.tiktok.com/@eltouza95?_r=1&_t=ZS-98m1NvL2Yo3',
@@ -321,25 +321,25 @@ export const AppContent: React.FC = () => {
     returnsEn: 'Returns and exchanges are accepted within 14 days of delivery in original condition.',
     shippingAr: 'نوفر خدمة التوصيل السريع لجميع محافظات مصر (القاهرة والجيزة خلال 24-48 ساعة، وباقي المحافظات خلال 2-4 أيام عمل).',
     shippingEn: 'Express delivery nationwide across Egypt (Cairo & Giza within 24-48 hrs, other governorates within 2-4 business days).',
-    shippingFree: true,
-    shippingFee: 0,
+    shippingFree: false,
+    shippingFee: 40,
     shippingLabelAr: 'الشحن داخل مصر',
     shippingLabelEn: 'Express Delivery',
     shippingNoteAr: 'شامل جميع الرسوم والتوصيل للمحافظات.',
     shippingNoteEn: 'All duties & delivery across Egypt included.',
     defaultLanguage: 'ar',
     enableVodafoneCash: true,
-    vodafoneCashNumber: '01012345678',
+    vodafoneCashNumber: '01070606272',
     vodafoneCashInstructionsAr: 'يرجى تحويل المبلغ المطلوب إلى رقم محفظة فودافون كاش الموضح أعلاه، ثم إدخال رقم الموبايل المحول منه لتأكيد الطلب.',
     vodafoneCashInstructionsEn: 'Please transfer the exact total amount to the Vodafone Cash number above, then enter your sender phone number to confirm your order.',
     enableOrangeCash: true,
-    orangeCashNumber: '01200031140',
+    orangeCashNumber: '01070606272',
     orangeCashInstructionsAr: 'يرجى تحويل المبلغ المطلوب إلى رقم محفظة أورانج كاش الموضح أعلاه، ثم إدخال رقم الموبايل المحول منه لتأكيد الطلب.',
     orangeCashInstructionsEn: 'Please transfer the exact total amount to the Orange Cash number above, then enter your sender phone number to confirm your order.',
     enableInstaPay: true,
-    instaPayAddress: 'touza@instapay',
-    instaPayAccount: 'touza@instapay',
-    instaPayPhone: '01012345678',
+    instaPayAddress: 'm.fathyabdallah95@instapay',
+    instaPayAccount: 'm.fathyabdallah95@instapay',
+    instaPayPhone: '01200031140',
     instaPayInstructionsAr: 'يرجى تحويل المبلغ عبر تطبيق InstaPay إلى عنوان IPA أو رقم الهاتف الموضح أعلاه، ثم أدخل رقم الموبايل أو رقم مرجع العملية.',
     instaPayInstructionsEn: 'Please transfer the exact amount via InstaPay to the IPA handle or phone number above, then enter your sender number or reference ID.',
     enableCashOnDelivery: true,
@@ -349,6 +349,8 @@ export const AppContent: React.FC = () => {
     collectionsTitleEn: 'Your Style Starts Here',
     collectionsSubtitleAr: 'تشكيلة راقية صُممت بعناية فائقة لتمنحك إطلالة جذابة تناسب جميع المناسبات في مصر.',
     collectionsSubtitleEn: 'A curated selection of luxury pieces tailored with precision and unhurried elegance.',
+    copyrightAr: 'جميع الحقوق محفوظة - سليمان ميديا - ٢٠٢٦',
+    copyrightEn: 'ALL COPYRIGHT SOLIMAN MEDIA 2026',
   };
 
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(() => {
