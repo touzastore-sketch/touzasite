@@ -49,14 +49,23 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
     return activeSizes.find((s) => s.inStock)?.size || activeSizes[0]?.size || 'M';
   });
   const [isAddedSuccess, setIsAddedSuccess] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [imgSrc, setImgSrc] = useState<string>(displayImage);
+  const [hasError, setHasError] = useState<boolean>(false);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const imgRef = React.useRef<HTMLImageElement>(null);
 
+  // When displayImage updates (e.g. from Firestore real-time sync, color switch, or initial load), reset states cleanly
   React.useEffect(() => {
-    if (imgRef.current && imgRef.current.complete) {
+    setImgSrc(displayImage);
+    setHasError(false);
+    setIsLoaded(false);
+  }, [displayImage]);
+
+  React.useEffect(() => {
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
       setIsLoaded(true);
     }
-  }, []);
+  }, [imgSrc]);
 
   React.useEffect(() => {
     const currentSizes = (activeColor?.sizes && activeColor.sizes.length > 0) ? activeColor.sizes : (product.sizes || []);
@@ -88,20 +97,19 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
           {!isLoaded && (
             <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse z-0" />
           )}
-          {displayImage && (
+          {imgSrc && (
             <img
+              key={imgSrc}
               ref={imgRef}
-              src={displayImage}
+              src={imgSrc}
               alt={displayName}
               onLoad={() => setIsLoaded(true)}
-              onError={(e) => {
-                setIsLoaded(true);
-                if (!e.currentTarget.dataset.failed) {
-                  e.currentTarget.dataset.failed = 'true';
-                  e.currentTarget.src = fallbackImage;
-                } else {
-                  e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400"><rect width="100%" height="100%" fill="%23f5f5f7"/><text x="50%" y="50%" fill="%23888888" font-family="sans-serif" font-size="16" text-anchor="middle" font-weight="bold">TOUZA</text></svg>';
+              onError={() => {
+                if (!hasError) {
+                  setHasError(true);
+                  setImgSrc(fallbackImage);
                 }
+                setIsLoaded(true);
               }}
               className={`w-full h-full object-contain p-1.5 transition-all duration-300 ease-out group-hover:scale-105 ${
                 isLoaded ? 'opacity-100' : 'opacity-90'
