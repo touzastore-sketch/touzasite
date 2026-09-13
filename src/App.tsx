@@ -119,7 +119,16 @@ export const AppContent: React.FC = () => {
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.filter((p) => !isBannedProductId(p.id));
+          const productMap = new Map<string, Product>();
+          PRODUCTS.forEach((p) => productMap.set(p.id, p));
+          const merged = parsed.map((p) => {
+            const bundled = productMap.get(p.id);
+            if (bundled && JSON.stringify(bundled.images) !== JSON.stringify(p.images)) {
+              return { ...p, images: bundled.images, colors: bundled.colors };
+            }
+            return p;
+          });
+          return merged.filter((p) => !isBannedProductId(p.id));
         }
       }
       return PRODUCTS.filter((p) => !isBannedProductId(p.id));
@@ -245,8 +254,8 @@ export const AppContent: React.FC = () => {
 
   // App Initial Database Synchronization & Loading State
   const [isInitialSyncDone, setIsInitialSyncDone] = useState(false);
-  const [isSiteLoaded, setIsSiteLoaded] = useState(false);
-  const [isVideoReady, setIsVideoReady] = useState(false);
+  const [isSiteLoaded, setIsSiteLoaded] = useState(true);
+  const [isVideoReady, setIsVideoReady] = useState(true);
 
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>(() => {
     try {

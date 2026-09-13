@@ -56,15 +56,14 @@ export const PRODUCTS: Product[] = [
     "name": "Suit louisvitton",
     "price": 5000,
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786807466/touza_products/aq8tezmxfgx5g5lksn0y.jpg",
-      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786807480/touza_products/gbbqszuri6nj36jd3hum.jpg"
+      "https://res.cloudinary.com/s1vv6dqw/image/upload/f_auto,q_auto/v1789069709/touza_products/qhtrxrmm6dhpfypuhuyd.jpg",
+      "https://res.cloudinary.com/s1vv6dqw/image/upload/f_auto,q_auto/v1789069729/touza_products/iit68ruy0umdkupes7il.jpg"
     ],
     "categoryAr": "سيت",
     "colors": [
       {
         "hex": "#a7c6ff",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786807455/touza_products/ptb2bjxn9eawieshdumu.jpg",
+        "imageUrl": "https://res.cloudinary.com/s1vv6dqw/image/upload/f_auto,q_auto/v1789069709/touza_products/qhtrxrmm6dhpfypuhuyd.jpg",
         "name": "Default",
         "nameAr": "افتراضي"
       }
@@ -118,7 +117,7 @@ export const PRODUCTS: Product[] = [
     "subtitle": "TOUZA Casual Collection",
     "originalPrice": 1900,
     "images": [
-      "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786809185/touza_products/et2olhe9fa5ndwtgz4fl.png"
+      "https://res.cloudinary.com/s1vv6dqw/image/upload/f_auto,q_auto/v1789033070/touza_products/zktaknhomemzxphvwsdl.jpg"
     ],
     "showOnHome": true,
     "category": "T-Shirts",
@@ -129,13 +128,13 @@ export const PRODUCTS: Product[] = [
       {
         "hex": "#111111",
         "nameAr": "أسود",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786808714/touza_products/wjybbowlh99dgw3gpqfi.png",
+        "imageUrl": "https://res.cloudinary.com/s1vv6dqw/image/upload/f_auto,q_auto/v1789033070/touza_products/zktaknhomemzxphvwsdl.jpg",
         "name": "Black"
       },
       {
         "nameAr": "أبيض",
         "hex": "#ffffff",
-        "imageUrl": "https://res.cloudinary.com/qazdrpcx/image/upload/f_auto,q_auto/v1786808728/touza_products/n90sjnrydbe1idlqgmsl.png",
+        "imageUrl": "https://res.cloudinary.com/s1vv6dqw/image/upload/f_auto,q_auto/v1789033091/touza_products/a11pabavoqyhvpd9lspb.jpg",
         "name": "White"
       }
     ],

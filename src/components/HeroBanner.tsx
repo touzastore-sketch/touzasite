@@ -146,8 +146,16 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
       el.setAttribute('webkit-playsinline', '');
       el.setAttribute('x5-playsinline', '');
       el.setAttribute('loop', '');
+      try {
+        const p = el.play();
+        if (p && typeof p.catch === 'function') {
+          p.then(() => {
+            if (onVideoReady) onVideoReady();
+          }).catch(() => {});
+        }
+      } catch {}
     }
-  }, []);
+  }, [onVideoReady]);
 
   // Ensure DOM element attributes are maintained whenever media changes
   useLayoutEffect(() => {
@@ -463,9 +471,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
         alt={heroTitle}
         decoding="async"
         loading="eager"
-        className={`absolute inset-0 w-full h-full object-cover object-center z-[1] pointer-events-none transition-opacity duration-700 ease-out ${
-          isVideoLoaded ? 'opacity-0' : 'opacity-100'
-        }`}
+        className="absolute inset-0 w-full h-full object-cover object-center z-[1] pointer-events-none"
       />
 
       {/* Hero Media Background Video (Layer 2) */}
@@ -489,9 +495,7 @@ const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettin
           onTimeUpdate={handleTimeUpdate}
           onEnded={handleVideoEnded}
           onError={handleVideoError}
-          className={`hero-video absolute inset-0 w-full h-full object-cover object-center z-[2] pointer-events-none bg-transparent transition-opacity duration-700 ease-out ${
-            isVideoLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
+          className="hero-video absolute inset-0 w-full h-full object-cover object-center z-[2] pointer-events-none bg-transparent"
         >
           {/* Primary optimized video URL */}
           <source
