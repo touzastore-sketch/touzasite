@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { Category, Product, StoreSettings } from '../types';
 import { ProductCard } from './ProductCard';
-import { PRODUCTS } from '../data/products';
 import { useLanguage } from '../context/LanguageContext';
 import { DEFAULT_CATEGORIES } from '../data/defaultCategories';
 import { CategorySection } from './CategorySection';
@@ -41,7 +40,7 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
   categories: customCategories = DEFAULT_CATEGORIES,
   storeSettings,
 }) => {
-  const allProducts = customProducts || PRODUCTS;
+  const allProducts = Array.isArray(customProducts) ? customProducts : [];
   const categoriesList = customCategories || DEFAULT_CATEGORIES;
   const { language, formatPrice, t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || 'All');

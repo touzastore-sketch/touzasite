@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { Product } from '../types';
-import { PRODUCTS } from '../data/products';
 import { useLanguage } from '../context/LanguageContext';
 import { getOptimizedImageUrl } from '../utils/cloudinary';
 
@@ -25,7 +24,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
   if (!isOpen) return null;
 
-  const allProducts = customProducts || PRODUCTS;
+  const allProducts = Array.isArray(customProducts) ? customProducts : [];
 
   const searchResults = query.trim()
     ? allProducts.filter(

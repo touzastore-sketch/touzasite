@@ -1731,45 +1731,48 @@ const sanitizeProduct = (p: Product): Product => {
 
 export const getAllProductsAdmin = async (): Promise<Product[]> => {
   try {
+    const deletedList: string[] = JSON.parse(localStorage.getItem('maison_deleted_products') || '[]');
+    const deletedSet = new Set<string>(deletedList);
+    try {
+      const dSnap = await fetchWithTimeout(getDocs(collection(db, 'deleted_products')), 4000);
+      dSnap.forEach((d) => deletedSet.add(d.id.trim()));
+    } catch {}
+
     const productsRef = collection(db, 'products');
     const snapshot = await fetchWithTimeout(getDocs(productsRef), 12000);
     
     if (!snapshot.empty) {
       const firestoreProducts: Product[] = [];
       snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
+        if (!deletedSet.has(docSnap.id.trim())) {
+          const data = docSnap.data();
+          firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
+        }
       });
 
-      if (firestoreProducts.length > 0) {
-        try {
-          localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
-        } catch {}
-        return firestoreProducts;
-      }
+      try {
+        localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
+      } catch {}
+      return firestoreProducts;
     }
 
-    // If Firestore is empty, seed initial default products
-    const initialProducts = PRODUCTS.map(sanitizeProduct);
-    for (const prod of initialProducts) {
-      setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true }).catch(() => {});
-    }
+    // If Firestore is empty, store is clean / deleted. DO NOT reseed automatically.
     try {
-      localStorage.setItem('maison_products', safeJsonStringify(initialProducts));
+      localStorage.setItem('maison_products', safeJsonStringify([]));
     } catch {}
-    return initialProducts;
+    return [];
   } catch (error) {
     console.warn('Using offline cached products fallback:', error);
     try {
       const saved = localStorage.getItem('maison_products');
-      if (saved) {
+      if (saved !== null) {
         const parsed: Product[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= PRODUCTS.length) {
+        if (Array.isArray(parsed)) {
           return parsed.map(sanitizeProduct);
         }
       }
     } catch {}
-    return PRODUCTS.map(sanitizeProduct);
+    return [];
   }
 };
 
@@ -1780,31 +1783,29 @@ export const subscribeToProducts = (
     const productsRef = collection(db, 'products');
     const unsubscribe = onSnapshot(
       productsRef,
-      (snapshot) => {
+      async (snapshot) => {
+        const deletedSet = new Set<string>(
+          JSON.parse(localStorage.getItem('maison_deleted_products') || '[]')
+        );
+        try {
+          const dSnap = await getDocs(collection(db, 'deleted_products'));
+          dSnap.forEach((d) => deletedSet.add(d.id.trim()));
+        } catch {}
+
+        const firestoreProducts: Product[] = [];
         if (!snapshot.empty) {
-          const firestoreProducts: Product[] = [];
           snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
+            if (!deletedSet.has(docSnap.id.trim()) && !isBannedProductId(docSnap.id)) {
+              const data = docSnap.data();
+              firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
+            }
           });
-          
-          if (firestoreProducts.length > 0) {
-            try {
-              localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
-            } catch {}
-            callback(firestoreProducts);
-          }
-        } else {
-          // If Firestore is completely empty, seed default products
-          const initialProducts = PRODUCTS.map(sanitizeProduct);
-          for (const prod of initialProducts) {
-            setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true }).catch(() => {});
-          }
-          try {
-            localStorage.setItem('maison_products', safeJsonStringify(initialProducts));
-          } catch {}
-          callback(initialProducts);
         }
+
+        try {
+          localStorage.setItem('maison_products', safeJsonStringify(firestoreProducts));
+        } catch {}
+        callback(firestoreProducts);
       },
       (err) => {
         console.warn('Realtime products listener error:', err);
@@ -1850,20 +1851,20 @@ export const syncAllProductsToFirestore = async (
     if (!listToUpload || listToUpload.length === 0) {
       try {
         const saved = localStorage.getItem('maison_products');
-        if (saved) {
+        if (saved !== null) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             listToUpload = parsed;
           }
         }
       } catch {}
     }
-    if (!listToUpload || listToUpload.length === 0) {
-      listToUpload = PRODUCTS;
-    }
 
-    // Filter out banned deprecated product IDs
-    listToUpload = listToUpload.filter((p) => !isBannedProductId(p.id));
+    const deletedList: string[] = JSON.parse(localStorage.getItem('maison_deleted_products') || '[]');
+    const deletedSet = new Set(deletedList);
+
+    // Filter out banned and deleted products
+    listToUpload = (listToUpload || []).filter((p) => !deletedSet.has(p.id) && !isBannedProductId(p.id));
 
     const batchPromises = listToUpload.map((prod) => {
       const sanitized = sanitizeProduct(prod);
@@ -1889,7 +1890,15 @@ export const saveProductAdmin = async (
   const sanitized = sanitizeProduct(productData);
   const payload = sanitizeForFirestore(sanitized);
 
-  // 1. Write directly to Firestore first so it propagates in realtime to all users/devices
+  // 1. Remove from deleted tracking if re-added
+  try {
+    await deleteDoc(doc(db, 'deleted_products', sanitized.id)).catch(() => {});
+    const deletedList: string[] = JSON.parse(localStorage.getItem('maison_deleted_products') || '[]');
+    const filteredDeleted = deletedList.filter((id) => id !== sanitized.id);
+    localStorage.setItem('maison_deleted_products', safeJsonStringify(filteredDeleted));
+  } catch {}
+
+  // 2. Write directly to Firestore first so it propagates in realtime to all users/devices
   try {
     await setDoc(doc(db, 'products', sanitized.id), payload, { merge: true });
   } catch (error) {
@@ -1897,7 +1906,7 @@ export const saveProductAdmin = async (
     throw error;
   }
 
-  // 2. Update local state list & local cache
+  // 3. Update local state list & local cache
   let list = [...currentProducts];
   const idx = list.findIndex((p) => p.id === sanitized.id);
   if (idx >= 0) {
@@ -1916,38 +1925,135 @@ export const saveProductAdmin = async (
 };
 
 export const deleteProductAdmin = async (
-  productId: string
-): Promise<boolean> => {
-  try {
-    await deleteDoc(doc(db, 'products', productId));
+  productId: string,
+  currentProducts: Product[] = []
+): Promise<Product[]> => {
+  const cleanId = productId.trim();
 
-    try {
-      const saved = localStorage.getItem('maison_products');
-      if (saved) {
-        const list: Product[] = JSON.parse(saved);
-        const filtered = list.filter((p) => p.id !== productId);
-        localStorage.setItem('maison_products', safeJsonStringify(filtered));
-        notifyStoreStateChanged('products', filtered);
-      }
-    } catch {}
-    return true;
+  // 1. Delete product document from Firestore
+  try {
+    await deleteDoc(doc(db, 'products', cleanId));
   } catch (error) {
     console.error('Failed to delete product from Firestore:', error);
-    throw error;
   }
+
+  // 2. Record in deleted_products collection in Firestore to prevent resurrection
+  try {
+    await setDoc(doc(db, 'deleted_products', cleanId), {
+      productId: cleanId,
+      deletedAt: new Date().toISOString(),
+    }, { merge: true });
+  } catch (err) {
+    console.warn('Failed to record deleted product in Firestore:', err);
+  }
+
+  // 3. Update local deleted list cache
+  try {
+    const deletedList: string[] = JSON.parse(localStorage.getItem('maison_deleted_products') || '[]');
+    if (!deletedList.includes(cleanId)) {
+      deletedList.push(cleanId);
+      localStorage.setItem('maison_deleted_products', safeJsonStringify(deletedList));
+    }
+  } catch {}
+
+  // 4. Update local products list & local cache
+  const list = currentProducts.length > 0
+    ? currentProducts
+    : (() => {
+        try {
+          const saved = localStorage.getItem('maison_products');
+          return saved ? JSON.parse(saved) : [];
+        } catch {
+          return [];
+        }
+      })();
+
+  const filtered = list.filter((p: Product) => p.id !== cleanId);
+  try {
+    localStorage.setItem('maison_products', safeJsonStringify(filtered));
+  } catch {}
+
+  notifyStoreStateChanged('products', filtered);
+  return filtered;
+};
+
+export const deleteMultipleProductsAdmin = async (
+  productIds: string[],
+  currentProducts: Product[] = []
+): Promise<Product[]> => {
+  const idsToDelete = new Set(productIds.map((id) => id.trim()));
+
+  // 1. Delete documents from Firestore and record tombstones
+  const batchPromises: Promise<void>[] = [];
+  productIds.forEach((id) => {
+    const cleanId = id.trim();
+    batchPromises.push(deleteDoc(doc(db, 'products', cleanId)).catch(() => {}));
+    batchPromises.push(
+      setDoc(doc(db, 'deleted_products', cleanId), {
+        productId: cleanId,
+        deletedAt: new Date().toISOString(),
+      }, { merge: true }).catch(() => {})
+    );
+  });
+  await Promise.all(batchPromises);
+
+  // 2. Update local deleted list cache
+  try {
+    const deletedList: string[] = JSON.parse(localStorage.getItem('maison_deleted_products') || '[]');
+    productIds.forEach((id) => {
+      const cleanId = id.trim();
+      if (!deletedList.includes(cleanId)) {
+        deletedList.push(cleanId);
+      }
+    });
+    localStorage.setItem('maison_deleted_products', safeJsonStringify(deletedList));
+  } catch {}
+
+  // 3. Update local products list & local cache
+  const list = currentProducts.length > 0
+    ? currentProducts
+    : (() => {
+        try {
+          const saved = localStorage.getItem('maison_products');
+          return saved ? JSON.parse(saved) : [];
+        } catch {
+          return [];
+        }
+      })();
+
+  const filtered = list.filter((p: Product) => !idsToDelete.has(p.id));
+  try {
+    localStorage.setItem('maison_products', safeJsonStringify(filtered));
+  } catch {}
+
+  notifyStoreStateChanged('products', filtered);
+  return filtered;
 };
 
 export const resetDefaultProductsAdmin = async (): Promise<Product[]> => {
   try {
+    // 1. Clear deleted_products tombstones in Firestore
+    const deletedSnap = await getDocs(collection(db, 'deleted_products'));
+    const delPromises: Promise<void>[] = [];
+    deletedSnap.forEach((docSnap) => {
+      delPromises.push(deleteDoc(doc(db, 'deleted_products', docSnap.id)));
+    });
+    await Promise.all(delPromises);
+
+    try {
+      localStorage.removeItem('maison_deleted_products');
+    } catch {}
+
+    // 2. Clear current products in Firestore
     const productsRef = collection(db, 'products');
     const snapshot = await getDocs(productsRef);
-    
     const deletePromises: Promise<void>[] = [];
     snapshot.forEach((docSnap) => {
       deletePromises.push(deleteDoc(doc(db, 'products', docSnap.id)));
     });
     await Promise.all(deletePromises);
 
+    // 3. Reseed default catalog
     const safeDefaults = PRODUCTS.filter((p) => !isBannedProductId(p.id));
     for (const prod of safeDefaults) {
       await setDoc(doc(db, 'products', prod.id), sanitizeForFirestore(prod), { merge: true });
@@ -1956,6 +2062,8 @@ export const resetDefaultProductsAdmin = async (): Promise<Product[]> => {
     try {
       localStorage.setItem('maison_products', safeJsonStringify(safeDefaults));
     } catch {}
+
+    notifyStoreStateChanged('products', safeDefaults);
     return safeDefaults;
   } catch (error) {
     console.error('Failed to reset default products:', error);
@@ -2081,25 +2189,41 @@ export const fetchInitialStoreData = async (
       .catch(() => defaultSettings);
 
     const productsPromise = fetchWithTimeout(getDocs(collection(db, 'products')), FAST_TIMEOUT)
-      .then((snap) => {
+      .then(async (snap) => {
+        const deletedSet = new Set<string>(
+          JSON.parse(localStorage.getItem('maison_deleted_products') || '[]')
+        );
+        try {
+          const dSnap = await fetchWithTimeout(getDocs(collection(db, 'deleted_products')), 4000);
+          dSnap.forEach((d) => deletedSet.add(d.id.trim()));
+        } catch {}
+
+        const list: Product[] = [];
         if (snap && !snap.empty) {
-          const list: Product[] = [];
           snap.forEach((d) => {
-            list.push(sanitizeProduct({ id: d.id, ...d.data() } as Product));
-          });
-          if (list.length > 0) {
-            try {
-              localStorage.setItem('maison_products', safeJsonStringify(list));
-            } catch {}
-            if (callbacks?.onProducts) {
-              try { callbacks.onProducts(list); } catch {}
+            if (!deletedSet.has(d.id.trim()) && !isBannedProductId(d.id)) {
+              list.push(sanitizeProduct({ id: d.id, ...d.data() } as Product));
             }
-            return list;
-          }
+          });
         }
-        return [];
+
+        try {
+          localStorage.setItem('maison_products', safeJsonStringify(list));
+        } catch {}
+        if (callbacks?.onProducts) {
+          try { callbacks.onProducts(list); } catch {}
+        }
+        return list;
       })
-      .catch(() => []);
+      .catch(() => {
+        try {
+          const saved = localStorage.getItem('maison_products');
+          if (saved !== null) {
+            return JSON.parse(saved);
+          }
+        } catch {}
+        return [];
+      });
 
     const categoriesPromise = fetchWithTimeout(getDocs(collection(db, 'categories')), FAST_TIMEOUT)
       .then((snap) => {

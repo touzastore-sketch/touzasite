@@ -85,6 +85,8 @@ interface AdminDashboardProps {
   onAddProduct: (product: Product) => void;
   onUpdateProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
+  onDeleteMultipleProducts?: (productIds: string[]) => void | Promise<void>;
+  onResetProducts?: () => void | Promise<void>;
   categories?: Category[];
   onAddCategory?: (catData: Omit<Category, 'id'>) => Promise<void>;
   onUpdateCategory?: (catId: string, updatedData: Partial<Category>) => Promise<void>;
@@ -104,6 +106,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onAddProduct,
   onUpdateProduct,
   onDeleteProduct,
+  onDeleteMultipleProducts,
+  onResetProducts,
   categories = DEFAULT_CATEGORIES,
   onAddCategory,
   onUpdateCategory,
@@ -254,6 +258,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isExportingProducts, setIsExportingProducts] = useState(false);
   const [isSyncingProducts, setIsSyncingProducts] = useState(false);
   const [isMigratingCloudinary, setIsMigratingCloudinary] = useState(false);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
+  const [isDeletingBulk, setIsDeletingBulk] = useState(false);
+  const [isResettingProducts, setIsResettingProducts] = useState(false);
 
   const handleSyncAllProducts = async () => {
     try {
@@ -769,7 +778,73 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleConfirmDeleteProduct = () => {
     if (productToDelete) {
       onDeleteProduct(productToDelete.id);
+      setSelectedProductIds((prev) => prev.filter((id) => id !== productToDelete.id));
       setProductToDelete(null);
+    }
+  };
+
+  const handleToggleSelectProduct = (productId: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+    );
+  };
+
+  const handleSelectAllProducts = (filteredIds: string[]) => {
+    if (filteredIds.length === 0) return;
+    const allSelected = filteredIds.every((id) => selectedProductIds.includes(id));
+    if (allSelected) {
+      setSelectedProductIds((prev) => prev.filter((id) => !filteredIds.includes(id)));
+    } else {
+      setSelectedProductIds((prev) => Array.from(new Set([...prev, ...filteredIds])));
+    }
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    if (selectedProductIds.length === 0) return;
+    try {
+      setIsDeletingBulk(true);
+      if (onDeleteMultipleProducts) {
+        await onDeleteMultipleProducts(selectedProductIds);
+      } else {
+        selectedProductIds.forEach((id) => onDeleteProduct(id));
+      }
+      setSelectedProductIds([]);
+      setIsBulkDeleteModalOpen(false);
+    } catch (err) {
+      console.error('Failed to bulk delete products:', err);
+    } finally {
+      setIsDeletingBulk(false);
+    }
+  };
+
+  const handleConfirmDeleteAllProducts = async () => {
+    try {
+      setIsDeletingBulk(true);
+      const allIds = products.map((p) => p.id);
+      if (onDeleteMultipleProducts) {
+        await onDeleteMultipleProducts(allIds);
+      } else {
+        allIds.forEach((id) => onDeleteProduct(id));
+      }
+      setSelectedProductIds([]);
+      setIsDeleteAllModalOpen(false);
+    } catch (err) {
+      console.error('Failed to delete all products:', err);
+    } finally {
+      setIsDeletingBulk(false);
+    }
+  };
+
+  const handleRestoreDefaultProducts = async () => {
+    if (!onResetProducts) return;
+    try {
+      setIsResettingProducts(true);
+      await onResetProducts();
+      setSelectedProductIds([]);
+    } catch (err) {
+      console.error('Failed to restore default products:', err);
+    } finally {
+      setIsResettingProducts(false);
     }
   };
 
@@ -2388,6 +2463,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <span>{language === 'ar' ? '📸 أداة تجديد صور المنتجات' : '📸 Image Manager'}</span>
                 </button>
 
+                {products.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsDeleteAllModalOpen(true)}
+                    className="flex-1 md:flex-initial bg-[#ba1a1a]/10 hover:bg-[#ba1a1a] text-[#ba1a1a] hover:text-white border border-[#ba1a1a]/30 px-3.5 py-2.5 rounded-xl font-label-caps font-bold transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-1.5 text-[13px]"
+                    title={language === 'ar' ? 'حذف جميع المنتجات من المتجر وقاعدة البيانات نهائياً' : 'Delete all products from store permanently'}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">delete_sweep</span>
+                    <span>{language === 'ar' ? 'حذف جميع المنتجات' : 'Clear All Products'}</span>
+                  </button>
+                )}
+
+                {onResetProducts && (
+                  <button
+                    type="button"
+                    onClick={handleRestoreDefaultProducts}
+                    disabled={isResettingProducts}
+                    className="flex-1 md:flex-initial bg-[#f3f4f6] text-[#333333] border border-[#c4c7c7] px-3.5 py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#e5e7eb] transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-1.5 text-[13px] disabled:opacity-50"
+                    title={language === 'ar' ? 'استعادة الكتالوج الافتراضي الأصلي للمتجر' : 'Restore original demo catalog'}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isResettingProducts ? 'animate-spin' : ''}`} />
+                    <span>{language === 'ar' ? 'استعادة الافتراضي' : 'Restore Defaults'}</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => handleOpenAddModal()}
                   className="flex-1 md:flex-initial bg-[#000000] text-white px-5 py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#2f3131] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 text-[14px]"
@@ -2398,184 +2498,274 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
-            {/* Products Table */}
-            <div className="bg-white rounded-2xl border border-[#c4c7c7]/30 shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-start text-[14px]">
-                  <thead className="bg-[#f9f9f9] border-b border-[#c4c7c7]/30 font-label-caps text-[11px] text-[#747878]">
-                    <tr>
-                      <th className="p-4 text-start">{language === 'ar' ? 'المنتج والقسم' : 'Product & Category'}</th>
-                      <th className="p-4 text-start">{language === 'ar' ? 'المقاسات المتاحة' : 'Available Sizes'}</th>
-                      <th className="p-4 text-start">{language === 'ar' ? 'السعر' : 'Price'}</th>
-                      <th className="p-4 text-center">{language === 'ar' ? 'الظهور بالرئيسية' : 'Show on Home'}</th>
-                      <th className="p-4 text-start">{language === 'ar' ? 'الشارات' : 'Badges'}</th>
-                      <th className="p-4 text-center">{language === 'ar' ? 'إجراءات' : 'Actions'}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#c4c7c7]/20">
-                    {filteredProducts.map((prod) => {
-                      const isOnHome = !!(prod.showOnHome || prod.isFeatured);
-                      const displayCat = prod.categoryAr || prod.category || (language === 'ar' ? 'قميص' : 'Shirts');
+            {/* Batch Selection Banner */}
+            {selectedProductIds.length > 0 && (
+              <div className="bg-[#ba1a1a]/10 border border-[#ba1a1a]/30 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+                <div className="flex items-center gap-2 text-[#ba1a1a] font-bold text-[14px]">
+                  <span className="material-symbols-outlined text-[20px]">check_circle</span>
+                  <span>
+                    {language === 'ar'
+                      ? `تم تحديد ${selectedProductIds.length} من أصل ${filteredProducts.length} منتج`
+                      : `${selectedProductIds.length} of ${filteredProducts.length} products selected`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProductIds([])}
+                    className="px-3 py-1.5 rounded-xl text-[12px] font-bold text-[#5e5e5c] hover:bg-black/5 transition-colors cursor-pointer"
+                  >
+                    {language === 'ar' ? 'إلغاء التحديد' : 'Deselect All'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkDeleteModalOpen(true)}
+                    className="px-4 py-2 bg-[#ba1a1a] hover:bg-[#961212] text-white rounded-xl text-[13px] font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">delete_sweep</span>
+                    <span>
+                      {language === 'ar'
+                        ? `حذف المنتجات المحددة (${selectedProductIds.length})`
+                        : `Delete Selected (${selectedProductIds.length})`}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
 
-                      return (
-                      <tr key={prod.id} className="hover:bg-[#f9f9f9] transition-colors">
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={prod.images[0]}
-                              alt={prod.name}
-                              className="w-12 h-14 object-cover rounded-lg bg-[#f3f3f4] border border-[#c4c7c7]/30"
+            {/* Products Table or Empty State */}
+            {products.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-[#c4c7c7]/30 p-12 text-center shadow-xs">
+                <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4 text-[#747878]">
+                  <span className="material-symbols-outlined text-[36px]">inventory_2</span>
+                </div>
+                <h3 className="font-display text-[20px] font-bold text-[#000000] mb-2">
+                  {language === 'ar' ? 'لا توجد منتجات حالياً في المتجر' : 'No Products in Store'}
+                </h3>
+                <p className="font-body text-[14px] text-[#747878] max-w-md mx-auto mb-6">
+                  {language === 'ar'
+                    ? 'تم تفريغ وحذف جميع المنتجات بنجاح ولن تعود مجدداً. يمكنك الآن البدء بإضافة منتجاتك الخاصة أو استعادة المنتجات التجريبية في أي وقت.'
+                    : 'All products have been permanently deleted. You can now add your own products or restore demo products at any time.'}
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenAddModal()}
+                    className="bg-[#000000] text-white px-5 py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#222222] transition-all cursor-pointer flex items-center gap-2 text-[14px]"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">add</span>
+                    <span>{language === 'ar' ? 'إضافة أول منتج جديد' : 'Add First Product'}</span>
+                  </button>
+                  {onResetProducts && (
+                    <button
+                      type="button"
+                      onClick={handleRestoreDefaultProducts}
+                      disabled={isResettingProducts}
+                      className="bg-white border border-[#c4c7c7] text-[#111111] px-4 py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#f3f4f6] transition-all cursor-pointer flex items-center gap-2 text-[14px] disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isResettingProducts ? 'animate-spin' : ''}`} />
+                      <span>{language === 'ar' ? 'استعادة المنتجات التجريبية' : 'Restore Demo Products'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-[#c4c7c7]/30 shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-start text-[14px]">
+                    <thead className="bg-[#f9f9f9] border-b border-[#c4c7c7]/30 font-label-caps text-[11px] text-[#747878]">
+                      <tr>
+                        <th className="p-4 w-12 text-center">
+                          <input
+                            type="checkbox"
+                            checked={filteredProducts.length > 0 && filteredProducts.every((p) => selectedProductIds.includes(p.id))}
+                            onChange={() => handleSelectAllProducts(filteredProducts.map((p) => p.id))}
+                            className="w-4 h-4 rounded text-[#ba1a1a] focus:ring-red-500 cursor-pointer"
+                            title={language === 'ar' ? 'تحديد كل المنتجات المعروضة' : 'Select all filtered products'}
+                          />
+                        </th>
+                        <th className="p-4 text-start">{language === 'ar' ? 'المنتج والقسم' : 'Product & Category'}</th>
+                        <th className="p-4 text-start">{language === 'ar' ? 'المقاسات المتاحة' : 'Available Sizes'}</th>
+                        <th className="p-4 text-start">{language === 'ar' ? 'السعر' : 'Price'}</th>
+                        <th className="p-4 text-center">{language === 'ar' ? 'الظهور بالرئيسية' : 'Show on Home'}</th>
+                        <th className="p-4 text-start">{language === 'ar' ? 'الشارات' : 'Badges'}</th>
+                        <th className="p-4 text-center">{language === 'ar' ? 'إجراءات' : 'Actions'}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#c4c7c7]/20">
+                      {filteredProducts.map((prod) => {
+                        const isOnHome = !!(prod.showOnHome || prod.isFeatured);
+                        const displayCat = prod.categoryAr || prod.category || (language === 'ar' ? 'قميص' : 'Shirts');
+                        const isSelected = selectedProductIds.includes(prod.id);
+
+                        return (
+                        <tr key={prod.id} className={`hover:bg-[#f9f9f9] transition-colors ${isSelected ? 'bg-red-50/50' : ''}`}>
+                          <td className="p-4 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleSelectProduct(prod.id)}
+                              className="w-4 h-4 rounded text-[#ba1a1a] focus:ring-red-500 cursor-pointer"
                             />
-                            <div>
-                              <p className="font-bold text-[#000000]">
-                                {language === 'ar' && prod.nameAr ? prod.nameAr : prod.name}
-                              </p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#f4ece1] text-[#8c6d37] border border-[#c5a059]/30">
-                                  <span className="material-symbols-outlined text-[13px]">label</span>
-                                  {displayCat}
-                                </span>
-                                {prod.subtitle && (
-                                  <span className="text-[12px] text-[#747878] truncate max-w-[150px]">{prod.subtitle}</span>
-                                )}
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={prod.images[0]}
+                                alt={prod.name}
+                                className="w-12 h-14 object-cover rounded-lg bg-[#f3f3f4] border border-[#c4c7c7]/30"
+                              />
+                              <div>
+                                <p className="font-bold text-[#000000]">
+                                  {language === 'ar' && prod.nameAr ? prod.nameAr : prod.name}
+                                </p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-[#f4ece1] text-[#8c6d37] border border-[#c5a059]/30">
+                                    <span className="material-symbols-outlined text-[13px]">label</span>
+                                    {displayCat}
+                                  </span>
+                                  {prod.subtitle && (
+                                    <span className="text-[12px] text-[#747878] truncate max-w-[150px]">{prod.subtitle}</span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        <td className="p-4">
-                          <div className="flex flex-wrap gap-1 max-w-[200px]">
-                            {prod.sizes && prod.sizes.length > 0 ? (
-                              prod.sizes.map((s, idx) => (
-                                <span
-                                  key={idx}
-                                  className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold border ${
-                                    s.inStock
-                                      ? 'bg-[#f3f3f4] text-[#000000] border-[#c4c7c7]/50'
-                                      : 'bg-red-50 text-red-500 border-red-200 line-through opacity-60'
-                                  }`}
-                                >
-                                  {s.size}
+                          <td className="p-4">
+                            <div className="flex flex-wrap gap-1 max-w-[200px]">
+                              {prod.sizes && prod.sizes.length > 0 ? (
+                                prod.sizes.map((s, idx) => (
+                                  <span
+                                    key={idx}
+                                    className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold border ${
+                                      s.inStock
+                                        ? 'bg-[#f3f3f4] text-[#000000] border-[#c4c7c7]/50'
+                                        : 'bg-red-50 text-red-500 border-red-200 line-through opacity-60'
+                                    }`}
+                                  >
+                                    {s.size}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-[12px] text-[#747878] italic">
+                                  {language === 'ar' ? 'لا يوجد' : 'None'}
                                 </span>
-                              ))
-                            ) : (
-                              <span className="text-[12px] text-[#747878] italic">
-                                {language === 'ar' ? 'لا يوجد' : 'None'}
+                              )}
+                            </div>
+                          </td>
+
+                          <td className="p-4 dir-ltr text-start">
+                            <span className="font-bold text-[#000000] block">
+                              {formatPrice(prod.price)}
+                            </span>
+                            {prod.originalPrice && prod.originalPrice > prod.price && (
+                              <span className="text-[12px] text-[#747878] line-through block">
+                                {formatPrice(prod.originalPrice)}
                               </span>
                             )}
-                          </div>
-                        </td>
+                          </td>
 
-                        <td className="p-4 dir-ltr text-start">
-                          <span className="font-bold text-[#000000] block">
-                            {formatPrice(prod.price)}
-                          </span>
-                          {prod.originalPrice && prod.originalPrice > prod.price && (
-                            <span className="text-[12px] text-[#747878] line-through block">
-                              {formatPrice(prod.originalPrice)}
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Direct Toggle for Homepage Display */}
-                        <td className="p-4 text-center">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated: Product = {
-                                ...prod,
-                                showOnHome: !isOnHome,
-                                isFeatured: !isOnHome,
-                              };
-                              onUpdateProduct(updated);
-                            }}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-label-caps text-[11px] font-bold transition-all cursor-pointer shadow-2xs border ${
-                              isOnHome
-                                ? 'bg-[#e8f5e9] text-[#2e7d32] border-[#2e7d32]/30 hover:bg-[#c8e6c9]'
-                                : 'bg-[#f3f3f4] text-[#747878] border-[#c4c7c7]/40 hover:bg-[#e4e4e5]'
-                            }`}
-                            title={
-                              isOnHome
-                                ? language === 'ar'
-                                  ? 'انقر للإخفاء من الصفحة الرئيسية'
-                                  : 'Click to hide from Home'
-                                : language === 'ar'
-                                ? 'انقر لإظهاره في الصفحة الرئيسية'
-                                : 'Click to show on Home'
-                            }
-                          >
-                            <span className="material-symbols-outlined text-[16px]">
-                              {isOnHome ? 'visibility' : 'visibility_off'}
-                            </span>
-                            <span>
-                              {isOnHome
-                                ? language === 'ar'
-                                  ? 'معروض بالرئيسية ⭐'
-                                  : 'On Home ⭐'
-                                : language === 'ar'
-                                ? 'مخفي من الرئيسية'
-                                : 'Hidden'}
-                            </span>
-                          </button>
-                        </td>
-
-                        <td className="p-4 space-x-1 rtl:space-x-reverse space-y-1">
-                          {prod.originalPrice && prod.originalPrice > prod.price && (
-                            <span className="bg-[#ba1a1a] text-white text-[10px] px-2 py-0.5 rounded font-label-caps font-bold inline-block">
-                              SALE (-{Math.round(((prod.originalPrice - prod.price) / prod.originalPrice) * 100)}%)
-                            </span>
-                          )}
-                          {prod.isNewArrival && (
-                            <span className="bg-[#000000] text-white text-[10px] px-2 py-0.5 rounded font-label-caps inline-block">
-                              NEW
-                            </span>
-                          )}
-                          {(prod.isFeatured || prod.showOnHome) && (
-                            <span className="bg-[#ed6c02] text-white text-[10px] px-2 py-0.5 rounded font-label-caps inline-block">
-                              FEATURED
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="p-4 text-center">
-                          <div className="flex items-center justify-center gap-2">
+                          {/* Direct Toggle for Homepage Display */}
+                          <td className="p-4 text-center">
                             <button
+                              type="button"
                               onClick={() => {
-                                setImageManagerTargetProductId(prod.id);
-                                setIsImageManagerOpen(true);
+                                const updated: Product = {
+                                  ...prod,
+                                  showOnHome: !isOnHome,
+                                  isFeatured: !isOnHome,
+                                };
+                                onUpdateProduct(updated);
                               }}
-                              className="px-2.5 py-1.5 bg-[#f3f3f4] hover:bg-[#e4e4e5] text-[#111111] rounded-xl font-label-caps text-[12px] font-bold flex items-center gap-1 transition-all cursor-pointer border border-[#c4c7c7]/40 shadow-2xs"
-                              title={language === 'ar' ? 'رفع وتحديث صورة هذا المنتج من جهازك' : 'Upload and replace image for this product'}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-label-caps text-[11px] font-bold transition-all cursor-pointer shadow-2xs border ${
+                                isOnHome
+                                  ? 'bg-[#e8f5e9] text-[#2e7d32] border-[#2e7d32]/30 hover:bg-[#c8e6c9]'
+                                  : 'bg-[#f3f3f4] text-[#747878] border-[#c4c7c7]/40 hover:bg-[#e4e4e5]'
+                              }`}
+                              title={
+                                isOnHome
+                                  ? language === 'ar'
+                                    ? 'انقر للإخفاء من الصفحة الرئيسية'
+                                    : 'Click to hide from Home'
+                                  : language === 'ar'
+                                  ? 'انقر لإظهاره في الصفحة الرئيسية'
+                                  : 'Click to show on Home'
+                              }
                             >
-                              <span className="material-symbols-outlined text-[16px]">add_a_photo</span>
-                              <span>{language === 'ar' ? 'الصورة' : 'Image'}</span>
+                              <span className="material-symbols-outlined text-[16px]">
+                                {isOnHome ? 'visibility' : 'visibility_off'}
+                              </span>
+                              <span>
+                                {isOnHome
+                                  ? language === 'ar'
+                                    ? 'معروض بالرئيسية ⭐'
+                                    : 'On Home ⭐'
+                                  : language === 'ar'
+                                  ? 'مخفي من الرئيسية'
+                                  : 'Hidden'}
+                              </span>
                             </button>
+                          </td>
 
-                            <button
-                              onClick={() => handleOpenEditModal(prod)}
-                              className="px-3 py-1.5 bg-[#000000] text-white hover:bg-[#222222] rounded-xl font-label-caps text-[12px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
-                              title={language === 'ar' ? 'تعديل بيانات المنتج' : 'Edit Product'}
-                            >
-                              <span className="material-symbols-outlined text-[16px]">edit</span>
-                              <span>{language === 'ar' ? 'تعديل' : 'Edit'}</span>
-                            </button>
+                          <td className="p-4 space-x-1 rtl:space-x-reverse space-y-1">
+                            {prod.originalPrice && prod.originalPrice > prod.price && (
+                              <span className="bg-[#ba1a1a] text-white text-[10px] px-2 py-0.5 rounded font-label-caps font-bold inline-block">
+                                SALE (-{Math.round(((prod.originalPrice - prod.price) / prod.originalPrice) * 100)}%)
+                              </span>
+                            )}
+                            {prod.isNewArrival && (
+                              <span className="bg-[#000000] text-white text-[10px] px-2 py-0.5 rounded font-label-caps inline-block">
+                                NEW
+                              </span>
+                            )}
+                            {(prod.isFeatured || prod.showOnHome) && (
+                              <span className="bg-[#ed6c02] text-white text-[10px] px-2 py-0.5 rounded font-label-caps inline-block">
+                                FEATURED
+                              </span>
+                            )}
+                          </td>
 
-                            <button
-                              onClick={() => setProductToDelete(prod)}
-                              className="p-2 text-[#ba1a1a] hover:bg-[#ba1a1a]/10 rounded-lg transition-colors cursor-pointer"
-                              title={language === 'ar' ? 'حذف المنتج' : 'Delete Product'}
-                            >
-                              <span className="material-symbols-outlined text-[20px]">delete</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                    })}
-                  </tbody>
-                </table>
+                          <td className="p-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => {
+                                  setImageManagerTargetProductId(prod.id);
+                                  setIsImageManagerOpen(true);
+                                }}
+                                className="px-2.5 py-1.5 bg-[#f3f3f4] hover:bg-[#e4e4e5] text-[#111111] rounded-xl font-label-caps text-[12px] font-bold flex items-center gap-1 transition-all cursor-pointer border border-[#c4c7c7]/40 shadow-2xs"
+                                title={language === 'ar' ? 'رفع وتحديث صورة هذا المنتج من جهازك' : 'Upload and replace image for this product'}
+                              >
+                                <span className="material-symbols-outlined text-[16px]">add_a_photo</span>
+                                <span>{language === 'ar' ? 'الصورة' : 'Image'}</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleOpenEditModal(prod)}
+                                className="px-3 py-1.5 bg-[#000000] text-white hover:bg-[#222222] rounded-xl font-label-caps text-[12px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                                title={language === 'ar' ? 'تعديل بيانات المنتج' : 'Edit Product'}
+                              >
+                                <span className="material-symbols-outlined text-[16px]">edit</span>
+                                <span>{language === 'ar' ? 'تعديل' : 'Edit'}</span>
+                              </button>
+
+                              <button
+                                onClick={() => setProductToDelete(prod)}
+                                className="p-2 text-[#ba1a1a] hover:bg-[#ba1a1a]/10 rounded-lg transition-colors cursor-pointer"
+                                title={language === 'ar' ? 'حذف المنتج' : 'Delete Product'}
+                              >
+                                <span className="material-symbols-outlined text-[20px]">delete</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -7012,8 +7202,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </h3>
               <p className="font-body text-[14px] text-[#5e5e5c] mt-2">
                 {language === 'ar'
-                  ? `هل أنت تأكد من حذف المنتج "${productToDelete.nameAr || productToDelete.name}" نهائياً من المتجر؟`
-                  : `Are you sure you want to permanently delete "${productToDelete.name}"?`}
+                  ? `هل أنت متأكد من حذف المنتج "${productToDelete.nameAr || productToDelete.name}" نهائياً من المتجر؟ لن يعود مرة أخرى بعد الحذف.`
+                  : `Are you sure you want to permanently delete "${productToDelete.name}"? It will not return after deletion.`}
               </p>
             </div>
 
@@ -7031,6 +7221,100 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 className="w-1/2 bg-[#ba1a1a] text-white py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#961212] text-[13px] cursor-pointer shadow-md"
               >
                 {language === 'ar' ? 'نعم، احذف المنتج' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Products Confirmation Modal */}
+      {isBulkDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white max-w-md w-full rounded-2xl p-6 space-y-5 shadow-2xl text-center">
+            <div className="w-14 h-14 bg-red-100 text-[#ba1a1a] rounded-full flex items-center justify-center mx-auto">
+              <span className="material-symbols-outlined text-[32px]">delete_sweep</span>
+            </div>
+            <div>
+              <h3 className="font-display text-[20px] font-bold text-[#000000]">
+                {language === 'ar' ? 'تأكيد حذف المنتجات المحددة' : 'Delete Selected Products'}
+              </h3>
+              <p className="font-body text-[14px] text-[#5e5e5c] mt-2">
+                {language === 'ar'
+                  ? `هل أنت متأكد من حذف ${selectedProductIds.length} منتجات محددة نهائياً من المتجر وقاعدة البيانات؟`
+                  : `Are you sure you want to permanently delete ${selectedProductIds.length} selected products?`}
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isDeletingBulk}
+                onClick={() => setIsBulkDeleteModalOpen(false)}
+                className="w-1/2 border border-[#c4c7c7] text-[#000000] py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#f3f3f4] text-[13px] cursor-pointer disabled:opacity-50"
+              >
+                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingBulk}
+                onClick={handleConfirmBulkDelete}
+                className="w-1/2 bg-[#ba1a1a] text-white py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#961212] text-[13px] cursor-pointer shadow-md flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {isDeletingBulk ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    <span>{language === 'ar' ? 'جارٍ الحذف...' : 'Deleting...'}</span>
+                  </>
+                ) : (
+                  <span>{language === 'ar' ? 'نعم، احذف المحددة' : 'Yes, Delete'}</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear All Products Confirmation Modal */}
+      {isDeleteAllModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white max-w-md w-full rounded-2xl p-6 space-y-5 shadow-2xl text-center">
+            <div className="w-14 h-14 bg-red-100 text-[#ba1a1a] rounded-full flex items-center justify-center mx-auto">
+              <span className="material-symbols-outlined text-[32px]">warning</span>
+            </div>
+            <div>
+              <h3 className="font-display text-[20px] font-bold text-[#ba1a1a]">
+                {language === 'ar' ? '⚠️ تحذير: حذف جميع منتجات المتجر' : '⚠️ Warning: Delete All Products'}
+              </h3>
+              <p className="font-body text-[14px] text-[#5e5e5c] mt-2">
+                {language === 'ar'
+                  ? `سيتم حذف جميع المنتجات الحالية (${products.length} منتج) نهائياً من المتجر وقاعدة بيانات Firestore. لن تظهر مجدداً حتى تضع منتجاتك الخاصة أو تضغط استعادة الافتراضي.`
+                  : `All ${products.length} products will be permanently removed from the store and Firestore database.`}
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isDeletingBulk}
+                onClick={() => setIsDeleteAllModalOpen(false)}
+                className="w-1/2 border border-[#c4c7c7] text-[#000000] py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#f3f3f4] text-[13px] cursor-pointer disabled:opacity-50"
+              >
+                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingBulk}
+                onClick={handleConfirmDeleteAllProducts}
+                className="w-1/2 bg-[#ba1a1a] text-white py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#961212] text-[13px] cursor-pointer shadow-md flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {isDeletingBulk ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    <span>{language === 'ar' ? 'جارٍ التفريغ...' : 'Clearing...'}</span>
+                  </>
+                ) : (
+                  <span>{language === 'ar' ? 'نعم، تفريغ الكل نهائياً' : 'Yes, Delete All'}</span>
+                )}
               </button>
             </div>
           </div>

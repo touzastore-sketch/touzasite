@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { Product, StoreSettings } from '../types';
 import { ProductCard } from './ProductCard';
-import { PRODUCTS, getLocalizedProductName, getLocalizedProductCategory, getLocalizedProductDescription, getLocalizedProductDetails } from '../data/products';
+import { getLocalizedProductName, getLocalizedProductCategory, getLocalizedProductDescription, getLocalizedProductDetails } from '../data/products';
 import { useLanguage } from '../context/LanguageContext';
 import { subscribeToProductReviews, saveProductReview, SavedReview } from '../firebase';
 import { getOptimizedImageUrl } from '../utils/cloudinary';
@@ -183,7 +183,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const displayDetails = getLocalizedProductDetails(product, language);
 
   // Related products for "Curated For You" (uses live products from Firestore if available)
-  const sourceProducts = products && products.length > 0 ? products : PRODUCTS;
+  const sourceProducts = Array.isArray(products) ? products : [];
   const curatedProducts = sourceProducts.filter((p) => p.id !== product.id).slice(0, 3);
   const largeCurated = curatedProducts[0];
   const stackedCurated = curatedProducts.slice(1, 3);

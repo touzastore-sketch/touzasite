@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { Category, Product, CartItem, ViewMode, PromoCode, StoreSettings } from './types';
-import { PRODUCTS, CATALOG_VERSION } from './data/products';
+import { CATALOG_VERSION } from './data/products';
 import { DEFAULT_CATEGORIES, CATEGORIES_VERSION } from './data/defaultCategories';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -29,6 +29,8 @@ import {
   subscribeToProducts,
   saveProductAdmin,
   deleteProductAdmin,
+  deleteMultipleProductsAdmin,
+  resetDefaultProductsAdmin,
   subscribeToStoreSettings,
   saveStoreSettingsAdmin,
   fetchInitialStoreData,
@@ -112,28 +114,22 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Dynamic Products state initialized from database cache or fallback
+  // Dynamic Products state initialized from database cache or empty array
   const [products, setProducts] = useState<Product[]>(() => {
     try {
+      const deletedList: string[] = JSON.parse(localStorage.getItem('maison_deleted_products') || '[]');
+      const deletedSet = new Set(deletedList);
+
       const saved = localStorage.getItem('maison_products');
-      if (saved) {
+      if (saved !== null) {
         const parsed: Product[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const productMap = new Map<string, Product>();
-          PRODUCTS.forEach((p) => productMap.set(p.id, p));
-          const merged = parsed.map((p) => {
-            const bundled = productMap.get(p.id);
-            if (bundled && JSON.stringify(bundled.images) !== JSON.stringify(p.images)) {
-              return { ...p, images: bundled.images, colors: bundled.colors };
-            }
-            return p;
-          });
-          return merged.filter((p) => !isBannedProductId(p.id));
+        if (Array.isArray(parsed)) {
+          return parsed.filter((p) => !deletedSet.has(p.id) && !isBannedProductId(p.id));
         }
       }
-      return PRODUCTS.filter((p) => !isBannedProductId(p.id));
+      return [];
     } catch {
-      return PRODUCTS.filter((p) => !isBannedProductId(p.id));
+      return [];
     }
   });
 
@@ -416,7 +412,7 @@ export const AppContent: React.FC = () => {
       },
       onProducts: (prods) => {
         if (!isSubscribed) return;
-        if (prods && prods.length > 0) {
+        if (Array.isArray(prods)) {
           setProducts(prods);
         }
       },
@@ -433,7 +429,7 @@ export const AppContent: React.FC = () => {
         if (initialData.promoCodes && initialData.promoCodes.length > 0) {
           setPromoCodes(initialData.promoCodes);
         }
-        if (initialData.products && initialData.products.length > 0) {
+        if (Array.isArray(initialData.products)) {
           setProducts(initialData.products);
         }
         setIsInitialSyncDone(true);
@@ -445,7 +441,7 @@ export const AppContent: React.FC = () => {
 
     // 2. Subscribe to continuous live Firestore updates with real snapshot triggers
     const unsubscribeProducts = subscribeToProducts((liveProducts) => {
-      if (isSubscribed && liveProducts && liveProducts.length > 0) {
+      if (isSubscribed && Array.isArray(liveProducts)) {
         setProducts(liveProducts);
         setIsInitialSyncDone(true);
       }
@@ -474,7 +470,7 @@ export const AppContent: React.FC = () => {
     const handleStoreSyncEvent = (e: any) => {
       if (!isSubscribed) return;
       const { type, data } = e.detail || {};
-      if (type === 'products' && Array.isArray(data) && data.length > 0) {
+      if (type === 'products' && Array.isArray(data)) {
         setProducts(data);
       } else if (type === 'categories' && Array.isArray(data)) {
         setCategories(data);
@@ -493,7 +489,7 @@ export const AppContent: React.FC = () => {
         bc.onmessage = (event) => {
           if (!isSubscribed) return;
           const { type, data } = event.data || {};
-          if (type === 'products' && Array.isArray(data) && data.length > 0) {
+          if (type === 'products' && Array.isArray(data)) {
             setProducts(data);
           } else if (type === 'categories' && Array.isArray(data)) {
             setCategories(data);
@@ -558,7 +554,7 @@ export const AppContent: React.FC = () => {
           }
         },
         onProducts: (freshProducts) => {
-          if (isMounted && freshProducts && freshProducts.length > 0) {
+          if (isMounted && Array.isArray(freshProducts)) {
             setProducts(freshProducts);
           }
         },
@@ -594,16 +590,22 @@ export const AppContent: React.FC = () => {
     };
   }, []);
 
-  const [selectedProduct, setSelectedProduct] = useState<Product>(products[0] || PRODUCTS[0]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => products[0] || null);
   const [categoryFilter, setCategoryFilter] = useState<string>(initialUrlState.category || 'All');
 
   // Sync selected product with live Firestore updates
   useEffect(() => {
-    if (selectedProduct && products.length > 0) {
-      const updated = products.find((p) => p.id === selectedProduct.id);
-      if (updated && updated !== selectedProduct) {
-        setSelectedProduct(updated);
+    if (products.length > 0) {
+      if (!selectedProduct || !products.some((p) => p.id === selectedProduct.id)) {
+        setSelectedProduct(products[0]);
+      } else {
+        const updated = products.find((p) => p.id === selectedProduct.id);
+        if (updated && updated !== selectedProduct) {
+          setSelectedProduct(updated);
+        }
       }
+    } else {
+      setSelectedProduct(null);
     }
   }, [products]);
 
@@ -671,9 +673,30 @@ export const AppContent: React.FC = () => {
   const handleDeleteProduct = async (productId: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== productId));
     try {
-      await deleteProductAdmin(productId);
+      const updated = await deleteProductAdmin(productId, products);
+      setProducts(updated);
     } catch (err) {
       console.error('Failed to delete product from Firestore:', err);
+    }
+  };
+
+  const handleDeleteMultipleProducts = async (productIds: string[]) => {
+    const idSet = new Set(productIds);
+    setProducts((prev) => prev.filter((p) => !idSet.has(p.id)));
+    try {
+      const updated = await deleteMultipleProductsAdmin(productIds, products);
+      setProducts(updated);
+    } catch (err) {
+      console.error('Failed to delete multiple products from Firestore:', err);
+    }
+  };
+
+  const handleResetDefaultProducts = async () => {
+    try {
+      const restored = await resetDefaultProductsAdmin();
+      setProducts(restored);
+    } catch (err) {
+      console.error('Failed to reset default products:', err);
     }
   };
 
@@ -978,6 +1001,8 @@ export const AppContent: React.FC = () => {
             onAddProduct={handleAddProduct}
             onUpdateProduct={handleUpdateProduct}
             onDeleteProduct={handleDeleteProduct}
+            onDeleteMultipleProducts={handleDeleteMultipleProducts}
+            onResetProducts={handleResetDefaultProducts}
             promoCodes={promoCodes}
             onAddPromoCode={handleAddPromoCode}
             onDeletePromoCode={handleDeletePromoCode}
@@ -1025,6 +1050,20 @@ export const AppContent: React.FC = () => {
                 {(() => {
                   const homeSelected = products.filter((p) => p.showOnHome === true || (p.showOnHome !== false && p.isFeatured));
                   const displayList = homeSelected.length > 0 ? homeSelected : products;
+
+                  if (displayList.length === 0) {
+                    return (
+                      <div className="py-12 text-center bg-[#f9f9f9] rounded-2xl border border-[#c4c7c7]/30 p-8">
+                        <span className="material-symbols-outlined text-[40px] text-[#747878] mb-2 block">inventory_2</span>
+                        <p className="font-display text-[18px] font-bold text-[#000000]">
+                          {language === 'ar' ? 'المتجر قيد التحديث' : 'Store Being Updated'}
+                        </p>
+                        <p className="text-[13px] text-[#747878] mt-1">
+                          {language === 'ar' ? 'سيتم إضافة قطع ومجموعات جديدة قريباً جداً.' : 'New pieces and collections will be added very soon.'}
+                        </p>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1137,7 +1176,7 @@ export const AppContent: React.FC = () => {
             />
           )}
 
-          {currentView === 'product' && (
+          {currentView === 'product' && selectedProduct && (
             <ProductDetail
               product={selectedProduct}
               products={products}
@@ -1153,6 +1192,24 @@ export const AppContent: React.FC = () => {
               onSignInGoogle={handleSignInGoogle}
               onNavigate={(view, category) => handleNavigate(view, category)}
             />
+          )}
+
+          {currentView === 'product' && !selectedProduct && (
+            <div className="min-h-[50vh] flex flex-col items-center justify-center p-8 text-center bg-[#f9f9f9]">
+              <span className="material-symbols-outlined text-[48px] text-[#747878] mb-3">inventory_2</span>
+              <h2 className="font-display text-[22px] font-bold text-[#000000] mb-2">
+                {language === 'ar' ? 'المنتج غير متاح حالياً' : 'Product Not Available'}
+              </h2>
+              <p className="font-body text-[14px] text-[#747878] mb-6">
+                {language === 'ar' ? 'تم حذف هذا المنتج أو لم يعد متوفراً في المتجر.' : 'This product has been removed or is no longer available.'}
+              </p>
+              <button
+                onClick={() => handleNavigate('home')}
+                className="bg-[#000000] text-white px-6 py-2.5 rounded-xl font-label-caps font-bold hover:bg-[#222222] transition-colors cursor-pointer"
+              >
+                {language === 'ar' ? 'العودة للمتجر' : 'Return to Store'}
+              </button>
+            </div>
           )}
 
           {currentView === 'checkout' && (

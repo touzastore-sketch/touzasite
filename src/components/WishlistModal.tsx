@@ -1,7 +1,7 @@
 import React from 'react';
 import { Heart, X, ShoppingBag } from 'lucide-react';
 import { Product } from '../types';
-import { PRODUCTS, getLocalizedProductName, getLocalizedProductCategory } from '../data/products';
+import { getLocalizedProductName, getLocalizedProductCategory } from '../data/products';
 import { useLanguage } from '../context/LanguageContext';
 import { getOptimizedImageUrl } from '../utils/cloudinary';
 
@@ -24,13 +24,13 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
   onSelectProduct,
   onRemoveWishlist,
   onAddToCart,
-  products = PRODUCTS,
+  products = [],
 }) => {
   const { language, formatPrice, t, direction } = useLanguage();
 
   if (!isOpen) return null;
 
-  const currentProductsList = products && products.length > 0 ? products : PRODUCTS;
+  const currentProductsList = Array.isArray(products) ? products : [];
   const wishlistedProducts = currentProductsList.filter((p) => wishlistIds.includes(p.id));
 
   return (

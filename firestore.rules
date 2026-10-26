@@ -69,6 +69,14 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    match /deleted_products/{deletedId} {
+      allow read, write: if true;
+    }
+
+    match /deleted_promos/{deletedId} {
+      allow read, write: if true;
+    }
+
     match /newsletterCampaigns/{campaignId} {
       allow read, write: if true;
     }
