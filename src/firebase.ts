@@ -1134,6 +1134,8 @@ export const subscribeToProductReviews = (
 // CATEGORY FIRESTORE FUNCTIONS
 // ==========================================
 
+const DEPRECATED_CATEGORY_IDS = new Set(['cat-pants', 'cat-polos', 'cat-shirts', 'cat-shorts', 'cat-suit', 'cat-tshirts']);
+
 export const getAllCategories = async (): Promise<Category[]> => {
   try {
     const catsRef = collection(db, 'categories');
@@ -1141,6 +1143,10 @@ export const getAllCategories = async (): Promise<Category[]> => {
     const categories: Category[] = [];
 
     snapshot.forEach((docSnap) => {
+      if (DEPRECATED_CATEGORY_IDS.has(docSnap.id)) {
+        deleteDoc(doc(db, 'categories', docSnap.id)).catch(() => {});
+        return;
+      }
       const cData = docSnap.data() as Category;
       categories.push({
         id: docSnap.id,
@@ -1156,10 +1162,14 @@ export const getAllCategories = async (): Promise<Category[]> => {
       return categories;
     }
 
-    return DEFAULT_CATEGORIES.map((c) => ({
+    const defaultCats = DEFAULT_CATEGORIES.map((c) => ({
       ...c,
       imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
     }));
+    for (const cat of defaultCats) {
+      setDoc(doc(db, 'categories', cat.id), sanitizeForFirestore(cat), { merge: true }).catch(() => {});
+    }
+    return defaultCats;
   } catch (error) {
     console.warn('Using offline fallback for categories:', error);
     try {
@@ -1167,10 +1177,13 @@ export const getAllCategories = async (): Promise<Category[]> => {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((c: Category) => ({
-            ...c,
-            imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
-          }));
+          const valid = parsed.filter((c: Category) => !DEPRECATED_CATEGORY_IDS.has(c.id));
+          if (valid.length > 0) {
+            return valid.map((c: Category) => ({
+              ...c,
+              imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
+            }));
+          }
         }
       }
     } catch {}
@@ -1202,9 +1215,13 @@ export const subscribeToCategories = (
     const unsubscribe = onSnapshot(
       catsRef,
       (snapshot) => {
+        const firestoreCats: Category[] = [];
         if (!snapshot.empty) {
-          const firestoreCats: Category[] = [];
           snapshot.forEach((docSnap) => {
+            if (DEPRECATED_CATEGORY_IDS.has(docSnap.id)) {
+              deleteDoc(doc(db, 'categories', docSnap.id)).catch(() => {});
+              return;
+            }
             const cData = docSnap.data() as Category;
             firestoreCats.push({
               id: docSnap.id,
@@ -1212,14 +1229,15 @@ export const subscribeToCategories = (
               imageUrl: ensureAutoOptimizedCloudinaryUrl(cData.imageUrl),
             } as Category);
           });
-          if (firestoreCats.length > 0) {
-            try {
-              localStorage.setItem('maison_categories', safeJsonStringify(firestoreCats));
-            } catch {}
-            callback(firestoreCats);
-          }
+        }
+
+        if (firestoreCats.length > 0) {
+          try {
+            localStorage.setItem('maison_categories', safeJsonStringify(firestoreCats));
+          } catch {}
+          callback(firestoreCats);
         } else {
-          // If Firestore categories collection is empty, seed defaults
+          // If Firestore categories collection has no valid categories, seed default single winter category
           const defaultCats = DEFAULT_CATEGORIES.map((c) => ({
             ...c,
             imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
@@ -2230,6 +2248,10 @@ export const fetchInitialStoreData = async (
         if (snap && !snap.empty) {
           const list: Category[] = [];
           snap.forEach((d) => {
+            if (DEPRECATED_CATEGORY_IDS.has(d.id)) {
+              deleteDoc(doc(db, 'categories', d.id)).catch(() => {});
+              return;
+            }
             const cData = d.data() as Category;
             list.push({
               id: d.id,
@@ -2247,9 +2269,16 @@ export const fetchInitialStoreData = async (
             return list;
           }
         }
-        return [];
+        const defaultCats = DEFAULT_CATEGORIES.map((c) => ({
+          ...c,
+          imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
+        }));
+        if (callbacks?.onCategories) {
+          try { callbacks.onCategories(defaultCats); } catch {}
+        }
+        return defaultCats;
       })
-      .catch(() => []);
+      .catch(() => DEFAULT_CATEGORIES);
 
     const promoCodesPromise = fetchWithTimeout(getDocs(collection(db, 'promoCodes')), FAST_TIMEOUT)
       .then((snap) => {

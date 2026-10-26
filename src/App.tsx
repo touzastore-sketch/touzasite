@@ -157,13 +157,23 @@ export const AppContent: React.FC = () => {
     }
   }, [products]);
 
-  // Dynamic Categories state
+  // Dynamic Categories state (Single Winter Category)
   const [categories, setCategories] = useState<Category[]>(() => {
     try {
+      const savedVersion = localStorage.getItem('maison_categories_version');
+      if (savedVersion !== CATEGORIES_VERSION) {
+        localStorage.setItem('maison_categories_version', CATEGORIES_VERSION);
+        localStorage.setItem('maison_categories', safeJsonStringify(DEFAULT_CATEGORIES));
+        return DEFAULT_CATEGORIES;
+      }
       const saved = localStorage.getItem('maison_categories');
       if (saved) {
         const parsed: Category[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const deprecated = new Set(['cat-pants', 'cat-polos', 'cat-shirts', 'cat-shorts', 'cat-suit', 'cat-tshirts']);
+          const cleanList = parsed.filter((c) => !deprecated.has(c.id));
+          if (cleanList.length > 0) return cleanList;
+        }
       }
       return DEFAULT_CATEGORIES;
     } catch {
@@ -173,6 +183,7 @@ export const AppContent: React.FC = () => {
 
   useEffect(() => {
     try {
+      localStorage.setItem('maison_categories_version', CATEGORIES_VERSION);
       localStorage.setItem('maison_categories', safeJsonStringify(categories));
     } catch (err) {
       console.error('Failed to store categories in local cache:', err);

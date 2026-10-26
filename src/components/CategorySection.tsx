@@ -95,7 +95,7 @@ const CategorySectionComponent: React.FC<CategorySectionProps> = ({
       </div>
 
       {/* Category Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5 sm:gap-6 lg:gap-7">
+      <div className={`grid ${categories.length === 1 ? 'grid-cols-1 max-w-md mx-auto w-full' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6'} gap-5 sm:gap-6 lg:gap-7`}>
         {categories.map((cat) => {
           const isSelected =
             selectedCategory === cat.nameEn || selectedCategory === cat.nameAr;
@@ -107,7 +107,7 @@ const CategorySectionComponent: React.FC<CategorySectionProps> = ({
             <div
               key={cat.id}
               onClick={() => onSelectCategory(cat.nameEn)}
-              className={`group relative h-[210px] sm:h-[230px] md:h-[250px] rounded-2xl overflow-hidden cursor-pointer transition-all duration-500 flex flex-col justify-between p-4 shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_14px_36px_rgba(0,0,0,0.18)] transform hover:-translate-y-1.5 border ${
+              className={`group relative ${categories.length === 1 ? 'h-[260px] sm:h-[300px]' : 'h-[210px] sm:h-[230px] md:h-[250px]'} rounded-2xl overflow-hidden cursor-pointer transition-all duration-500 flex flex-col justify-between p-5 shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_14px_36px_rgba(0,0,0,0.18)] transform hover:-translate-y-1.5 border ${
                 isSelected
                   ? 'ring-2 ring-[#c5a059] border-[#c5a059] shadow-lg'
                   : 'border-[#c5a059]/25 hover:border-[#c5a059]'

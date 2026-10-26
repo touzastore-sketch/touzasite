@@ -1,6 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
-import { Heart, User as UserIcon, ShoppingBag, Search, X, ChevronDown, ChevronUp, Ruler, Tag, MapPin } from 'lucide-react';
+import {
+  Heart,
+  User as UserIcon,
+  ShoppingBag,
+  Search,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Ruler,
+  Tag,
+  MapPin,
+  Phone,
+  MessageCircle,
+  Sparkles,
+  Compass,
+  ShieldCheck,
+  ArrowRight,
+  ArrowLeft,
+  ChevronRight,
+  ChevronLeft,
+} from 'lucide-react';
 import { ViewMode, StoreSettings, Category } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/defaultCategories';
 import { useLanguage } from '../context/LanguageContext';
@@ -380,17 +400,17 @@ const NavbarComponent: React.FC<NavbarProps> = ({
         </div>
       </header>
 
-      {/* Side Drawer Navigation (Mobile & Desktop) */}
+      {/* Side Drawer Navigation - Pure Classic Minimalist Luxury (كلاسيك سيمبل خالص) */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-[99999] overflow-hidden" role="dialog" aria-modal="true">
-          {/* Soft Backdrop */}
+          {/* Subtle Deep Backdrop */}
           <div
             onClick={() => setMobileMenuOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 cursor-pointer z-40"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-300 cursor-pointer z-40"
             aria-label={language === 'ar' ? 'إغلاق القائمة' : 'Close menu'}
           />
 
-          {/* Side Drawer - Clean Classic Layout */}
+          {/* Side Drawer */}
           <aside
             className={`fixed top-0 bottom-0 ${
               language === 'ar' ? 'right-0' : 'left-0'
@@ -402,222 +422,131 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                 : '-translate-x-full'
             }`}
           >
-            <div className="w-[85vw] max-w-[340px] sm:max-w-[375px] bg-[#ffffff] text-[#1a1c1c] border-r border-[#000000]/10 rtl:border-l rtl:border-r-0 shadow-2xl flex flex-col justify-between h-full pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-              {/* Header with Brand & Close button */}
-              <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-[#000000]/10 shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <TouzaLogo className="w-7 h-11 shrink-0" variant="gold" showFrame={true} />
-                  <div className="flex flex-col">
-                    <span className="font-display text-[19px] sm:text-[21px] font-bold tracking-[0.1em] uppercase text-[#1a1c1c]">
-                      TOUZA
-                    </span>
-                    <span className="font-label-caps text-[9px] tracking-[0.2em] text-[#c5a059] uppercase -mt-0.5">
-                      {language === 'ar' ? 'أزياء رجالية • بورسعيد' : "MEN'S WEAR • PORT SAID"}
-                    </span>
-                  </div>
+            <div className="w-[82vw] sm:w-[340px] max-w-full bg-[#0a0a0c] text-[#f5f0e8] border-r border-[#c5a059]/20 rtl:border-l rtl:border-r-0 shadow-[0_0_40px_rgba(0,0,0,0.9)] flex flex-col justify-between h-full pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] relative overflow-hidden select-none">
+              
+              {/* 1. Classic Wordmark Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] shrink-0">
+                <div className="flex flex-col text-start">
+                  <span className="font-display text-[22px] font-bold tracking-[0.25em] uppercase text-white">
+                    TOUZA
+                  </span>
+                  <span className="font-label-caps text-[9px] tracking-[0.3em] text-[#c5a059] uppercase">
+                    {language === 'ar' ? 'دار أزياء • بورسعيد' : 'MAISON DE MODE • PORT SAID'}
+                  </span>
                 </div>
+
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center text-[#1a1c1c]/70 hover:text-[#000000] hover:bg-black/5 rounded-full transition-colors cursor-pointer active:scale-95"
+                  className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center text-white/60 hover:text-white rounded-full border border-white/10 hover:border-[#c5a059]/50 transition-colors cursor-pointer active:scale-95"
                   aria-label="Close menu"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4.5 h-4.5 stroke-[1.5]" />
                 </button>
               </div>
 
-              {/* Scrollable Navigation Items - Simple & Classic */}
-              <div className="flex-1 overflow-y-auto hide-scrollbar divide-y divide-[#000000]/8">
-                {/* 1. Home */}
+              {/* 2. Pure Editorial Navigation Links (Spacious, Minimalist, Classic) */}
+              <nav className="flex-1 overflow-y-auto hide-scrollbar px-6 py-6 flex flex-col justify-center space-y-5">
+                {/* 2.1 Home */}
                 <button
                   type="button"
                   onClick={() => {
                     setMobileMenuOpen(false);
                     onNavigate('home');
                   }}
-                  className="w-full py-3.5 px-6 text-start text-[15px] sm:text-[16px] font-medium text-[#1a1c1c] hover:text-[#c5a059] hover:bg-[#faf8f5] transition-colors flex items-center justify-between cursor-pointer"
+                  className={`text-start font-display text-[19px] sm:text-[21px] transition-all duration-200 cursor-pointer block ${
+                    currentView === 'home'
+                      ? 'text-[#c5a059] font-bold ltr:translate-x-1.5 rtl:-translate-x-1.5'
+                      : 'text-white/85 hover:text-[#c5a059] hover:ltr:translate-x-1 hover:rtl:-translate-x-1'
+                  }`}
                 >
-                  <span>{language === 'ar' ? 'الرئيسية' : 'Home'}</span>
+                  {language === 'ar' ? 'الرئيسية' : 'Home'}
                 </button>
 
-                {/* 2. Men / Categories (Expandable with subcategories) */}
-                <div className="w-full">
-                  <button
-                    type="button"
-                    onClick={() => setCategoriesExpanded((prev) => !prev)}
-                    className="w-full py-3.5 px-6 text-start text-[15px] sm:text-[16px] font-medium text-[#1a1c1c] hover:text-[#c5a059] hover:bg-[#faf8f5] transition-colors flex items-center justify-between cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span>{language === 'ar' ? 'التصنيفات' : 'Categories'}</span>
-                      <span className="text-[10px] font-semibold text-[#c5a059] bg-[#c5a059]/10 px-2 py-0.5 rounded-full">
-                        {activeCategories.length} {language === 'ar' ? 'تصنيف' : 'categories'}
-                      </span>
+                {/* 2.2 Winter Collection (Single Category) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onNavigate('shop', 'Winter Collection');
+                  }}
+                  className="text-start font-display text-[19px] sm:text-[21px] text-white/95 hover:text-[#c5a059] hover:ltr:translate-x-1 hover:rtl:-translate-x-1 transition-all duration-200 cursor-pointer block group"
+                >
+                  <span className="flex items-center justify-between">
+                    <span>{language === 'ar' ? 'ملابس شتوي' : 'Winter Collection'}</span>
+                    <span className="text-[10px] font-label-caps tracking-widest text-[#c5a059] uppercase opacity-75 group-hover:opacity-100">
+                      {language === 'ar' ? 'مجموعة الشتاء' : 'COLLECTION'}
                     </span>
-                    <span className="text-neutral-500 text-xs transition-transform duration-200">
-                      {categoriesExpanded ? '▲' : '▼'}
-                    </span>
-                  </button>
+                  </span>
+                </button>
 
-                  {/* Sub-categories List (Indented cleanly like dockland style) */}
-                  {categoriesExpanded && (
-                    <div className="bg-[#faf8f5]/60 border-t border-[#000000]/5 divide-y divide-[#000000]/5">
-                      {/* View All Products in Shop */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          onNavigate('shop', 'All');
-                        }}
-                        className="w-full py-2.5 px-8 sm:px-9 text-start text-[13px] sm:text-[13.5px] font-semibold text-[#1a1c1c] hover:text-[#c5a059] hover:bg-[#f3eee7] transition-colors flex items-center justify-between cursor-pointer"
-                      >
-                        <span>{language === 'ar' ? 'عرض كل القطع' : 'ALL PRODUCTS'}</span>
-                        <span className="text-[10px] text-[#c5a059] font-mono tracking-widest uppercase">
-                          {language === 'ar' ? 'الكل' : 'VIEW'}
-                        </span>
-                      </button>
-
-                      {/* Store Categories */}
-                      {activeCategories.map((cat) => {
-                        const displayName = language === 'ar' ? (cat.nameAr || cat.nameEn) : (cat.nameEn || cat.nameAr);
-                        const secondaryName = language === 'ar' ? cat.nameEn : cat.nameAr;
-                        return (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            onClick={() => {
-                              setMobileMenuOpen(false);
-                              onNavigate('shop', cat.nameEn || cat.nameAr || cat.id);
-                            }}
-                            className="w-full py-2.5 px-8 sm:px-9 text-start text-[13px] sm:text-[13.5px] font-normal text-[#444748] hover:text-[#c5a059] hover:bg-[#f3eee7] transition-colors flex items-center justify-between cursor-pointer uppercase tracking-wider"
-                          >
-                            <span>{displayName}</span>
-                            {secondaryName && secondaryName !== displayName && (
-                              <span className="text-[11px] text-neutral-400 font-light normal-case">
-                                {secondaryName}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* 3. Summer 2026 / Collections */}
+                {/* 2.3 All Products */}
                 <button
                   type="button"
                   onClick={() => {
                     setMobileMenuOpen(false);
                     onNavigate('shop', 'All');
                   }}
-                  className="w-full py-3.5 px-6 text-start text-[15px] sm:text-[16px] font-medium text-[#1a1c1c] hover:text-[#c5a059] hover:bg-[#faf8f5] transition-colors flex items-center justify-between cursor-pointer"
+                  className="text-start font-display text-[19px] sm:text-[21px] text-white/85 hover:text-[#c5a059] hover:ltr:translate-x-1 hover:rtl:-translate-x-1 transition-all duration-200 cursor-pointer block"
                 >
-                  <span>{language === 'ar' ? 'كولكشن الصيف 2026' : 'Summer 2026'}</span>
-                  <span className="text-[10px] text-amber-800 font-semibold bg-amber-50 border border-amber-200/70 px-2 py-0.5 rounded">
-                    {language === 'ar' ? 'جديد' : 'NEW'}
-                  </span>
+                  {language === 'ar' ? 'جميع المعروضات' : 'All Garments'}
                 </button>
 
-                {/* 4. Sale */}
+                {/* 2.4 Size Guide */}
                 <button
                   type="button"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    onNavigate('shop', 'All');
+                    if (onOpenSizeGuide) onOpenSizeGuide();
                   }}
-                  className="w-full py-3.5 px-6 text-start text-[15px] sm:text-[16px] font-medium text-[#1a1c1c] hover:text-[#c5a059] hover:bg-[#faf8f5] transition-colors flex items-center justify-between cursor-pointer"
+                  className="text-start font-display text-[18px] sm:text-[20px] text-white/75 hover:text-[#c5a059] hover:ltr:translate-x-1 hover:rtl:-translate-x-1 transition-all duration-200 cursor-pointer block"
                 >
-                  <span>{language === 'ar' ? 'العروض والتخفيضات' : 'Sale'}</span>
-                  <span className="text-[10px] text-white font-bold bg-[#c5a059] px-2 py-0.5 rounded tracking-wider shadow-xs">
-                    SALE
-                  </span>
+                  {language === 'ar' ? 'جدول المقاسات' : 'Size Guide'}
                 </button>
 
-                {/* 5. Stores */}
+                {/* 2.5 Quick Search Trigger */}
                 <button
                   type="button"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    setTimeout(() => {
-                      const el = document.querySelector('#footer');
-                      if (el) el.scrollIntoView({ behavior: 'smooth' });
-                    }, 100);
+                    onOpenSearch();
                   }}
-                  className="w-full py-3.5 px-6 text-start text-[15px] sm:text-[16px] font-medium text-[#1a1c1c] hover:text-[#c5a059] hover:bg-[#faf8f5] transition-colors flex items-center justify-between cursor-pointer"
+                  className="text-start font-display text-[18px] sm:text-[20px] text-white/75 hover:text-[#c5a059] hover:ltr:translate-x-1 hover:rtl:-translate-x-1 transition-all duration-200 cursor-pointer block"
                 >
-                  <span>{language === 'ar' ? 'فروعنا وعناويننا' : 'Stores'}</span>
-                  <span className="text-[11px] text-neutral-400 font-light">
-                    {language === 'ar' ? 'بورسعيد' : 'Port Said'}
-                  </span>
+                  {language === 'ar' ? 'البحث في المتجر' : 'Search Collection'}
                 </button>
 
-                {/* 6. About Touza */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    if (currentView !== 'home') {
-                      onNavigate('home');
-                    }
-                    setTimeout(() => {
-                      const el = document.querySelector('#about');
-                      if (el) el.scrollIntoView({ behavior: 'smooth' });
-                    }, 150);
-                  }}
-                  className="w-full py-3.5 px-6 text-start text-[15px] sm:text-[16px] font-medium text-[#1a1c1c] hover:text-[#c5a059] hover:bg-[#faf8f5] transition-colors flex items-center justify-between cursor-pointer"
+                {/* 2.6 Direct Contact WhatsApp */}
+                <a
+                  href="https://wa.me/+201070606272"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-start font-display text-[18px] sm:text-[20px] text-[#c5a059]/90 hover:text-[#c5a059] hover:ltr:translate-x-1 hover:rtl:-translate-x-1 transition-all duration-200 cursor-pointer block"
                 >
-                  <span>{language === 'ar' ? 'عن توزا (قصتنا)' : 'About Us'}</span>
-                </button>
+                  {language === 'ar' ? 'تواصل معنا (واتساب)' : 'Concierge & Inquiries'}
+                </a>
+              </nav>
 
-                {/* 7. Size Chart */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    if (onOpenSizeGuide) {
-                      onOpenSizeGuide();
-                    }
-                  }}
-                  className="w-full py-3.5 px-6 text-start text-[15px] sm:text-[16px] font-medium text-[#1a1c1c] hover:text-[#c5a059] hover:bg-[#faf8f5] transition-colors flex items-center justify-between cursor-pointer"
-                >
-                  <span>{language === 'ar' ? 'جدول المقاسات' : 'Size Chart'}</span>
-                  <span className="text-neutral-400 text-xs">▾</span>
-                </button>
-
-                {/* 8. Contact Us */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setTimeout(() => {
-                      const el = document.querySelector('#footer');
-                      if (el) el.scrollIntoView({ behavior: 'smooth' });
-                    }, 100);
-                  }}
-                  className="w-full py-3.5 px-6 text-start text-[15px] sm:text-[16px] font-medium text-[#1a1c1c] hover:text-[#c5a059] hover:bg-[#faf8f5] transition-colors flex items-center justify-between cursor-pointer"
-                >
-                  <span>{language === 'ar' ? 'تواصل معنا' : 'Contact Us'}</span>
-                </button>
-              </div>
-
-              {/* Footer Actions - Classic & Clean */}
-              <div className="p-5 border-t border-[#000000]/10 bg-neutral-50/50 flex flex-col gap-3.5 shrink-0">
-                <div className="flex items-center justify-between text-[13.5px] font-medium text-[#1a1c1c] px-1">
+              {/* 3. Quiet Classic Bottom Strip */}
+              <div className="px-6 pt-4 pb-2 border-t border-white/[0.08] shrink-0 space-y-3">
+                {/* Actions: Account / Wishlist / Cart */}
+                <div className="flex items-center justify-between text-[13px] font-body text-white/80">
                   <button
                     type="button"
                     onClick={() => {
                       setMobileMenuOpen(false);
                       onOpenAccount();
                     }}
-                    className="hover:text-[#c5a059] transition-colors flex items-center gap-1.5 cursor-pointer"
+                    className="hover:text-[#c5a059] transition-colors cursor-pointer py-1"
                   >
-                    <UserIcon className="w-4 h-4 text-[#c5a059]" />
-                    <span>
-                      {user
-                        ? (language === 'ar' ? 'حسابي' : 'My Account')
-                        : (language === 'ar' ? 'تسجيل الدخول' : 'Log in')}
-                    </span>
+                    {user
+                      ? user.displayName || (language === 'ar' ? 'حسابي' : 'Account')
+                      : language === 'ar'
+                      ? 'تسجيل الدخول'
+                      : 'Sign In'}
                   </button>
+
+                  <span className="text-white/20">·</span>
 
                   <button
                     type="button"
@@ -625,71 +554,82 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                       setMobileMenuOpen(false);
                       onOpenWishlist();
                     }}
-                    className="hover:text-[#c5a059] transition-colors flex items-center gap-1.5 cursor-pointer"
+                    className="hover:text-[#c5a059] transition-colors cursor-pointer py-1"
                   >
-                    <Heart
-                      className={`w-4 h-4 ${
-                        wishlistCount > 0 ? 'text-red-500 fill-red-500' : 'text-[#c5a059]'
+                    {language === 'ar' ? 'المفضلة' : 'Wishlist'} ({wishlistCount})
+                  </button>
+
+                  <span className="text-white/20">·</span>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onOpenCart();
+                    }}
+                    className="hover:text-[#c5a059] transition-colors cursor-pointer py-1"
+                  >
+                    {language === 'ar' ? 'الحقيبة' : 'Bag'} ({cartCount})
+                  </button>
+                </div>
+
+                {/* Clean Language & Hotline Row */}
+                <div className="flex items-center justify-between pt-2 border-t border-white/[0.05] text-[11px] font-label-caps text-white/50 tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLanguage('ar');
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`cursor-pointer transition-colors ${
+                        language === 'ar' ? 'text-[#c5a059] font-bold' : 'hover:text-white'
                       }`}
-                    />
-                    <span>
-                      {t('nav.wishlist', 'المفضلة')} ({wishlistCount})
-                    </span>
-                  </button>
+                    >
+                      العربية
+                    </button>
+                    <span>/</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLanguage('en');
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`cursor-pointer transition-colors ${
+                        language === 'en' ? 'text-[#c5a059] font-bold' : 'hover:text-white'
+                      }`}
+                    >
+                      EN
+                    </button>
+                  </div>
+
+                  <a
+                    href="https://wa.me/+201070606272"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-white/60 hover:text-[#c5a059] transition-colors dir-ltr"
+                  >
+                    01070606272
+                  </a>
                 </div>
 
-                {/* Minimalist Language Switcher */}
-                <div className="flex items-center justify-center gap-2 pt-1 border-t border-[#000000]/5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLanguage('ar');
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`px-3 py-1 rounded text-[12px] font-bold tracking-wider transition-colors cursor-pointer ${
-                      language === 'ar'
-                        ? 'bg-[#c5a059] text-white'
-                        : 'text-neutral-500 hover:text-black'
-                    }`}
-                  >
-                    العربية
-                  </button>
-                  <span className="text-neutral-300">/</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLanguage('en');
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`px-3 py-1 rounded text-[12px] font-bold tracking-wider transition-colors cursor-pointer ${
-                      language === 'en'
-                        ? 'bg-[#c5a059] text-white'
-                        : 'text-neutral-500 hover:text-black'
-                    }`}
-                  >
-                    ENGLISH
-                  </button>
-                </div>
-
-                {/* Atelier Social Platforms */}
-                <div className="flex items-center justify-center pt-1">
-                  <SocialLinks variant="horizontal" theme="light" storeSettings={storeSettings} />
-                </div>
-
-                {/* Optional Admin Link */}
-                {onOpenAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      onOpenAdmin();
-                    }}
-                    className="text-[11px] text-neutral-400 hover:text-neutral-700 text-center cursor-pointer transition-colors"
-                  >
-                    {language === 'ar' ? 'لوحة تحكم المتجر' : 'Store Dashboard'}
-                  </button>
+                {/* Admin Link - STRICTLY ONLY for touzastore@gmail.com */}
+                {user?.email === 'touzastore@gmail.com' && onOpenAdmin && (
+                  <div className="pt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        onOpenAdmin();
+                      }}
+                      className="text-[10px] font-label-caps text-[#c5a059]/60 hover:text-[#c5a059] cursor-pointer"
+                    >
+                      🔐 {language === 'ar' ? 'لوحة التحكم' : 'Admin'}
+                    </button>
+                  </div>
                 )}
               </div>
+
             </div>
           </aside>
         </div>
