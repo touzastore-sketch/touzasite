@@ -1717,7 +1717,25 @@ export const subscribeToNewsletterCampaigns = (
 // PRODUCTS FIRESTORE PERSISTENCE
 // ==========================================
 
-export const isBannedProductId = (_id?: string): boolean => {
+export const isBannedProductId = (id?: string): boolean => {
+  if (!id) return true;
+  const clean = id.trim();
+  // Allow newly created admin products
+  if (clean.startsWith('prod-item-') || clean.startsWith('tz-')) {
+    return false;
+  }
+  // Permanently ban all old mock/demo product IDs generated in previous builds
+  if (
+    clean.startsWith('prod-17868') ||
+    clean.startsWith('prod-17870') ||
+    clean.startsWith('prod-17871') ||
+    clean === 'prod-1' ||
+    clean === 'prod-2' ||
+    clean === 'prod-3' ||
+    clean.startsWith('prod-demo')
+  ) {
+    return true;
+  }
   return false;
 };
 
@@ -1762,6 +1780,11 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
     if (!snapshot.empty) {
       const firestoreProducts: Product[] = [];
       snapshot.forEach((docSnap) => {
+        if (isBannedProductId(docSnap.id)) {
+          // Permanently purge banned demo product from Firestore
+          deleteDoc(doc(db, 'products', docSnap.id)).catch(() => {});
+          return;
+        }
         if (!deletedSet.has(docSnap.id.trim())) {
           const data = docSnap.data();
           firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
@@ -1813,7 +1836,11 @@ export const subscribeToProducts = (
         const firestoreProducts: Product[] = [];
         if (!snapshot.empty) {
           snapshot.forEach((docSnap) => {
-            if (!deletedSet.has(docSnap.id.trim()) && !isBannedProductId(docSnap.id)) {
+            if (isBannedProductId(docSnap.id)) {
+              deleteDoc(doc(db, 'products', docSnap.id)).catch(() => {});
+              return;
+            }
+            if (!deletedSet.has(docSnap.id.trim())) {
               const data = docSnap.data();
               firestoreProducts.push(sanitizeProduct({ id: docSnap.id, ...data } as Product));
             }
@@ -2219,7 +2246,11 @@ export const fetchInitialStoreData = async (
         const list: Product[] = [];
         if (snap && !snap.empty) {
           snap.forEach((d) => {
-            if (!deletedSet.has(d.id.trim()) && !isBannedProductId(d.id)) {
+            if (isBannedProductId(d.id)) {
+              deleteDoc(doc(db, 'products', d.id)).catch(() => {});
+              return;
+            }
+            if (!deletedSet.has(d.id.trim())) {
               list.push(sanitizeProduct({ id: d.id, ...d.data() } as Product));
             }
           });
@@ -2237,7 +2268,10 @@ export const fetchInitialStoreData = async (
         try {
           const saved = localStorage.getItem('maison_products');
           if (saved !== null) {
-            return JSON.parse(saved);
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+              return parsed.filter((p: any) => p && !isBannedProductId(p.id));
+            }
           }
         } catch {}
         return [];

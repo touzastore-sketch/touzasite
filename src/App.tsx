@@ -114,9 +114,18 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Dynamic Products state initialized from database cache or empty array
+  // Dynamic Products state initialized cleanly from database cache or empty array
   const [products, setProducts] = useState<Product[]>(() => {
     try {
+      if (typeof window !== 'undefined') {
+        const CLEAN_KEY = 'maison_clean_catalog_v2026_10';
+        if (localStorage.getItem(CLEAN_KEY) !== 'purged') {
+          localStorage.setItem(CLEAN_KEY, 'purged');
+          localStorage.setItem('maison_products', '[]');
+          return [];
+        }
+      }
+
       const deletedList: string[] = JSON.parse(localStorage.getItem('maison_deleted_products') || '[]');
       const deletedSet = new Set(deletedList);
 
@@ -124,7 +133,7 @@ export const AppContent: React.FC = () => {
       if (saved !== null) {
         const parsed: Product[] = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.filter((p) => !deletedSet.has(p.id) && !isBannedProductId(p.id));
+          return parsed.filter((p) => p && !deletedSet.has(p.id) && !isBannedProductId(p.id));
         }
       }
       return [];
@@ -261,7 +270,7 @@ export const AppContent: React.FC = () => {
 
   // App Initial Database Synchronization & Loading State
   const [isInitialSyncDone, setIsInitialSyncDone] = useState(false);
-  const [isSiteLoaded, setIsSiteLoaded] = useState(true);
+  const [isSiteLoaded, setIsSiteLoaded] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(true);
 
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>(() => {

@@ -1062,7 +1062,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       onUpdateProduct(updated);
     } else {
       const newProd: Product = {
-        id: 'prod-' + Date.now(),
+        id: 'prod-item-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
         name: formData.name || 'New Item',
         nameAr: formData.nameAr || formData.name,
         subtitle: formData.subtitle || 'TOUZA Casual Collection',

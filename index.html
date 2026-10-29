@@ -9,9 +9,41 @@
     <meta name="format-detection" content="telephone=no" />
     <title>TOUZA - أزياء كاجوال رجالية فاخرة</title>
     
-    <!-- Global Circular-Safe JSON Protection -->
+    <!-- Global Circular-Safe JSON Protection & Vite Client Error Suppression -->
     <script>
       (function() {
+        // Suppress Vite HMR WebSocket connection notices in iframe environment
+        window.addEventListener('unhandledrejection', function(e) {
+          try {
+            var r = e && e.reason;
+            var m = r && (r.message || String(r));
+            var s = r && r.stack;
+            if (
+              (typeof m === 'string' && (m.indexOf('WebSocket') !== -1 || m.indexOf('ws:') !== -1)) ||
+              (typeof s === 'string' && s.indexOf('@vite/client') !== -1)
+            ) {
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              return true;
+            }
+          } catch(err) {}
+        }, true);
+
+        window.addEventListener('error', function(e) {
+          try {
+            var m = e && (e.message || '');
+            var f = e && (e.filename || '');
+            if (
+              (typeof m === 'string' && m.indexOf('WebSocket') !== -1) ||
+              (typeof f === 'string' && f.indexOf('@vite/client') !== -1)
+            ) {
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              return true;
+            }
+          } catch(err) {}
+        }, true);
+
         var orig = JSON.stringify;
         if (!orig) return;
         JSON.stringify = function(val, replacer, space) {

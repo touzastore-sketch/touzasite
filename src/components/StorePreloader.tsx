@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TouzaLogo } from './TouzaLogo';
 import { Product, Category, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
-import { DEFAULT_HEADER_VIDEO_URL, getOptimizedImageUrl, getVideoPosterUrl } from '../utils/cloudinary';
+import { DEFAULT_HEADER_VIDEO_URL, getVideoPosterUrl } from '../utils/cloudinary';
 
 interface StorePreloaderProps {
   products: Product[];
@@ -24,17 +24,14 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
   onFinishLoading,
 }) => {
   const { language } = useLanguage();
-  const [progress, setProgress] = useState(35);
+  const [progress, setProgress] = useState(25);
   const [statusMessage, setStatusMessage] = useState({
-    ar: 'جاري تحميل أحدث التشكيلات والمنتجات...',
-    en: 'Loading latest collections & products...',
+    ar: 'جاري تجهيز المتجر...',
+    en: 'Preparing the store...',
   });
   const [isFadingOut, setIsFadingOut] = useState(false);
-
-  const [isPosterReady, setIsPosterReady] = useState(false);
   const [minDisplayPassed, setMinDisplayPassed] = useState(false);
 
-  // Guarantee that finish callback runs only once and is never interrupted by re-renders
   const hasDismissedRef = useRef(false);
   const onFinishLoadingRef = useRef(onFinishLoading);
   onFinishLoadingRef.current = onFinishLoading;
@@ -45,7 +42,7 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
 
     setProgress(100);
     setStatusMessage({
-      ar: 'مرحباً بك في توزا كاجوال',
+      ar: 'أهلاً بك في توزا',
       en: 'Welcome to TOUZA',
     });
 
@@ -53,24 +50,23 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
 
     setTimeout(() => {
       onFinishLoadingRef.current();
-    }, 220);
+    }, 450);
   }, []);
 
-  // 1. Minimum display time to ensure luxury presentation and smooth progress (1100ms)
+  // 1. Minimum display time: 1200ms ensures an elegant, premium look without lagging
   useEffect(() => {
     const minTimer = setTimeout(() => {
       setMinDisplayPassed(true);
-    }, 1100);
+    }, 1200);
     return () => clearTimeout(minTimer);
   }, []);
 
-  // 2. Absolute safety ceiling: never trap the user for more than 4000ms
+  // 2. Maximum safety ceiling: never trap the visitor for more than 3500ms
   useEffect(() => {
     const safetyTimer = setTimeout(() => {
       dismiss();
-    }, 4000);
+    }, 3500);
 
-    // Safari BFCache restoration handler (e.g. user navigating back or re-entering tab)
     const handlePageShow = () => {
       dismiss();
     };
@@ -83,17 +79,27 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
     };
   }, [dismiss]);
 
-  // 3. Progressive animated progress bar
+  // 3. Smooth progressive simulated progress
   useEffect(() => {
-    const t1 = setTimeout(() => setProgress((p) => Math.max(p, 55)), 150);
-    const t2 = setTimeout(() => {
-      setProgress((p) => Math.max(p, 80));
+    const t1 = setTimeout(() => {
+      setProgress((p) => Math.max(p, 55));
       setStatusMessage({
-        ar: 'جاري تجهيز العرض الفاخر...',
-        en: 'Preparing luxury storefront...',
+        ar: 'جاري تحميل التشكيلة الفاخرة...',
+        en: 'Loading exclusive collection...',
       });
-    }, 450);
-    const t3 = setTimeout(() => setProgress((p) => Math.max(p, 92)), 850);
+    }, 250);
+
+    const t2 = setTimeout(() => {
+      setProgress((p) => Math.max(p, 85));
+      setStatusMessage({
+        ar: 'اللمسات الأخيرة للعرض...',
+        en: 'Finalizing storefront...',
+      });
+    }, 650);
+
+    const t3 = setTimeout(() => {
+      setProgress((p) => Math.max(p, 96));
+    }, 1000);
 
     return () => {
       clearTimeout(t1);
@@ -102,103 +108,102 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
     };
   }, []);
 
-  // 4. Preload hero banner poster image to ensure instantaneous rendering
+  // 4. Intelligent dismissal when minimum duration has passed and data is ready
   useEffect(() => {
-    const heroUrl = storeSettings?.heroImageUrl?.trim() || '';
-    const posterUrl =
-      getVideoPosterUrl(heroUrl) ||
-      getVideoPosterUrl(DEFAULT_HEADER_VIDEO_URL) ||
-      '/images/philosophy_model.jpg';
-
-    if (posterUrl) {
-      const img = new Image();
-      img.src = posterUrl;
-      img.onload = () => setIsPosterReady(true);
-      img.onerror = () => setIsPosterReady(true);
-    } else {
-      setIsPosterReady(true);
-    }
-  }, [storeSettings?.heroImageUrl]);
-
-  // 5. Intelligent dismissal: dismiss once initial sync is complete, media is ready, and minimum duration passed
-  useEffect(() => {
-    // If not on home page (e.g. /admin, /shop, /checkout), dismiss immediately
     if (!isHomeView) {
       dismiss();
       return;
     }
 
-    // When both store data is synced from Firestore and either video or poster is ready
-    if (isInitialSyncDone && minDisplayPassed && (isVideoReady || isPosterReady)) {
+    if (minDisplayPassed) {
       dismiss();
-      return;
     }
-
-    // If initial sync and minimum time are done, allow up to 1.8s for video streaming before revealing
-    if (isInitialSyncDone && minDisplayPassed) {
-      const videoWaitTimer = setTimeout(() => {
-        dismiss();
-      }, 1800);
-      return () => clearTimeout(videoWaitTimer);
-    }
-  }, [isHomeView, isInitialSyncDone, minDisplayPassed, isVideoReady, isPosterReady, dismiss]);
+  }, [isHomeView, minDisplayPassed, dismiss]);
 
   return (
     <div
       onClick={dismiss}
-      role="button"
-      tabIndex={0}
-      aria-label="Skip loading"
-      className={`fixed inset-0 z-[99999] bg-[#0c0c0d] text-white flex flex-col items-center justify-center p-6 transition-all duration-500 ease-out select-none cursor-pointer ${
+      role="dialog"
+      aria-label="Loading TOUZA"
+      className={`fixed inset-0 z-[99999] bg-[#09090b] text-white flex flex-col items-center justify-center p-6 transition-all duration-500 ease-out select-none cursor-pointer overflow-hidden ${
         isFadingOut ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'
       }`}
       style={{
-        backgroundImage: 'radial-gradient(circle at 50% 45%, #1c1c1f 0%, #0c0c0d 75%)',
+        backgroundImage: 'radial-gradient(circle at 50% 48%, #17171c 0%, #0c0c0e 60%, #050506 100%)',
       }}
     >
-      {/* Subtle Golden Ambient Glow Behind Logo */}
-      <div className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-[#c5a059]/10 blur-3xl pointer-events-none animate-pulse" />
+      {/* Ambient Warm Golden Aura */}
+      <div className="absolute w-80 h-80 sm:w-96 sm:h-96 rounded-full bg-gradient-to-tr from-[#c5a059]/15 via-[#e2c792]/20 to-transparent blur-3xl pointer-events-none animate-pulse" />
+
+      {/* Decorative Fine Golden Rings */}
+      <div className="absolute w-[340px] h-[340px] sm:w-[420px] sm:h-[420px] rounded-full border border-[#c5a059]/10 pointer-events-none animate-[spin_60s_linear_infinite]" />
+      <div className="absolute w-[440px] h-[440px] sm:w-[540px] sm:h-[540px] rounded-full border border-dashed border-[#c5a059]/10 pointer-events-none animate-[spin_90s_linear_infinite_reverse]" />
 
       <div className="relative z-10 flex flex-col items-center max-w-sm w-full">
-        {/* Animated Brand Logo Container */}
-        <div className="relative mb-8 p-3 sm:p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-[#c5a059]/30 shadow-[0_10px_40px_rgba(0,0,0,0.6)]">
-          {/* Subtle animated border ping */}
-          <div className="absolute -inset-1 rounded-2xl border border-[#c5a059]/20 animate-ping opacity-40 pointer-events-none" />
+        {/* Luxury Logo Emblem Container */}
+        <div className="relative mb-7 group">
+          {/* Subtle Outer Glow Halo */}
+          <div className="absolute -inset-2 rounded-3xl bg-gradient-to-r from-[#c5a059]/20 via-[#e2c792]/30 to-[#c5a059]/20 blur-md opacity-75 animate-pulse" />
 
-          <TouzaLogo
-            className="w-28 sm:w-36 h-auto drop-shadow-[0_4px_12px_rgba(197,160,89,0.35)]"
-            variant="gold"
-            animated={true}
-          />
+          {/* Frosted Obsidian Glass Plaque */}
+          <div className="relative p-5 sm:p-6 rounded-3xl bg-black/60 backdrop-blur-xl border border-[#c5a059]/35 shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.15)] flex flex-col items-center justify-center">
+            {/* Corner Decorative Micro Accents */}
+            <span className="absolute top-2 left-2 w-2 h-2 border-t border-l border-[#c5a059]/60" />
+            <span className="absolute top-2 right-2 w-2 h-2 border-t border-r border-[#c5a059]/60" />
+            <span className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-[#c5a059]/60" />
+            <span className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-[#c5a059]/60" />
+
+            {/* Authentic Metallic Gold TOUZA Logo */}
+            <TouzaLogo
+              className="w-24 sm:w-28 h-auto drop-shadow-[0_4px_16px_rgba(197,160,89,0.45)]"
+              variant="metallic"
+              animated={true}
+              idPrefix="preloader-touza"
+            />
+          </div>
         </div>
 
-        {/* Brand Tagline */}
+        {/* Brand Name & Identity */}
         <div className="text-center mb-6">
-          <h2 className="font-display text-[20px] sm:text-[22px] font-bold text-white tracking-wider mb-1">
+          <h1 className="font-display text-[22px] sm:text-[26px] font-bold text-white tracking-[0.2em] sm:tracking-[0.28em] uppercase drop-shadow-sm mb-1.5">
             {language === 'ar'
               ? storeSettings?.storeNameAr || 'توزا TOUZA'
               : storeSettings?.storeNameEn || 'TOUZA CASUAL'}
-          </h2>
-          <p className="font-label-caps text-[11px] sm:text-[12px] text-[#c5a059] tracking-[0.25em] uppercase font-semibold">
-            PORT SAID • EGYPT
-          </p>
+          </h1>
+          <div className="flex items-center justify-center gap-2">
+            <span className="h-[1px] w-6 bg-[#c5a059]/40" />
+            <p className="font-label-caps text-[10px] sm:text-[11px] text-[#e2c792] tracking-[0.25em] uppercase font-semibold">
+              MEN'S CASUAL WEAR • PORT SAID
+            </p>
+            <span className="h-[1px] w-6 bg-[#c5a059]/40" />
+          </div>
         </div>
 
-        {/* Elegant Progress Bar */}
-        <div className="w-56 sm:w-64 h-1.5 bg-white/10 rounded-full overflow-hidden mb-3.5 p-0.5 border border-white/5 shadow-inner">
+        {/* Ultra-Slim Hairline Golden Progress Bar */}
+        <div className="w-52 sm:w-60 h-[2.5px] bg-white/10 rounded-full overflow-hidden mb-3 relative">
           <div
-            className="h-full bg-gradient-to-r from-[#8c734b] via-[#c5a059] to-[#f4e8d1] rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(197,160,89,0.8)]"
+            className="h-full bg-gradient-to-r from-[#8c734b] via-[#e2c792] to-[#ffffff] rounded-full transition-all duration-300 ease-out shadow-[0_0_12px_rgba(226,199,146,0.9)] relative"
             style={{ width: `${progress}%` }}
-          />
+          >
+            {/* Radiant glowing tip spark */}
+            <span className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white shadow-[0_0_8px_#ffffff] -mr-1" />
+          </div>
         </div>
 
-        {/* Status Text & Percentage */}
-        <div className="flex items-center justify-between w-56 sm:w-64 text-[11px] sm:text-[12px] text-white/70 font-mono">
-          <span className="font-body tracking-normal truncate pr-2">
+        {/* Status Message & Subtle Percentage */}
+        <div className="flex items-center justify-between w-52 sm:w-60 text-[11px] text-white/70">
+          <span className="font-body text-white/80 tracking-wide truncate transition-opacity duration-300">
             {language === 'ar' ? statusMessage.ar : statusMessage.en}
           </span>
-          <span className="text-[#c5a059] font-bold shrink-0">{progress}%</span>
+          <span className="text-[#e2c792] font-semibold font-mono text-[12px] shrink-0">
+            {progress}%
+          </span>
         </div>
+
+        {/* Click to skip discreet hint */}
+        <p className="mt-8 text-[10px] text-white/40 tracking-wider hover:text-white/70 transition-colors uppercase">
+          {language === 'ar' ? 'انقر في أي مكان للدخول فوراً' : 'Tap anywhere to enter'}
+        </p>
       </div>
     </div>
   );
