@@ -45,20 +45,21 @@ export const formatWhatsAppNumber = (rawNumber?: string): string => {
  * Formats a comprehensive, highly readable order message for WhatsApp
  */
 export const buildWhatsAppOrderMessage = (order: WhatsAppOrderDetails): string => {
+  const dateFormatted = new Date().toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
   const lines: string[] = [
-    '🛍️ *طلب جديد من موقع توزا (TOUZA)*',
+    '🛍️ *طلب شراء جديد - متجر توزا (TOUZA)*',
     '━━━━━━━━━━━━━━━━━━━━',
     `📌 *رقم الطلب:* #${order.orderNumber}`,
-    `📅 *التاريخ:* ${new Date().toLocaleDateString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}`,
-    '',
-    '👤 *بيانات العميل التوصيل:*',
+    `📅 *تاريخ الطلب:* ${dateFormatted}`,
+    '━━━━━━━━━━━━━━━━━━━━',
+    '👤 *بيانات المستلم والتوصيل:*',
     `• *الاسم:* ${order.customerName}`,
-    `• *رقم الهاتف / واتساب:* ${order.customerPhone}`,
-    order.governorate ? `• *المحافظة / المدينة:* ${order.governorate}` : '',
-    `• *العنوان:* ${order.address}${order.apartment ? ' (' + order.apartment + ')' : ''}`,
-    order.notes ? `• *ملاحظات:* ${order.notes}` : '',
-    '',
-    '📦 *تفاصيل المنتجات المطلوبة:*',
+    `• *رقم الهاتف للتواصل:* ${order.customerPhone}`,
+    order.governorate ? `• *المحافظة:* ${order.governorate}` : '',
+    `• *العنوان بالتفصيل:* ${order.address}${order.apartment ? ' (شقة/عمارة: ' + order.apartment + ')' : ''}`,
+    order.notes ? `• *ملاحظات العميل للتوصيل:* ${order.notes}` : '',
+    '━━━━━━━━━━━━━━━━━━━━',
+    '👕 *المنتجات المطلوبة:*',
   ];
 
   order.items.forEach((item, index) => {
@@ -66,14 +67,13 @@ export const buildWhatsAppOrderMessage = (order: WhatsAppOrderDetails): string =
     const specs: string[] = [];
     if (item.selectedColor) specs.push(`اللون: ${item.selectedColor}`);
     if (item.selectedSize) specs.push(`المقاس: ${item.selectedSize}`);
-    specs.push(`الكمية: ${item.quantity}`);
-    specs.push(`السعر: ${item.price * item.quantity} ج.م`);
+    specs.push(`العدد: ${item.quantity}`);
+    specs.push(`الإجمالي: ${item.price * item.quantity} ج.م`);
     lines.push(`   ▸ ${specs.join(' | ')}`);
   });
 
-  lines.push('');
   lines.push('━━━━━━━━━━━━━━━━━━━━');
-  lines.push('💰 *ملخص الحساب:*');
+  lines.push('💰 *ملخص الحساب المطلوب سداده:*');
   lines.push(`• المجموع الفرعي: ${order.subtotal} ج.م`);
 
   if (order.discountAmount && order.discountAmount > 0) {
@@ -84,21 +84,20 @@ export const buildWhatsAppOrderMessage = (order: WhatsAppOrderDetails): string =
   if (order.shippingFee > 0) {
     lines.push(`• مصاريف الشحن: ${order.shippingFee} ج.م`);
   } else {
-    lines.push('• مصاريف الشحن: مجاني ✨');
+    lines.push('• مصاريف الشحن: شحن مجاني ✨');
   }
 
-  lines.push(`• *المبلغ الإجمالي للدفع:* ${order.total} ج.م`);
-  lines.push('');
-  lines.push(`💳 *طريقة الدفع:* ${order.paymentMethod}`);
+  lines.push(`• *المبلغ الإجمالي للدفع عند الاستلام:* ${order.total} ج.م`);
+  lines.push(`💳 *طريقة الدفع المختارة:* ${order.paymentMethod}`);
   lines.push('━━━━━━━━━━━━━━━━━━━━');
-  lines.push('✨ أرجو تأكيد استلام الطلب وتجهيز الشحن، شكراً لكم!');
+  lines.push('✨ برجاء تأكيد استلام الطلب وتحديد موعد الشحن والتسليم، شكراً لكم!');
 
   // Filter empty lines cleanly
   return lines.filter((l) => l !== undefined && l !== null).join('\n');
 };
 
 /**
- * Builds the complete wa.me URL for the order
+ * Builds the complete WhatsApp URL for the order (uses api.whatsapp.com/send for universal desktop & mobile compatibility)
  */
 export const getWhatsAppOrderUrl = (
   whatsappNumber: string | undefined,
@@ -106,7 +105,7 @@ export const getWhatsAppOrderUrl = (
 ): string => {
   const phone = formatWhatsAppNumber(whatsappNumber);
   const text = buildWhatsAppOrderMessage(order);
-  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+  return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
 };
 
 /**

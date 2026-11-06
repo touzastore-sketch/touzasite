@@ -1743,23 +1743,12 @@ export const subscribeToNewsletterCampaigns = (
 export const isBannedProductId = (id?: string): boolean => {
   if (!id) return true;
   const clean = id.trim();
-  // Allow newly created admin products
+  // Only allow newly created admin products
   if (clean.startsWith('prod-item-') || clean.startsWith('tz-')) {
     return false;
   }
-  // Permanently ban all old mock/demo product IDs generated in previous builds
-  if (
-    clean.startsWith('prod-17868') ||
-    clean.startsWith('prod-17870') ||
-    clean.startsWith('prod-17871') ||
-    clean === 'prod-1' ||
-    clean === 'prod-2' ||
-    clean === 'prod-3' ||
-    clean.startsWith('prod-demo')
-  ) {
-    return true;
-  }
-  return false;
+  // All other mock/demo/legacy product templates are permanently banned
+  return true;
 };
 
 const DEFAULT_FALLBACK_PRODUCT_IMAGE = '';

@@ -19,7 +19,7 @@ import { User } from 'firebase/auth';
 import { CartItem, ShippingAddress, StoreSettings, PromoCode } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getLocalizedProductName } from '../data/products';
-import { saveUserOrder, safeJsonStringify } from '../firebase';
+import { saveUserOrder, safeJsonStringify, SavedOrder } from '../firebase';
 import { trackTikTokInitiateCheckout, trackTikTokPurchase } from '../utils/tiktokPixel';
 import { getWhatsAppOrderUrl, WhatsAppOrderDetails, formatWhatsAppNumber } from '../utils/whatsapp';
 
@@ -300,96 +300,100 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
 
     const generatedWaUrl = getWhatsAppOrderUrl(storeWhatsapp, orderPayload);
 
-    try {
-      if (appliedPromoCode && onUsePromoCode) {
-        try {
-          await onUsePromoCode(appliedPromoCode.id);
-        } catch (pErr) {
-          console.warn('Failed to increment promo code usage count:', pErr);
-        }
-      }
-
-      // Save order to Firestore so it appears in the store owner's Admin Dashboard
-      await saveUserOrder(user?.uid, user?.email, {
-        orderNumber: generatedOrderNum,
-        items: cartItems.map((item) => {
-          const colorObj = item.product.colors?.find((c) => c.name === item.selectedColor);
-          const rawImg = colorObj?.imageUrl || (item.product.images && item.product.images.length > 0 ? item.product.images[0] : '') || '';
-          return {
-            productId: item.product.id,
-            title: getLocalizedProductName(item.product, language),
-            price: item.product.price,
-            quantity: item.quantity,
-            selectedColor: item.selectedColor,
-            selectedSize: item.selectedSize,
-            image: rawImg,
-          };
-        }),
-        subtotal,
-        discountAmount,
-        shipping,
-        total,
-        status: 'confirmed',
-        shippingAddress: {
-          fullName: address.fullName,
-          street: address.street,
-          apartment: address.apartment || '',
-          city: address.city,
-          state: address.state || '',
-          zipCode: address.zipCode || '',
-          country: address.country,
-          phone: address.phone,
-          notes: orderNotes.trim(),
-        },
-        paymentMethod: paymentLabel,
+    const orderToSave: SavedOrder = {
+      id: generatedOrderNum,
+      orderNumber: generatedOrderNum,
+      userId: user?.uid || ('guest_' + (address.phone.replace(/\D/g, '') || Date.now())),
+      userEmail: user?.email || (address.phone ? `${address.phone}@touza-guest.com` : 'guest@touza.com'),
+      items: cartItems.map((item) => {
+        const colorObj = item.product.colors?.find((c) => c.name === item.selectedColor);
+        const rawImg = colorObj?.imageUrl || (item.product.images && item.product.images.length > 0 ? item.product.images[0] : '') || '';
+        return {
+          productId: item.product.id,
+          title: getLocalizedProductName(item.product, language),
+          price: item.product.price,
+          quantity: item.quantity,
+          selectedColor: item.selectedColor,
+          selectedSize: item.selectedSize,
+          image: rawImg,
+        };
+      }),
+      subtotal,
+      discountAmount,
+      shipping,
+      total,
+      status: 'confirmed',
+      shippingAddress: {
+        fullName: address.fullName,
+        street: address.street,
+        apartment: address.apartment || '',
+        city: address.city,
+        state: address.state || '',
+        zipCode: address.zipCode || '',
+        country: address.country,
+        phone: address.phone,
         notes: orderNotes.trim(),
-        promoCode: appliedPromoCode?.code || (discountPercent > 0 ? `${discountPercent}%` : undefined),
-        isWhatsAppOrder: true,
+      },
+      paymentMethod: paymentLabel,
+      notes: orderNotes.trim(),
+      promoCode: appliedPromoCode?.code || (discountPercent > 0 ? `${discountPercent}%` : undefined),
+      isWhatsAppOrder: true,
+      createdAt: new Date().toISOString(),
+    };
+
+    // 1. Immediately store order in local cache & notify Admin Dashboard in 0ms
+    try {
+      const cached: SavedOrder[] = JSON.parse(localStorage.getItem('maison_orders_cache') || '[]');
+      if (!cached.some((o) => o.id === orderToSave.id || o.orderNumber === orderToSave.orderNumber)) {
+        cached.unshift(orderToSave);
+        localStorage.setItem('maison_orders_cache', JSON.stringify(cached));
+      }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('touza_order_created', { detail: orderToSave }));
+      }
+    } catch (cacheErr) {
+      console.warn('Cache order write note:', cacheErr);
+    }
+
+    // 2. Fire background async save to Firestore without blocking WhatsApp redirect
+    saveUserOrder(user?.uid, user?.email, orderToSave).catch((fsErr) => {
+      console.warn('Background Firestore order sync note:', fsErr);
+    });
+
+    if (appliedPromoCode && onUsePromoCode) {
+      onUsePromoCode(appliedPromoCode.id).catch(() => {});
+    }
+
+    // 3. Track TikTok Pixel
+    try {
+      trackTikTokPurchase({
+        orderNumber: generatedOrderNum,
+        items: cartItems.map((item) => ({
+          productId: item.product.id,
+          title: getLocalizedProductName(item.product, language),
+          price: item.product.price,
+          quantity: item.quantity,
+        })),
+        total: total,
+        currency: 'EGP',
       });
+    } catch {}
 
-      // Track TikTok Purchase
-      try {
-        trackTikTokPurchase({
-          orderNumber: generatedOrderNum,
-          items: cartItems.map((item) => ({
-            productId: item.product.id,
-            title: getLocalizedProductName(item.product, language),
-            price: item.product.price,
-            quantity: item.quantity,
-          })),
-          total: total,
-          currency: 'EGP',
-        });
-      } catch (ttErr) {
-        console.debug('TikTok Pixel purchase error:', ttErr);
+    // 4. Update UI state immediately
+    setOrderNumber(generatedOrderNum);
+    setWhatsappOrderUrl(generatedWaUrl);
+    setStep('confirmation');
+    onClearCart();
+    setIsSubmitting(false);
+
+    // 5. Open WhatsApp immediately in the synchronous user click event context (avoids Safari popup blocker)
+    try {
+      const opened = window.open(generatedWaUrl, '_blank');
+      if (!opened || opened.closed || typeof opened.closed === 'undefined') {
+        window.location.href = generatedWaUrl;
       }
-
-      setOrderNumber(generatedOrderNum);
-      setWhatsappOrderUrl(generatedWaUrl);
-      setStep('confirmation');
-      onClearCart();
-
-      // Automatically open WhatsApp in a new window/tab
-      try {
-        const opened = window.open(generatedWaUrl, '_blank');
-        if (!opened) {
-          window.location.href = generatedWaUrl;
-        }
-      } catch {
-        // Fallback handled by direct button in confirmation view
-      }
-    } catch (err: any) {
-      console.error('Failed to save order to Firestore:', err);
-      // Even if Firestore has transient error, proceed with WhatsApp transmission so the customer is never blocked
-      setOrderNumber(generatedOrderNum);
-      setWhatsappOrderUrl(generatedWaUrl);
-      setStep('confirmation');
-      onClearCart();
-      try {
-        window.open(generatedWaUrl, '_blank');
-      } catch {}
-    } finally {
-      setIsSubmitting(false);
+    } catch {
+      window.location.href = generatedWaUrl;
     }
   };
 

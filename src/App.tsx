@@ -118,11 +118,20 @@ export const AppContent: React.FC = () => {
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       if (typeof window !== 'undefined') {
-        const CLEAN_KEY = 'maison_clean_catalog_v2026_10';
+        const CLEAN_KEY = 'touza_clean_catalog_v2026_11';
         if (localStorage.getItem(CLEAN_KEY) !== 'purged') {
           localStorage.setItem(CLEAN_KEY, 'purged');
-          localStorage.setItem('maison_products', '[]');
-          return [];
+          // Purge any stale products in localStorage
+          try {
+            const raw = localStorage.getItem('maison_products');
+            if (raw) {
+              const parsed: Product[] = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                const cleaned = parsed.filter((p) => p && !isBannedProductId(p.id));
+                localStorage.setItem('maison_products', safeJsonStringify(cleaned));
+              }
+            }
+          } catch {}
         }
       }
 

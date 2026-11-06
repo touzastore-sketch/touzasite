@@ -137,7 +137,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Admin Navigation state
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'cloud_media' | 'categories' | 'products' | 'orders' | 'users' | 'promos' | 'reviews' | 'newsletter' | 'settings' | 'payment_settings'
+    'overview' | 'cloud_media' | 'categories' | 'products' | 'orders' | 'promos' | 'reviews' | 'newsletter' | 'settings' | 'payment_settings'
   >('overview');
 
   // Cloud upload loading states
@@ -148,11 +148,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isUploadingCategoryImage, setIsUploadingCategoryImage] = useState(false);
   const [isUploadingPhilosophyImage, setIsUploadingPhilosophyImage] = useState(false);
 
-  // Firestore Live Users
+  // Firestore Live Users (kept minimal for order references)
   const [users, setUsers] = useState<TouzaUser[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
-  const [userSearchTerm, setUserSearchTerm] = useState('');
-  const [userProviderFilter, setUserProviderFilter] = useState<'all' | 'email' | 'google'>('all');
 
   // Newsletter & Subscribers state
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>(() => {
@@ -645,7 +642,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   useEffect(() => {
     if (isAuthenticated) {
       if (orders.length === 0) setLoadingOrders(true);
-      setLoadingUsers(true);
 
       // Immediate fetch + Real-time listener for Orders
       getAllOrdersAdmin().then((list) => {
@@ -663,7 +659,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       // Real-time listener for Users
       const unsubUsers = subscribeToUsersAdmin((latestUsers) => {
         setUsers(latestUsers);
-        setLoadingUsers(false);
       });
 
       // Real-time listener for Reviews
@@ -1743,17 +1738,7 @@ ${itemsSummary}
     return matchesSearch && matchesStatus;
   });
 
-  // Filtered Users
-  const filteredUsers = users.filter((u) => {
-    const term = userSearchTerm.toLowerCase();
-    const matchesSearch =
-      (u.name && u.name.toLowerCase().includes(term)) ||
-      (u.email && u.email.toLowerCase().includes(term)) ||
-      (u.username && u.username.toLowerCase().includes(term)) ||
-      (u.phone && u.phone.toLowerCase().includes(term));
-    const matchesProvider = userProviderFilter === 'all' || u.provider === userProviderFilter;
-    return matchesSearch && matchesProvider;
-  });
+
 
   // Filtered Products
   const filteredProducts = products.filter((p) => {
@@ -2025,7 +2010,6 @@ ${itemsSummary}
             { id: 'categories', Icon: LayoutGrid, labelAr: `التصنيفات (${categories.length})`, labelEn: `Categories (${categories.length})` },
             { id: 'products', Icon: Shirt, labelAr: `المنتجات (${products.length})`, labelEn: `Products (${products.length})` },
             { id: 'orders', Icon: Truck, labelAr: `الطلبات (${orders.length})`, labelEn: `Orders (${orders.length})` },
-            { id: 'users', Icon: Users, labelAr: `المستخدمين (${users.length})`, labelEn: `Users (${users.length})` },
             { id: 'promos', Icon: Tag, labelAr: `أكواد الخصم (${promoCodes.length})`, labelEn: `Promo Codes (${promoCodes.length})` },
             { id: 'reviews', Icon: MessageSquare, labelAr: `التقييمات (${reviews.length})`, labelEn: `Reviews (${reviews.length})` },
             { id: 'newsletter', Icon: Mail, labelAr: `النشرة البريدية (${subscribers.length})`, labelEn: `Newsletter (${subscribers.length})` },
@@ -3563,145 +3547,8 @@ ${itemsSummary}
           </div>
         )}
 
-        {/* TAB: REGISTERED USERS MANAGEMENT */}
-        {activeTab === 'users' && (
-          <div className="space-y-6 fade-in-up">
-            {/* Users Header & Filters */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-[#c4c7c7]/30 shadow-xs">
-              <div>
-                <h2 className="font-display text-[22px] font-bold text-[#000000]">
-                  {language === 'ar' ? 'إدارة المستخدمين المسجلين' : 'Registered Users Management'}
-                </h2>
-                <p className="font-body text-[13px] text-[#747878] mt-1">
-                  {language === 'ar'
-                    ? `إجمالي المستخدمين المسجلين في النظام: ${users.length} مستخدم (تحديث لحظي من Firestore)`
-                    : `Total Registered Users: ${users.length} (Real-time Firestore Sync)`}
-                </p>
-              </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-3">
-                {/* Search */}
-                <div className="relative w-full sm:w-72">
-                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#747878] text-[20px]">
-                    search
-                  </span>
-                  <input
-                    type="text"
-                    value={userSearchTerm}
-                    onChange={(e) => setUserSearchTerm(e.target.value)}
-                    placeholder={language === 'ar' ? 'البحث بالاسم، الإيميل، أو الهاتف...' : 'Search by name, email, or phone...'}
-                    className="w-full pr-10 pl-4 py-2 rounded-xl border border-[#c4c7c7] text-xs focus:outline-none focus:border-[#000000]"
-                  />
-                </div>
-
-                {/* Filter Provider */}
-                <select
-                  value={userProviderFilter}
-                  onChange={(e) => setUserProviderFilter(e.target.value as any)}
-                  className="w-full sm:w-auto px-4 py-2 rounded-xl border border-[#c4c7c7] text-xs font-bold text-[#1f1f1f] bg-white focus:outline-none focus:border-[#000000]"
-                >
-                  <option value="all">{language === 'ar' ? 'جميع الطرق' : 'All Providers'}</option>
-                  <option value="google">Google</option>
-                  <option value="email">Email & Password</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Users Table */}
-            <div className="bg-white rounded-2xl border border-[#c4c7c7]/30 shadow-xs overflow-hidden">
-              {loadingUsers && users.length === 0 ? (
-                <div className="p-12 text-center text-[#747878]">
-                  <div className="inline-block w-8 h-8 border-4 border-[#000000] border-t-transparent rounded-full animate-spin mb-3"></div>
-                  <p>{language === 'ar' ? 'جاري تحميل قائمة المستخدمين...' : 'Loading users...'}</p>
-                </div>
-              ) : filteredUsers.length === 0 ? (
-                <div className="p-12 text-center space-y-3">
-                  <span className="material-symbols-outlined text-[48px] text-[#c4c7c7]">group_off</span>
-                  <h3 className="font-display text-[18px] font-bold text-[#000000]">
-                    {language === 'ar' ? 'لم يتم العثور على أي مستخدمين' : 'No users found'}
-                  </h3>
-                  <p className="font-body text-[13px] text-[#747878]">
-                    {language === 'ar' ? 'لا توجد نتائج تطابق بحثك الحالي' : 'No matching registered users'}
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-right border-collapse">
-                    <thead>
-                      <tr className="bg-[#f8f9fa] border-b border-[#c4c7c7]/30 text-xs text-[#747878] font-bold">
-                        <th className="p-4">{language === 'ar' ? 'المستخدم' : 'User'}</th>
-                        <th className="p-4">{language === 'ar' ? 'اسم المستخدم (Username)' : 'Username'}</th>
-                        <th className="p-4">{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</th>
-                        <th className="p-4">{language === 'ar' ? 'رقم الهاتف' : 'Phone'}</th>
-                        <th className="p-4">{language === 'ar' ? 'طريقة التسجيل' : 'Method'}</th>
-                        <th className="p-4">{language === 'ar' ? 'تاريخ التسجيل' : 'Registered At'}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#c4c7c7]/20 text-xs text-[#1f1f1f]">
-                      {filteredUsers.map((u) => (
-                        <tr key={u.uid} className="hover:bg-[#f8f9fa] transition-colors">
-                          <td className="p-4 flex items-center gap-3">
-                            <img
-                              src={u.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600'}
-                              alt={u.name}
-                              className="w-9 h-9 rounded-full object-cover border border-[#c4c7c7]"
-                            />
-                            <div>
-                              <div className="font-bold text-sm text-[#000000]">{u.name}</div>
-                              <div className="text-[10px] text-[#747878] font-mono">UID: {u.uid.substring(0, 8)}...</div>
-                            </div>
-                          </td>
-                          <td className="p-4 font-mono font-medium text-[#444748]">
-                            @{u.username || 'user'}
-                          </td>
-                          <td className="p-4 font-mono text-[#000000]">
-                            {u.email}
-                          </td>
-                          <td className="p-4 font-mono dir-ltr text-right text-[#000000]">
-                            {u.phone || (language === 'ar' ? 'غير مسجل' : 'Not Provided')}
-                          </td>
-                          <td className="p-4">
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border ${
-                              u.provider === 'google'
-                                ? 'bg-blue-50 text-blue-800 border-blue-200'
-                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            }`}>
-                              {u.provider === 'google' ? (
-                                <>
-                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
-                                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-                                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.74-2.09-6.68-4.92H1.21v3.15C3.21 21.36 7.32 24 12 24z"/>
-                                    <path fill="#FBBC05" d="M5.32 14.28c-.24-.72-.38-1.49-.38-2.28s.14-1.56.38-2.28V6.57H1.21C.44 8.11 0 9.99 0 12s.44 3.89 1.21 5.43l4.11-3.15z"/>
-                                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.32 0 3.21 2.64 1.21 6.57l4.11 3.15c.94-2.83 3.58-4.92 6.68-4.92z"/>
-                                  </svg>
-                                  <span>Google</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="material-symbols-outlined text-[14px]">mail</span>
-                                  <span>Email & Password</span>
-                                </>
-                              )}
-                            </span>
-                          </td>
-                          <td className="p-4 text-[#747878] dir-ltr text-right">
-                            {u.createdAt ? new Date(u.createdAt).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            }) : '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {/* TAB 4: PROMO CODES MANAGEMENT */}
         {activeTab === 'promos' && (
           <div className="space-y-6 fade-in-up">
             {/* Create Promo Code */}
