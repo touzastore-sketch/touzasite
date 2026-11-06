@@ -499,8 +499,18 @@ export const subscribeToOrdersAdmin = (
           const timeB = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : 0;
           return timeB - timeA;
         });
-        localStorage.setItem('maison_orders_cache', safeJsonStringify(orders));
-        callback(orders);
+
+        // Filter out any locally deleted orders
+        let finalOrders = orders;
+        try {
+          const deletedOrders: string[] = JSON.parse(localStorage.getItem('maison_deleted_orders') || '[]');
+          if (deletedOrders.length > 0) {
+            finalOrders = orders.filter((o) => !deletedOrders.includes(o.id) && !deletedOrders.includes(o.orderNumber));
+          }
+        } catch {}
+
+        localStorage.setItem('maison_orders_cache', safeJsonStringify(finalOrders));
+        callback(finalOrders);
       },
       (error) => {
         console.warn('Realtime orders listener error:', error);
@@ -551,8 +561,12 @@ export interface FirestoreOrderData {
     zipCode?: string;
     country: string;
     phone: string;
+    notes?: string;
   };
   paymentMethod: string;
+  notes?: string;
+  promoCode?: string;
+  isWhatsAppOrder?: boolean;
 }
 
 export interface SavedOrder extends FirestoreOrderData {
@@ -586,13 +600,16 @@ const cleanOrderObject = (data: any): SavedOrder => {
   };
 };
 
-// Save Order strictly tied to logged-in User in top-level 'orders' collection
+// Save Order in top-level 'orders' collection (supports both registered users and guest WhatsApp orders)
 export const saveUserOrder = async (
-  userId: string,
-  userEmail: string,
-  orderData: FirestoreOrderData
+  userId?: string,
+  userEmail?: string,
+  orderData?: FirestoreOrderData
 ) => {
-  if (!userId) throw new Error('User must be logged in to save order');
+  if (!orderData) throw new Error('Order data is required');
+
+  const finalUserId = userId || ('guest_' + (orderData.shippingAddress?.phone?.replace(/\D/g, '') || Date.now()));
+  const finalEmail = userEmail || (orderData.shippingAddress?.phone ? `${orderData.shippingAddress.phone}@touza-guest.com` : 'guest@touza.com');
   
   // Create document directly in top-level 'orders' collection
   const orderRef = doc(collection(db, 'orders'));
@@ -600,16 +617,16 @@ export const saveUserOrder = async (
 
   const firestoreOrder = {
     id: orderRef.id,
-    userId,
-    userEmail: userEmail || orderData.shippingAddress?.phone || 'customer@touza.com',
+    userId: finalUserId,
+    userEmail: finalEmail,
     ...orderData,
     createdAt: serverTimestamp(),
   };
 
   const returnOrder: SavedOrder = {
     id: orderRef.id,
-    userId,
-    userEmail: userEmail || orderData.shippingAddress?.phone || 'customer@touza.com',
+    userId: finalUserId,
+    userEmail: finalEmail,
     ...orderData,
     createdAt: createdAtIso,
   };
@@ -617,12 +634,14 @@ export const saveUserOrder = async (
   // Save to top-level 'orders' collection
   await setDoc(orderRef, firestoreOrder);
 
-  // Also save to user subcollection for backward compatibility
-  try {
-    const userSubcollRef = doc(db, 'users', userId, 'orders', orderRef.id);
-    await setDoc(userSubcollRef, firestoreOrder);
-  } catch (err) {
-    console.warn('Non-fatal error saving order to user subcollection:', err);
+  // Also save to user subcollection if registered user exists
+  if (userId) {
+    try {
+      const userSubcollRef = doc(db, 'users', userId, 'orders', orderRef.id);
+      await setDoc(userSubcollRef, firestoreOrder);
+    } catch (err) {
+      console.warn('Non-fatal error saving order to user subcollection:', err);
+    }
   }
 
   // Update admin orders cache immediately
@@ -632,6 +651,10 @@ export const saveUserOrder = async (
     if (!cachedOrders.some((o) => o.id === returnOrder.id)) {
       cachedOrders.unshift(returnOrder);
       localStorage.setItem('maison_orders_cache', safeJsonStringify(cachedOrders));
+    }
+    // Dispatch custom event for real-time instant reflection in Admin Dashboard
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('touza_order_created', { detail: returnOrder }));
     }
   } catch {}
 

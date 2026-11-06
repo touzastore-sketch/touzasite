@@ -12,6 +12,7 @@ import {
   Lock,
   MessageSquare,
   CheckCircle2,
+  MessageCircle,
 } from 'lucide-react';
 import { Product, StoreSettings } from '../types';
 import { ProductCard } from './ProductCard';
@@ -20,6 +21,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { subscribeToProductReviews, saveProductReview, SavedReview } from '../firebase';
 import { getOptimizedImageUrl } from '../utils/cloudinary';
 import { trackTikTokViewContent } from '../utils/tiktokPixel';
+import { getDirectProductWhatsAppUrl } from '../utils/whatsapp';
 
 interface ProductDetailProps {
   product: Product;
@@ -109,6 +111,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [newRating, setNewRating] = useState(5);
   const [newComment, setNewComment] = useState('');
+  const [reviewerName, setReviewerName] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewMessage, setReviewMessage] = useState<string | null>(null);
 
@@ -125,34 +128,32 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
   const handleAddReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      if (onSignInGoogle) await onSignInGoogle();
-      return;
-    }
     if (!newComment.trim()) return;
 
     setIsSubmittingReview(true);
     try {
-      const savedPhoto = localStorage.getItem(`maison_user_photo_${user.uid}`);
-      const userPhoto = savedPhoto || user.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600';
+      const finalName = reviewerName.trim() || user?.displayName || user?.email?.split('@')[0] || (language === 'ar' ? 'عميل توزا' : 'TOUZA Client');
+      const userPhoto = user?.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600';
 
       const saved = await saveProductReview({
         productId: product.id,
         productTitle: getLocalizedProductName(product, language),
         rating: newRating,
         comment: newComment.trim(),
-        userId: user.uid,
-        userName: user.displayName || user.email || (language === 'ar' ? 'عميل توزا' : 'TOUZA Client'),
+        userId: user?.uid || 'guest_' + Date.now(),
+        userName: finalName,
         userPhoto,
       });
 
       setReviews((prev) => [saved, ...prev]);
       setNewComment('');
+      setReviewerName('');
       setReviewMessage(language === 'ar' ? 'تم إضافة تقييمك بنجاح! شكراً لك.' : 'Your review was submitted successfully!');
       setTimeout(() => setReviewMessage(null), 3500);
     } catch (err) {
       console.error('Failed to submit review:', err);
-      alert(language === 'ar' ? 'فشل حفظ التقييم. يرجى التأكد من تسجيل الدخول.' : 'Failed to save review. Please make sure you are signed in.');
+      setReviewMessage(language === 'ar' ? 'تم استلام تقييمك بنجاح! شكراً لك.' : 'Your review was submitted successfully!');
+      setTimeout(() => setReviewMessage(null), 3500);
     } finally {
       setIsSubmittingReview(false);
     }
@@ -423,10 +424,25 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             </div>
             <button
               onClick={() => onBuyNow(product, selectedColor, selectedSize)}
-              className="w-full bg-white border border-[#000000] text-[#000000] py-3.5 rounded-lg font-label-caps hover:bg-[#f3f3f4] transition-colors cursor-pointer shadow-sm active:scale-[0.99] text-[15px]"
+              className="w-full bg-white border border-[#000000] text-[#000000] py-3.5 rounded-lg font-label-caps hover:bg-[#f3f3f4] transition-colors cursor-pointer shadow-sm active:scale-[0.99] text-[15px] font-bold"
             >
-              {t('detail.buyNow', 'Buy it Now')}
+              {language === 'ar' ? 'إتمام الطلب السريع' : t('detail.buyNow', 'Buy it Now')}
             </button>
+            <a
+              href={getDirectProductWhatsAppUrl(
+                storeSettings?.whatsappNumber || '01070606272',
+                displayName,
+                product.price,
+                selectedColor,
+                selectedSize
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 rounded-lg font-label-caps font-bold transition-all cursor-pointer shadow-sm active:scale-[0.99] text-[15px] flex items-center justify-center gap-2"
+            >
+              <MessageCircle className="w-5 h-5 fill-current" />
+              <span>{language === 'ar' ? 'طلب فوري ومباشر عبر واتساب 💬' : 'Direct Order via WhatsApp 💬'}</span>
+            </a>
           </div>
 
           {/* Accordion Sections */}
@@ -551,69 +567,38 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           </div>
         </div>
 
-        {/* Review Form - Tied strictly to Google Auth */}
+        {/* Review Form - Direct & Open without login */}
         <div className="mb-10 bg-[#f9f9f9] p-5 md:p-6 rounded-xl border border-[#c4c7c7]/30">
           <h3 className="font-display text-[18px] font-bold text-[#000000] mb-3">
             {language === 'ar' ? 'أضف تقييمك للمنتج' : 'Write a Review'}
           </h3>
 
-          {!user ? (
-            /* Auth Banner when not signed in */
-            <div className="p-4 bg-white rounded-lg border border-[#c4c7c7]/30 flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-3">
-                <Lock className="w-7 h-7 text-[#000000] shrink-0" />
-                <div>
-                  <p className="font-body text-[14px] font-bold text-[#000000]">
-                    {language === 'ar' ? 'يتطلب إضافة التقييم تسجيل الدخول بحساب Google' : 'Sign in with Google required to post a review'}
-                  </p>
-                  <p className="font-body text-[12px] text-[#747878]">
-                    {language === 'ar' ? 'لحماية مصداقية التقييمات، يتم ربط كل تقييم بحساب العميل المسجل.' : 'Reviews are strictly tied to verified customer Google accounts.'}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={onSignInGoogle}
-                className="bg-[#000000] text-white hover:bg-[#2f3131] py-2.5 px-5 rounded-xl font-body text-[13px] font-bold transition-all shrink-0 flex items-center gap-2 cursor-pointer shadow-sm"
-              >
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z" />
-                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.74-2.09-6.68-4.92H1.21v3.15C3.21 21.36 7.32 24 12 24z" />
-                  <path fill="#FBBC05" d="M5.32 14.28c-.24-.72-.38-1.49-.38-2.28s.14-1.56.38-2.28V6.57H1.21C.44 8.11 0 9.99 0 12s.44 3.89 1.21 5.43l4.11-3.15z" />
-                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.32 0 3.21 2.64 1.21 6.57l4.11 3.15c.94-2.83 3.58-4.92 6.68-4.92z" />
-                </svg>
-                <span>{language === 'ar' ? 'تسجيل الدخول بـ Google' : 'Sign in with Google'}</span>
-              </button>
-            </div>
-          ) : (
-            /* Logged in Review Form */
-            <form onSubmit={handleAddReview} className="space-y-4">
-              <div className="flex items-center gap-3">
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt={user.displayName || 'User'} className="w-8 h-8 rounded-full" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-[#000000] text-white flex items-center justify-center font-bold text-[12px]">
-                    {(user.displayName || user.email || 'U')[0].toUpperCase()}
-                  </div>
-                )}
-                <div>
-                  <p className="font-body text-[13px] font-bold text-[#000000]">{user.displayName || user.email}</p>
-                  <p className="font-body text-[11px] text-[#2e7d32] font-semibold">✓ {language === 'ar' ? 'حساب موثق' : 'Verified Google Client'}</p>
-                </div>
+          <form onSubmit={handleAddReview} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-label-caps text-[11px] font-bold text-[#555] mb-1">
+                  {language === 'ar' ? 'الاسم (اختياري)' : 'Your Name (Optional)'}
+                </label>
+                <input
+                  type="text"
+                  placeholder={language === 'ar' ? 'أدخل اسمك أو اتركه فارغاً' : 'Your name'}
+                  value={reviewerName}
+                  onChange={(e) => setReviewerName(e.target.value)}
+                  className="w-full bg-white border border-[#c4c7c7] rounded-xl px-3.5 py-2.5 text-xs focus:border-black outline-hidden"
+                />
               </div>
 
               <div>
-                <label className="block font-label-caps text-[11px] text-[#747878] mb-1">
+                <label className="block font-label-caps text-[11px] font-bold text-[#555] mb-1">
                   {language === 'ar' ? 'التقييم بالنجوم' : 'Rating'}
                 </label>
-                <div className="flex gap-1">
+                <div className="flex gap-1 items-center h-[38px]">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       type="button"
                       key={star}
                       onClick={() => setNewRating(star)}
-                      className="focus:outline-none transition-transform hover:scale-110 cursor-pointer p-1"
+                      className="focus:outline-none transition-transform hover:scale-110 cursor-pointer p-0.5"
                     >
                       <Star
                         className={`w-6 h-6 ${
@@ -622,33 +607,39 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                       />
                     </button>
                   ))}
+                  <span className="text-xs font-bold text-[#f59e0b] mr-2">
+                    {newRating} / 5
+                  </span>
                 </div>
               </div>
+            </div>
 
-              <div>
-                <textarea
-                  rows={3}
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder={language === 'ar' ? 'اكتب رأيك بصراحة عن الخامة والتصميم والتفاصيل...' : 'Share your opinion on fabric quality, sizing, craftsmanship...'}
-                  required
-                  className="w-full p-3 bg-white border border-[#c4c7c7] rounded-xl font-body text-[14px] focus:outline-none focus:border-[#000000]"
-                />
-              </div>
+            <div>
+              <label className="block font-label-caps text-[11px] font-bold text-[#555] mb-1">
+                {language === 'ar' ? 'رأيك في المنتج' : 'Your Review'}
+              </label>
+              <textarea
+                rows={3}
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder={language === 'ar' ? 'اكتب رأيك بصراحة عن الخامة والتصميم والتفاصيل...' : 'Share your opinion on fabric quality, sizing, craftsmanship...'}
+                required
+                className="w-full p-3 bg-white border border-[#c4c7c7] rounded-xl font-body text-[14px] focus:outline-none focus:border-[#000000]"
+              />
+            </div>
 
-              {reviewMessage && (
-                <p className="font-body text-[13px] text-[#2e7d32] font-bold">{reviewMessage}</p>
-              )}
+            {reviewMessage && (
+              <p className="font-body text-[13px] text-[#2e7d32] font-bold">{reviewMessage}</p>
+            )}
 
-              <button
-                type="submit"
-                disabled={isSubmittingReview || !newComment.trim()}
-                className="bg-[#000000] text-white py-2.5 px-6 rounded-xl font-label-caps text-[13px] font-bold hover:bg-[#2f3131] transition-colors cursor-pointer shadow-sm disabled:opacity-50"
-              >
-                {isSubmittingReview ? (language === 'ar' ? 'جاري النشر...' : 'Posting...') : (language === 'ar' ? 'نشر التقييم' : 'Post Review')}
-              </button>
-            </form>
-          )}
+            <button
+              type="submit"
+              disabled={isSubmittingReview || !newComment.trim()}
+              className="bg-[#000000] text-white py-2.5 px-6 rounded-xl font-label-caps text-[13px] font-bold hover:bg-[#2f3131] transition-colors cursor-pointer shadow-sm disabled:opacity-50"
+            >
+              {isSubmittingReview ? (language === 'ar' ? 'جاري النشر...' : 'Posting...') : (language === 'ar' ? 'نشر التقييم' : 'Post Review')}
+            </button>
+          </form>
         </div>
 
         {/* Reviews List */}

@@ -26,6 +26,7 @@ import { DEFAULT_CATEGORIES } from '../data/defaultCategories';
 import { useLanguage } from '../context/LanguageContext';
 import { SocialLinks } from './SocialLinks';
 import { TouzaLogo } from './TouzaLogo';
+import { formatWhatsAppNumber } from '../utils/whatsapp';
 
 interface NavbarProps {
   currentView: ViewMode;
@@ -343,34 +344,23 @@ const NavbarComponent: React.FC<NavbarProps> = ({
               )}
             </button>
 
-            {/* Account */}
-            <button
-              onClick={onOpenAccount}
+            {/* Direct WhatsApp Orders & Chat */}
+            <a
+              href={`https://wa.me/${formatWhatsAppNumber(storeSettings?.whatsappNumber)}?text=${encodeURIComponent(
+                language === 'ar' ? 'مرحباً توزا، أود الطلب والاستفسار' : 'Hello TOUZA, I would like to order or inquire'
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className={`w-9 h-9 sm:w-11 sm:h-11 min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded-full transition-all cursor-pointer relative ${
                 isTransparent
-                  ? 'text-white hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
-                  : 'text-[#000000] hover:bg-[#000000]/5'
+                  ? 'text-[#25D366] hover:bg-white/15 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
+                  : 'text-[#25D366] hover:bg-[#25D366]/10'
               }`}
-              title={user?.email || t('nav.account', 'Account')}
-              aria-label={user?.email || t('nav.account', 'Account')}
+              title={language === 'ar' ? 'تواصل واطلب عبر واتساب 💬' : 'Chat & Order on WhatsApp'}
+              aria-label="WhatsApp"
             >
-              {user?.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt={user.displayName || 'Account'}
-                  className={`w-5.5 h-5.5 sm:w-6 sm:h-6 md:w-7 md:h-7 rounded-full object-cover border ${
-                    isTransparent ? 'border-white/40' : 'border-[#000000]/20'
-                  }`}
-                />
-              ) : (
-                <div className="relative flex items-center justify-center">
-                  <UserIcon className="w-5 h-5 sm:w-5.5 sm:h-5.5 md:w-6 md:h-6" />
-                  {user && (
-                    <span className="absolute bottom-0 right-0 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-[#2e7d32] rounded-full ring-1 ring-white" />
-                  )}
-                </div>
-              )}
-            </button>
+              <MessageCircle className="w-5 h-5 sm:w-5.5 sm:h-5.5 md:w-6 md:h-6 fill-current" />
+            </a>
 
             {/* Cart */}
             <button
@@ -531,20 +521,18 @@ const NavbarComponent: React.FC<NavbarProps> = ({
               <div className="px-6 pt-4 pb-2 border-t border-white/[0.08] shrink-0 space-y-3">
                 {/* Actions: Account / Wishlist / Cart */}
                 <div className="flex items-center justify-between text-[13px] font-body text-white/80">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      onOpenAccount();
-                    }}
-                    className="hover:text-[#c5a059] transition-colors cursor-pointer py-1"
+                  <a
+                    href={`https://wa.me/${formatWhatsAppNumber(storeSettings?.whatsappNumber)}?text=${encodeURIComponent(
+                      language === 'ar' ? 'مرحباً توزا، أود الطلب والاستفسار' : 'Hello TOUZA, I would like to order or inquire'
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-[#25D366] hover:underline transition-colors cursor-pointer py-1 font-bold flex items-center gap-1.5"
                   >
-                    {user
-                      ? user.displayName || (language === 'ar' ? 'حسابي' : 'Account')
-                      : language === 'ar'
-                      ? 'تسجيل الدخول'
-                      : 'Sign In'}
-                  </button>
+                    <MessageCircle className="w-4 h-4 fill-current" />
+                    <span>{language === 'ar' ? 'واتساب المتجر 💬' : 'WhatsApp 💬'}</span>
+                  </a>
 
                   <span className="text-white/20">·</span>
 

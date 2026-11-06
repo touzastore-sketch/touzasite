@@ -3,9 +3,6 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
-  User as UserIcon,
-  LogIn,
-  UserPlus,
   AlertCircle,
   Check,
   Banknote,
@@ -13,20 +10,25 @@ import {
   Smartphone,
   PhoneCall,
   CheckCircle,
+  MessageCircle,
+  ExternalLink,
+  ShieldCheck,
+  Truck,
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { CartItem, ShippingAddress, StoreSettings, PromoCode } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getLocalizedProductName } from '../data/products';
-import { saveUserOrder, safeJsonStringify, signInWithEmail, signUpWithEmail } from '../firebase';
+import { saveUserOrder, safeJsonStringify } from '../firebase';
 import { trackTikTokInitiateCheckout, trackTikTokPurchase } from '../utils/tiktokPixel';
+import { getWhatsAppOrderUrl, WhatsAppOrderDetails, formatWhatsAppNumber } from '../utils/whatsapp';
 
 interface CheckoutViewProps {
   cartItems: CartItem[];
   onBackToShop: () => void;
   onClearCart: () => void;
   user: User | null;
-  onSignInGoogle: () => Promise<void>;
+  onSignInGoogle?: () => Promise<void>;
   onOpenAccountModal?: () => void;
   storeSettings?: StoreSettings;
   promoCodes?: PromoCode[];
@@ -38,8 +40,6 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   onBackToShop,
   onClearCart,
   user,
-  onSignInGoogle,
-  onOpenAccountModal,
   storeSettings,
   promoCodes = [],
   onUsePromoCode,
@@ -55,18 +55,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  // Inline Checkout Auth State
-  const [checkoutAuthMode, setCheckoutAuthMode] = useState<'google' | 'signin' | 'signup'>('google');
-  const [checkoutEmail, setCheckoutEmail] = useState('');
-  const [checkoutPassword, setCheckoutPassword] = useState('');
-  const [checkoutConfirmPassword, setCheckoutConfirmPassword] = useState('');
-  const [checkoutFullName, setCheckoutFullName] = useState('');
-  const [checkoutUsername, setCheckoutUsername] = useState('');
-  const [checkoutPhone, setCheckoutPhone] = useState('');
-  const [checkoutAuthError, setCheckoutAuthError] = useState<string | null>(null);
-  const [isSubmittingCheckoutAuth, setIsSubmittingCheckoutAuth] = useState(false);
-
-  // Address defaults cleared out (no hardcoded static mock addresses)
+  // Customer Shipping & Contact Information (No password or email required)
   const [address, setAddress] = useState<ShippingAddress>({
     fullName: user?.displayName || '',
     street: '',
@@ -78,11 +67,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     phone: '',
   });
 
-  useEffect(() => {
-    if (user?.displayName && !address.fullName) {
-      setAddress((prev) => ({ ...prev, fullName: user.displayName || '' }));
-    }
-  }, [user]);
+  const [orderNotes, setOrderNotes] = useState('');
 
   // Payment method: 'cod' | 'instapay' | 'vodafone_cash' | 'orange_cash'
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'instapay' | 'vodafone_cash' | 'orange_cash'>('cod');
@@ -106,7 +91,6 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     return () => window.removeEventListener('touza_settings_updated', handleSettingsUpdate);
   }, []);
 
-  // Fallback to cached local settings if storeSettings prop is momentarily pending
   const activeSettings = liveSettings || (() => {
     try {
       const saved = localStorage.getItem('maison_settings_v4') || localStorage.getItem('maison_settings');
@@ -143,14 +127,17 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   }, [activeSettings, paymentMethod]);
 
   const [orderNumber, setOrderNumber] = useState('');
+  const [whatsappOrderUrl, setWhatsappOrderUrl] = useState('');
 
   const subtotal = cartItems.reduce(
     (acc, item) => acc + item.product.price * item.quantity,
     0
   );
+
   const discountAmount = discountFixedAmount > 0
     ? Math.min(subtotal, discountFixedAmount)
     : (subtotal * discountPercent) / 100;
+
   const isFreeShipping = activeSettings?.shippingFree !== false && (Number(activeSettings?.shippingFee) <= 0 || activeSettings?.shippingFee === undefined);
   const shipping = isFreeShipping ? 0 : (Number(activeSettings?.shippingFee) || 0);
   const total = Math.max(0, subtotal - discountAmount + shipping);
@@ -176,7 +163,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     const found = promoCodes.find((p) => p.code.trim().toUpperCase() === query);
 
     if (!found) {
-      if (query === 'ELEGAN10' || query === 'WELCOME10') {
+      if (query === 'ELEGAN10' || query === 'WELCOME10' || query === 'TOUZA10') {
         setDiscountPercent(10);
         setDiscountFixedAmount(0);
         setAppliedPromoCode(null);
@@ -208,7 +195,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       setPromoError(
         language === 'ar'
           ? `عذراً، هذا الكود استنفذ الحد الأقصى لعدد العملاء (${limit} عميل)`
-          : `Sorry, this promo code has reached its maximum usage limit (${limit} customer/s)`
+          : `Sorry, this promo code has reached its maximum limit (${limit})`
       );
       return;
     }
@@ -238,71 +225,14 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     }
   };
 
-  const handleCheckoutEmailSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCheckoutAuthError(null);
-    if (!checkoutEmail.trim() || !checkoutPassword) {
-      setCheckoutAuthError(language === 'ar' ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور' : 'Please enter email and password');
-      return;
-    }
-    setIsSubmittingCheckoutAuth(true);
-    try {
-      await signInWithEmail(checkoutEmail, checkoutPassword);
-    } catch (err: any) {
-      console.error('Checkout sign in error:', err);
-      let msg = language === 'ar' ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة' : 'Invalid email or password';
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        msg = language === 'ar' ? 'بيانات الدخول غير صحيحة. يرجى التأكد وإعادة المحاولة' : 'Invalid credentials. Please check and try again.';
-      } else if (err.message) {
-        msg += `: ${err.message}`;
-      }
-      setCheckoutAuthError(msg);
-    } finally {
-      setIsSubmittingCheckoutAuth(false);
-    }
-  };
-
-  const handleCheckoutEmailSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCheckoutAuthError(null);
-    if (!checkoutFullName.trim() || !checkoutUsername.trim() || !checkoutEmail.trim() || !checkoutPhone.trim() || !checkoutPassword || !checkoutConfirmPassword) {
-      setCheckoutAuthError(language === 'ar' ? 'يرجى ملء كافة حقول التسجيل' : 'Please fill all registration fields');
-      return;
-    }
-    if (checkoutPassword.length < 6) {
-      setCheckoutAuthError(language === 'ar' ? 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' : 'Password must be at least 6 characters');
-      return;
-    }
-    if (checkoutPassword !== checkoutConfirmPassword) {
-      setCheckoutAuthError(language === 'ar' ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match');
-      return;
-    }
-
-    setIsSubmittingCheckoutAuth(true);
-    try {
-      await signUpWithEmail(checkoutFullName, checkoutUsername, checkoutEmail, checkoutPhone, checkoutPassword);
-    } catch (err: any) {
-      console.error('Checkout sign up error:', err);
-      let msg = language === 'ar' ? 'فشل إنشاء الحساب' : 'Failed to create account';
-      if (err.code === 'auth/email-already-in-use') {
-        msg = language === 'ar' ? 'البريد الإلكتروني مستخدم بالفعل. يمكنك تسجيل الدخول به مباشرة' : 'Email already in use. Please sign in instead.';
-      } else if (err.code === 'auth/weak-password') {
-        msg = language === 'ar' ? 'كلمة المرور ضعيفة جداً' : 'Password is too weak';
-      } else if (err.code === 'auth/operation-not-allowed') {
-        msg = language === 'ar' ? 'تسجيل الدخول بالبريد غير مفعّل في معلمات Firebase. استخدم تسجيل الدخول بـ Google' : 'Email/password sign-in is disabled in Firebase.';
-      } else if (err.message) {
-        msg += `: ${err.message}`;
-      }
-      setCheckoutAuthError(msg);
-    } finally {
-      setIsSubmittingCheckoutAuth(false);
-    }
-  };
-
   const handleProceedToPayment = () => {
     setSubmitError('');
-    if (!address.fullName.trim() || !address.street.trim() || !address.city.trim() || !address.phone.trim()) {
-      setSubmitError(language === 'ar' ? 'يرجى ملء كافة الحقول الأساسية للعنوان (الاسم الكامل، الشارع، المدينة، ورقم الهاتف)' : 'Please fill all required address fields');
+    if (!address.fullName.trim() || !address.phone.trim() || !address.street.trim() || !address.city.trim()) {
+      setSubmitError(
+        language === 'ar'
+          ? 'يرجى ملء بيانات التوصيل الأساسية (الاسم، رقم الموبايل، المحافظة، والعنوان) للمتابعة.'
+          : 'Please fill in all required shipping details (Full Name, Phone, City, and Address).'
+      );
       return;
     }
     setStep('payment');
@@ -311,13 +241,22 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   const handlePlaceOrder = async () => {
     setSubmitError('');
 
-    if (!user) {
-      setSubmitError(language === 'ar' ? 'يجب تسجيل الدخول (عن طريق Google أو البريد الإلكتروني) أولاً لإتمام الطلب' : 'You must sign in (via Google or Email) to place an order');
+    if (!address.fullName.trim() || !address.phone.trim() || !address.street.trim() || !address.city.trim()) {
+      setSubmitError(
+        language === 'ar'
+          ? 'يرجى ملء بيانات التوصيل (الاسم ورقم الهاتف والعنوان والمحافظة).'
+          : 'Please complete your shipping details.'
+      );
+      setStep('shipping');
       return;
     }
 
     if ((paymentMethod === 'instapay' || paymentMethod === 'vodafone_cash' || paymentMethod === 'orange_cash') && !transferRef.trim()) {
-      setSubmitError(language === 'ar' ? 'يرجى إدخال رقم الهاتف أو رقم العملية المحول منها للتحقق' : 'Please enter the transfer sender phone number or reference ID');
+      setSubmitError(
+        language === 'ar'
+          ? 'يرجى إدخال رقم الهاتف أو رقم العملية المحول منها للتحقق من التحويل.'
+          : 'Please enter the transfer sender phone number or reference ID.'
+      );
       return;
     }
 
@@ -333,6 +272,34 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
         ? `فودافون كاش (Vodafone Cash) - المحول: ${transferRef}`
         : `أورانج كاش (Orange Cash) - المحول: ${transferRef}`;
 
+    // Target store WhatsApp number
+    const storeWhatsapp = activeSettings?.whatsappNumber || '01070606272';
+
+    const orderPayload: WhatsAppOrderDetails = {
+      orderNumber: generatedOrderNum,
+      customerName: address.fullName.trim(),
+      customerPhone: address.phone.trim(),
+      governorate: address.city.trim(),
+      address: address.street.trim(),
+      apartment: address.apartment?.trim(),
+      notes: orderNotes.trim(),
+      items: cartItems.map((item) => ({
+        title: getLocalizedProductName(item.product, language),
+        selectedColor: item.selectedColor,
+        selectedSize: item.selectedSize,
+        quantity: item.quantity,
+        price: item.product.price,
+      })),
+      subtotal,
+      discountAmount,
+      promoCode: appliedPromoCode?.code || (discountPercent > 0 ? `${discountPercent}%` : undefined),
+      shippingFee: shipping,
+      total,
+      paymentMethod: paymentLabel,
+    };
+
+    const generatedWaUrl = getWhatsAppOrderUrl(storeWhatsapp, orderPayload);
+
     try {
       if (appliedPromoCode && onUsePromoCode) {
         try {
@@ -342,7 +309,8 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
         }
       }
 
-      const savedOrder = await saveUserOrder(user.uid, user.email || '', {
+      // Save order to Firestore so it appears in the store owner's Admin Dashboard
+      await saveUserOrder(user?.uid, user?.email, {
         orderNumber: generatedOrderNum,
         items: cartItems.map((item) => {
           const colorObj = item.product.colors?.find((c) => c.name === item.selectedColor);
@@ -371,21 +339,15 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
           zipCode: address.zipCode || '',
           country: address.country,
           phone: address.phone,
+          notes: orderNotes.trim(),
         },
         paymentMethod: paymentLabel,
+        notes: orderNotes.trim(),
+        promoCode: appliedPromoCode?.code || (discountPercent > 0 ? `${discountPercent}%` : undefined),
+        isWhatsAppOrder: true,
       });
 
-      // Update local cache so account modal displays order instantly with 0ms lag
-      try {
-        const cacheKey = `maison_orders_${user.uid}`;
-        const existingCache = localStorage.getItem(cacheKey);
-        const existingOrders = existingCache ? JSON.parse(existingCache) : [];
-        localStorage.setItem(cacheKey, safeJsonStringify([savedOrder, ...existingOrders]));
-      } catch (cacheErr) {
-        console.warn('Failed to save order to local cache:', cacheErr);
-      }
-
-      // Track TikTok Purchase / CompletePayment Event with actual order data
+      // Track TikTok Purchase
       try {
         trackTikTokPurchase({
           orderNumber: generatedOrderNum,
@@ -403,22 +365,36 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       }
 
       setOrderNumber(generatedOrderNum);
+      setWhatsappOrderUrl(generatedWaUrl);
       setStep('confirmation');
       onClearCart();
+
+      // Automatically open WhatsApp in a new window/tab
+      try {
+        const opened = window.open(generatedWaUrl, '_blank');
+        if (!opened) {
+          window.location.href = generatedWaUrl;
+        }
+      } catch {
+        // Fallback handled by direct button in confirmation view
+      }
     } catch (err: any) {
       console.error('Failed to save order to Firestore:', err);
-      setSubmitError(
-        language === 'ar'
-          ? 'حدث خطأ أثناء حفظ الطلب في Firestore، يرجى إعادة المحاولة: ' + (err?.message || '')
-          : 'Failed to place order: ' + (err?.message || '')
-      );
+      // Even if Firestore has transient error, proceed with WhatsApp transmission so the customer is never blocked
+      setOrderNumber(generatedOrderNum);
+      setWhatsappOrderUrl(generatedWaUrl);
+      setStep('confirmation');
+      onClearCart();
+      try {
+        window.open(generatedWaUrl, '_blank');
+      } catch {}
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="pt-24 pb-20 max-w-[1280px] mx-auto w-full px-5 md:px-12">
+    <div className="pt-24 pb-20 max-w-[1280px] mx-auto w-full px-4 sm:px-6 md:px-12">
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-5 border-b border-[#c4c7c7]/30">
         <div>
@@ -433,8 +409,8 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
             )}
             {t('checkout.backToShop', 'Return to Shopping')}
           </button>
-          <h1 className="font-display text-[28px] md:text-[36px] text-[#000000] font-bold">
-            {t('checkout.title', 'Secure Checkout')}
+          <h1 className="font-display text-[26px] md:text-[36px] text-[#000000] font-bold">
+            {language === 'ar' ? 'إتمام الطلب وتأكيده عبر واتساب' : 'Checkout & WhatsApp Order'}
           </h1>
         </div>
 
@@ -447,378 +423,166 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                 step === 'shipping' ? 'text-[#000000] font-bold underline' : 'text-[#747878]'
               }`}
             >
-              1. {t('checkout.shippingTitle', 'Shipping')}
+              1. {language === 'ar' ? 'بيانات التوصيل' : 'Shipping'}
             </span>
-            <span className="text-[#c4c7c7]">&gt;</span>
+            <span className="text-[#c4c7c7]">/</span>
             <span
-              onClick={() => step === 'payment' && setStep('payment')}
-              className={`${
+              onClick={() => {
+                if (address.fullName && address.phone && address.city && address.street) {
+                  setStep('payment');
+                }
+              }}
+              className={`cursor-pointer ${
                 step === 'payment' ? 'text-[#000000] font-bold underline' : 'text-[#747878]'
               }`}
             >
-              2. {t('checkout.paymentTitle', 'Payment')}
+              2. {language === 'ar' ? 'طريقة الدفع وتأكيد الواتساب' : 'Payment & WhatsApp'}
             </span>
-            <span className="text-[#c4c7c7]">&gt;</span>
-            <span className="text-[#747878]">3. {language === 'ar' ? 'التأكيد' : 'Confirmation'}</span>
           </div>
         )}
       </div>
 
-      {/* Mandatory Google Sign-In Status Bar / Box */}
+      {/* Trust & Guest Badge */}
       {step !== 'confirmation' && (
-        <div className="mb-8">
-          {user ? (
-            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt={user.displayName || 'User'} className="w-10 h-10 rounded-full border border-emerald-300" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
-                    {user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}
-                  </div>
-                )}
-                <div>
-                  <div className="flex items-center gap-1.5 font-bold text-emerald-900 text-[14px]">
-                    <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600" />
-                    <span>{user.displayName || user.email}</span>
-                  </div>
-                  <p className="text-[12px] text-emerald-700">
-                    {language === 'ar' ? 'تم تسجيل الدخول بحساب Google. سيتم إرسال وحفظ الطلب مباشرة في حسابك.' : 'Signed in with Google. Order will be recorded under your account.'}
-                  </p>
-                </div>
-              </div>
+        <div className="mb-6 p-3.5 sm:p-4 bg-emerald-50/80 border border-emerald-200/80 rounded-2xl flex items-center justify-between gap-3 text-emerald-900 text-xs sm:text-sm font-medium">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+              <MessageCircle className="w-4 h-4" />
             </div>
-          ) : (
-            <div className="p-6 md:p-8 bg-white border border-[#c4c7c7]/60 rounded-3xl space-y-6 shadow-sm">
-              {/* Header */}
-              <div className="space-y-1.5 text-center sm:text-start border-b border-[#c4c7c7]/20 pb-5">
-                <div className="flex items-center justify-center sm:justify-start gap-2.5 text-[#000000] font-bold font-display text-xl">
-                  <UserIcon className="w-6 h-6 text-[#000000]" />
-                  <span>{language === 'ar' ? 'سجّل الدخول لإتمام الطلب' : 'Sign In or Create Account to Continue'}</span>
-                </div>
-                <p className="text-xs text-[#5e5e5c] leading-relaxed">
-                  {language === 'ar'
-                    ? 'قم بتسجيل الدخول بحساب Google بضغطة زر واحدة، أو استخدم بريدك الإلكتروني لتتبع طلبك وحفظ بيانات الشحن بكل أمان.'
-                    : 'Sign in instantly with Google or use your email address to save shipping info and track your order.'}
-                </p>
-              </div>
-
-              {/* Step 1: Quick Google Button */}
-              <div className="bg-[#f8f9fa] border border-[#c4c7c7]/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white border border-[#c4c7c7]/40 flex items-center justify-center shrink-0 shadow-2xs">
-                    <svg className="w-6 h-6" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-                      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.1 0-5.74-2.09-6.68-4.92H1.21v3.15C3.21 21.36 7.32 24 12 24z"/>
-                      <path fill="#FBBC05" d="M5.32 14.28c-.24-.72-.38-1.49-.38-2.28s.14-1.56.38-2.28V6.57H1.21C.44 8.11 0 9.99 0 12s.44 3.89 1.21 5.43l4.11-3.15z"/>
-                      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.32 0 3.21 2.64 1.21 6.57l4.11 3.15c.94-2.83 3.58-4.92 6.68-4.92z"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-[#000000]">
-                      {language === 'ar' ? 'الدخول السريع بضغطة زر' : 'Quick 1-Click Sign In'}
-                    </h4>
-                    <p className="text-xs text-[#747878]">
-                      {language === 'ar' ? 'الأسهل والأسرع لإصدار الفاتورة بدون كتابة كلمة مرور' : 'Fastest option, no password required'}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={onSignInGoogle}
-                  className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2.5 bg-[#000000] text-white px-5 py-2.5 rounded-xl font-body font-bold text-xs hover:bg-[#2f3131] transition-all cursor-pointer shadow-sm active:scale-98"
-                >
-                  <span>{language === 'ar' ? 'متابعة باستخدام Google' : 'Continue with Google'}</span>
-                  {language === 'ar' ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-                </button>
-              </div>
-
-              {/* Divider */}
-              <div className="relative my-2 flex items-center justify-center">
-                <div className="border-t border-[#c4c7c7]/30 w-full"></div>
-                <span className="bg-white px-4 text-xs font-bold text-[#747878] shrink-0 uppercase tracking-wider">
-                  {language === 'ar' ? 'أو بالبريد الإلكتروني' : 'OR WITH EMAIL'}
-                </span>
-                <div className="border-t border-[#c4c7c7]/30 w-full"></div>
-              </div>
-
-              {/* Step 2: Email Sign In vs Sign Up Tabs */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 bg-[#f3f3f4] p-1 rounded-xl border border-[#c4c7c7]/20">
-                  <button
-                    type="button"
-                    onClick={() => { setCheckoutAuthMode('signin'); setCheckoutAuthError(null); }}
-                    className={`py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                      checkoutAuthMode === 'signin' || checkoutAuthMode === 'google'
-                        ? 'bg-white text-black shadow-xs font-black'
-                        : 'text-[#747878] hover:text-black'
-                    }`}
-                  >
-                    <LogIn className="w-4 h-4" />
-                    <span>{language === 'ar' ? 'تسجيل الدخول' : 'Sign In'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => { setCheckoutAuthMode('signup'); setCheckoutAuthError(null); }}
-                    className={`py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                      checkoutAuthMode === 'signup'
-                        ? 'bg-white text-black shadow-xs font-black'
-                        : 'text-[#747878] hover:text-black'
-                    }`}
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    <span>{language === 'ar' ? 'إنشاء حساب جديد' : 'Create Account'}</span>
-                  </button>
-                </div>
-
-                {checkoutAuthError && (
-                  <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2.5 animate-fadeIn">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{checkoutAuthError}</span>
-                  </div>
-                )}
-
-                {/* Sub-Form: Sign In */}
-                {(checkoutAuthMode === 'signin' || checkoutAuthMode === 'google') && (
-                  <form onSubmit={handleCheckoutEmailSignIn} className="space-y-3 bg-[#fdfdfd] p-4 rounded-2xl border border-[#c4c7c7]/20">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
-                          {language === 'ar' ? 'البريد الإلكتروني' : 'Email Address'}
-                        </label>
-                        <input
-                          type="email"
-                          value={checkoutEmail}
-                          onChange={(e) => setCheckoutEmail(e.target.value)}
-                          required
-                          placeholder="example@domain.com"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
-                          {language === 'ar' ? 'كلمة المرور' : 'Password'}
-                        </label>
-                        <input
-                          type="password"
-                          value={checkoutPassword}
-                          onChange={(e) => setCheckoutPassword(e.target.value)}
-                          required
-                          placeholder="••••••••"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isSubmittingCheckoutAuth}
-                      className="w-full bg-[#000000] text-white py-3 rounded-xl font-bold text-xs hover:bg-[#2f3131] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2"
-                    >
-                      {isSubmittingCheckoutAuth ? (
-                        <>
-                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span>{language === 'ar' ? 'جاري الدخول...' : 'Signing in...'}</span>
-                        </>
-                      ) : (
-                        <>
-                          <LogIn className="w-4 h-4" />
-                          <span>{language === 'ar' ? 'تسجيل الدخول ومتابعة الشراء' : 'Sign In & Continue'}</span>
-                        </>
-                      )}
-                    </button>
-                  </form>
-                )}
-
-                {/* Sub-Form: Sign Up */}
-                {checkoutAuthMode === 'signup' && (
-                  <form onSubmit={handleCheckoutEmailSignUp} className="space-y-3 bg-[#fdfdfd] p-4 rounded-2xl border border-[#c4c7c7]/20">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
-                          {language === 'ar' ? 'الاسم الكامل' : 'Full Name'}
-                        </label>
-                        <input
-                          type="text"
-                          value={checkoutFullName}
-                          onChange={(e) => setCheckoutFullName(e.target.value)}
-                          required
-                          placeholder={language === 'ar' ? 'أحمد محمد' : 'Ahmed Mohamed'}
-                          className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
-                          {language === 'ar' ? 'اسم المستخدم' : 'Username'}
-                        </label>
-                        <input
-                          type="text"
-                          value={checkoutUsername}
-                          onChange={(e) => setCheckoutUsername(e.target.value)}
-                          required
-                          placeholder="ahmed_touza"
-                          className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
-                          {language === 'ar' ? 'البريد الإلكتروني' : 'Email Address'}
-                        </label>
-                        <input
-                          type="email"
-                          value={checkoutEmail}
-                          onChange={(e) => setCheckoutEmail(e.target.value)}
-                          required
-                          placeholder="example@domain.com"
-                          className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
-                          {language === 'ar' ? 'رقم الهاتف' : 'Phone Number'}
-                        </label>
-                        <input
-                          type="tel"
-                          value={checkoutPhone}
-                          onChange={(e) => setCheckoutPhone(e.target.value)}
-                          required
-                          placeholder="01012345678"
-                          className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
-                          {language === 'ar' ? 'كلمة المرور' : 'Password'}
-                        </label>
-                        <input
-                          type="password"
-                          value={checkoutPassword}
-                          onChange={(e) => setCheckoutPassword(e.target.value)}
-                          required
-                          placeholder="••••••••"
-                          className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-[#1f1f1f] mb-1">
-                          {language === 'ar' ? 'تأكيد كلمة المرور' : 'Confirm Password'}
-                        </label>
-                        <input
-                          type="password"
-                          value={checkoutConfirmPassword}
-                          onChange={(e) => setCheckoutConfirmPassword(e.target.value)}
-                          required
-                          placeholder="••••••••"
-                          className="w-full px-3.5 py-2 rounded-xl border border-[#c4c7c7] text-xs bg-white focus:outline-none focus:border-black transition-colors"
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isSubmittingCheckoutAuth}
-                      className="w-full bg-[#000000] text-white py-3 rounded-xl font-bold text-xs hover:bg-[#2f3131] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 mt-1"
-                    >
-                      {isSubmittingCheckoutAuth ? (
-                        <>
-                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span>{language === 'ar' ? 'جاري إنشاء الحساب...' : 'Creating Account...'}</span>
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="w-4 h-4" />
-                          <span>{language === 'ar' ? 'إنشاء حساب جديد وتأكيد الدخول' : 'Create Account & Continue'}</span>
-                        </>
-                      )}
-                    </button>
-                  </form>
-                )}
-              </div>
+            <div>
+              <p className="font-bold text-emerald-950">
+                {language === 'ar' ? 'طلب فوري ومباشر عبر واتساب 💬' : 'Instant Direct Order via WhatsApp 💬'}
+              </p>
+              <p className="text-[11px] sm:text-xs text-emerald-800">
+                {language === 'ar'
+                  ? 'لا تحتاج لتسجيل دخول أو كلمة مرور. املأ بياناتك وسيصل الطلب مباشرة إلى واتساب المتجر.'
+                  : 'No account, email, or password required. Your order will be sent directly to our official WhatsApp.'}
+              </p>
             </div>
-          )}
+          </div>
+          <div className="hidden sm:flex items-center gap-1.5 text-emerald-700 text-xs shrink-0 bg-white/80 px-2.5 py-1 rounded-lg border border-emerald-200">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>{language === 'ar' ? 'طلب آمن وسريع' : 'Secure & Fast'}</span>
+          </div>
         </div>
       )}
 
       {step === 'confirmation' ? (
         /* Order Confirmation View */
-        <div className="max-w-2xl mx-auto py-10 text-center fade-in-up">
-          <div className="w-16 h-16 bg-[#000000] text-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg">
-            <Check className="w-8 h-8" />
+        <div className="max-w-2xl mx-auto py-8 sm:py-12 text-center fade-in-up">
+          <div className="w-20 h-20 bg-[#25D366] text-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-xl animate-bounce">
+            <MessageCircle className="w-10 h-10" />
           </div>
-          <p className="font-label-caps text-[#2e7d32] font-bold text-[14px] mb-2">{t('checkout.successTitle', 'Order Confirmed!')}</p>
-          <h2 className="font-display text-[30px] md:text-[42px] text-[#000000] mb-4 font-bold">
-            {language === 'ar' ? 'شكراً لطلبك من TOUZA' : 'Thank You For Your Order'}
+
+          <span className="inline-block px-3.5 py-1 bg-emerald-100 text-emerald-800 rounded-full font-label-caps font-bold text-xs mb-3">
+            {language === 'ar' ? 'تم تجهيز الطلب بنجاح' : 'Order Ready!'}
+          </span>
+
+          <h2 className="font-display text-[28px] md:text-[38px] text-[#000000] mb-3 font-bold">
+            {language === 'ar' ? 'شكراً لطلبك من توزا (TOUZA)' : 'Thank You For Your Order'}
           </h2>
-          <p className="font-body text-[16px] text-[#444748] mb-8 max-w-lg mx-auto leading-relaxed">
-            {language === 'ar' ? 'شكراً لتسوقك من توزا (TOUZA).' : 'Thank you for shopping at TOUZA.'}{' '}
-            {language === 'ar' ? 'رقم الطلب الخاص بك هو:' : 'Order ID:'}{' '}
-            <strong className="text-[#000000] font-mono dir-ltr inline-block px-3 py-1 bg-gray-100 rounded-lg">{orderNumber}</strong>
+
+          <p className="font-body text-[15px] sm:text-[16px] text-[#444748] mb-6 max-w-lg mx-auto leading-relaxed">
+            {language === 'ar'
+              ? 'تم تسجيل طلبك بنجاح برقم: '
+              : 'Your order has been created with ID: '}{' '}
+            <strong className="text-[#000000] font-mono dir-ltr inline-block px-3 py-1 bg-gray-100 rounded-lg text-base border border-gray-300">
+              {orderNumber}
+            </strong>
           </p>
 
-          {user && (
-            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 font-body text-[14px] rounded-xl font-medium inline-block text-start">
-              {language === 'ar'
-                ? `✓ تم حفظ طلبك بنجاح في حسابك (${user.email}). سنقوم بالتواصل معك لتأكيد الشحن.`
-                : `✓ Your order has been saved securely to your account (${user.email}).`}
+          {/* Direct WhatsApp Action Button */}
+          {whatsappOrderUrl && (
+            <div className="my-6 p-5 sm:p-6 bg-emerald-50 border-2 border-emerald-400 rounded-2xl shadow-sm text-center space-y-3">
+              <p className="font-bold text-emerald-950 text-[15px]">
+                {language === 'ar'
+                  ? '👇 اضغط هنا لإرسال تفاصيل الطلب عبر واتساب وتأكيد الشحن فوراً:'
+                  : '👇 Click below to send your order details via WhatsApp:'}
+              </p>
+              <a
+                href={whatsappOrderUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-3 w-full sm:w-auto px-8 py-4 bg-[#25D366] hover:bg-[#20ba5a] text-white font-label-caps font-bold text-[16px] rounded-xl shadow-lg hover:shadow-xl transition-all cursor-pointer transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <MessageCircle className="w-6 h-6 fill-current" />
+                <span>{language === 'ar' ? 'إرسال الطلب عبر واتساب الآن 💬' : 'Send Order to WhatsApp Now 💬'}</span>
+                <ExternalLink className="w-4 h-4 opacity-80" />
+              </a>
+              <p className="text-[12px] text-emerald-800">
+                {language === 'ar'
+                  ? 'خدمة العملاء جاهزة للرد عليك وتأكيد ميعاد التوصيل.'
+                  : 'Our customer support is ready to confirm delivery time with you.'}
+              </p>
             </div>
           )}
 
-          <div className="bg-[#f3f3f4] p-6 rounded-2xl text-right rtl:text-right ltr:text-left mb-8 space-y-3 border border-[#747878]/10">
-            <div className="flex justify-between font-label-caps border-b border-[#c4c7c7]/40 pb-2 text-[14px]">
-              <span>{t('checkout.fullName', 'Customer Name')}</span>
+          {/* Order Summary Details Box */}
+          <div className="bg-[#f9f9f9] p-5 sm:p-6 rounded-2xl text-right rtl:text-right ltr:text-left mb-8 space-y-3 border border-[#c4c7c7]/40 text-xs sm:text-sm">
+            <div className="flex justify-between font-label-caps border-b border-[#c4c7c7]/30 pb-2">
+              <span className="text-[#666]">{language === 'ar' ? 'الاسم' : 'Customer Name'}</span>
               <span className="text-[#000000] font-bold">{address.fullName}</span>
             </div>
-            <div className="flex justify-between font-label-caps border-b border-[#c4c7c7]/40 pb-2 text-[14px]">
-              <span>{t('checkout.street', 'Street Address')}</span>
+            <div className="flex justify-between font-label-caps border-b border-[#c4c7c7]/30 pb-2">
+              <span className="text-[#666]">{language === 'ar' ? 'رقم الهاتف' : 'Phone'}</span>
+              <span className="text-[#000000] font-bold font-mono dir-ltr">{address.phone}</span>
+            </div>
+            <div className="flex justify-between font-label-caps border-b border-[#c4c7c7]/30 pb-2">
+              <span className="text-[#666]">{language === 'ar' ? 'العنوان والمحافظة' : 'Address'}</span>
               <span className="text-[#000000] font-bold">{address.street}, {address.city}</span>
             </div>
-            <div className="flex justify-between font-label-caps border-b border-[#c4c7c7]/40 pb-2 text-[14px]">
-              <span>{language === 'ar' ? 'طريقة الدفع' : 'Payment Method'}</span>
+            <div className="flex justify-between font-label-caps border-b border-[#c4c7c7]/30 pb-2">
+              <span className="text-[#666]">{language === 'ar' ? 'طريقة الدفع' : 'Payment Method'}</span>
               <span className="text-[#000000] font-bold">
-                {paymentMethod === 'cod' ? 'الدفع عند الاستلام (كاش)' : paymentMethod === 'instapay' ? 'إنستا باي (InstaPay)' : 'فودافون كاش (Vodafone Cash)'}
+                {paymentMethod === 'cod'
+                  ? 'الدفع عند الاستلام (كاش)'
+                  : paymentMethod === 'instapay'
+                  ? 'إنستا باي (InstaPay)'
+                  : paymentMethod === 'vodafone_cash'
+                  ? 'فودافون كاش'
+                  : 'أورانج كاش'}
               </span>
             </div>
-            <div className="flex justify-between font-label-caps text-[14px]">
-              <span>{language === 'ar' ? 'موعد التوصيل المتوقع' : 'Estimated Delivery'}</span>
-              <span className="text-[#000000] font-bold">{language === 'ar' ? 'خلال ٢-٤ أيام عمل' : '2-4 Business Days'}</span>
+            <div className="flex justify-between font-label-caps pt-1 font-bold text-base">
+              <span>{language === 'ar' ? 'المبلغ الإجمالي' : 'Total Amount'}</span>
+              <span className="text-[#000000] dir-ltr">{formatPrice(total)}</span>
             </div>
           </div>
 
           <button
             onClick={onBackToShop}
-            className="bg-[#000000] text-white py-4 px-10 font-label-caps rounded-xl hover:bg-[#2f3131] transition-colors shadow-md cursor-pointer text-[15px]"
+            className="bg-[#000000] text-white py-3.5 px-8 font-label-caps rounded-xl hover:bg-[#2f3131] transition-colors shadow-md cursor-pointer text-sm font-bold"
           >
             {t('checkout.continueShopping', 'Continue Shopping')}
           </button>
         </div>
       ) : (
         /* Form & Summary Split */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
           {/* Main Form Left Column */}
           <div className="lg:col-span-7 space-y-6">
             {submitError && (
-              <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-[14px] rounded-xl font-bold flex items-center gap-2">
-                <AlertCircle className="w-5 h-5" />
+              <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-[13px] sm:text-[14px] rounded-xl font-bold flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 shrink-0" />
                 <span>{submitError}</span>
               </div>
             )}
 
             {step === 'shipping' && (
-              <div className="space-y-5">
-                <h2 className="font-display text-[22px] text-[#000000] border-b border-[#c4c7c7]/40 pb-3 font-bold">
-                  {t('checkout.shippingTitle', 'Shipping Address')}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-5 bg-white p-5 sm:p-7 rounded-2xl border border-[#c4c7c7]/40 shadow-xs">
+                <div className="flex items-center justify-between border-b border-[#c4c7c7]/30 pb-3">
+                  <h2 className="font-display text-[18px] sm:text-[22px] text-[#000000] font-bold flex items-center gap-2">
+                    <Truck className="w-5 h-5" />
+                    <span>{language === 'ar' ? 'بيانات العميل والشحن' : 'Shipping Address'}</span>
+                  </h2>
+                  <span className="text-xs text-[#747878] font-label-caps">
+                    {language === 'ar' ? 'خطوة 1 من 2' : 'Step 1 of 2'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                   <div className="md:col-span-2">
-                    <label className="block font-label-caps text-[#444748] text-[12px] mb-1">
+                    <label className="block font-label-caps text-[#444748] text-[12px] font-bold mb-1">
                       {language === 'ar' ? 'الاسم بالكامل *' : 'Full Name *'}
                     </label>
                     <input
@@ -826,59 +590,79 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                       placeholder={language === 'ar' ? 'أدخل اسمك الثلاثي' : 'Enter your full name'}
                       value={address.fullName}
                       onChange={(e) => setAddress({ ...address, fullName: e.target.value })}
-                      className="w-full input-minimal py-2.5 px-3 border border-[#c4c7c7] rounded-lg text-[15px]"
+                      className="w-full input-minimal py-2.5 px-3.5 border border-[#c4c7c7] rounded-xl text-[14px] sm:text-[15px] focus:border-black focus:ring-1 focus:ring-black outline-hidden"
                       required
                     />
                   </div>
+
                   <div className="md:col-span-2">
-                    <label className="block font-label-caps text-[#444748] text-[12px] mb-1">
-                      {language === 'ar' ? 'العنوان / الشارع *' : 'Street Address *'}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={language === 'ar' ? 'اسم الشارع، رقم العمارة' : 'Street name, building number'}
-                      value={address.street}
-                      onChange={(e) => setAddress({ ...address, street: e.target.value })}
-                      className="w-full input-minimal py-2.5 px-3 border border-[#c4c7c7] rounded-lg text-[15px]"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-label-caps text-[#444748] text-[12px] mb-1">
-                      {language === 'ar' ? 'الشقة / الدور' : 'Apartment / Floor'}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={language === 'ar' ? 'شقة 4، الدور 3' : 'Apt 4, 3rd Floor'}
-                      value={address.apartment}
-                      onChange={(e) => setAddress({ ...address, apartment: e.target.value })}
-                      className="w-full input-minimal py-2.5 px-3 border border-[#c4c7c7] rounded-lg text-[15px]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-label-caps text-[#444748] text-[12px] mb-1">
-                      {language === 'ar' ? 'المدينة / المحافظة *' : 'City / Governorate *'}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={language === 'ar' ? 'القاهرة، الجيزة، الإسكندرية...' : 'Cairo, Giza, Alexandria...'}
-                      value={address.city}
-                      onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                      className="w-full input-minimal py-2.5 px-3 border border-[#c4c7c7] rounded-lg text-[15px]"
-                      required
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block font-label-caps text-[#444748] text-[12px] mb-1">
-                      {language === 'ar' ? 'رقم الهاتف للعد والتواصل *' : 'Phone Number *'}
+                    <label className="block font-label-caps text-[#444748] text-[12px] font-bold mb-1">
+                      {language === 'ar' ? 'رقم الموبايل / واتساب للتواصل *' : 'Phone / WhatsApp Number *'}
                     </label>
                     <input
                       type="tel"
                       placeholder="010XXXXXXXX"
                       value={address.phone}
                       onChange={(e) => setAddress({ ...address, phone: e.target.value })}
-                      className="w-full input-minimal py-2.5 px-3 border border-[#c4c7c7] rounded-lg text-[15px] dir-ltr text-right rtl:text-right font-mono"
+                      className="w-full input-minimal py-2.5 px-3.5 border border-[#c4c7c7] rounded-xl text-[14px] sm:text-[15px] dir-ltr text-right rtl:text-right font-mono focus:border-black focus:ring-1 focus:ring-black outline-hidden"
                       required
+                    />
+                    <p className="text-[11px] text-[#747878] mt-1">
+                      {language === 'ar' ? 'سيتم استخدام هذا الرقم للتواصل معك وتأكيد الطلب وشحنه.' : 'Will be used for order confirmation & delivery.'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block font-label-caps text-[#444748] text-[12px] font-bold mb-1">
+                      {language === 'ar' ? 'المحافظة / المدينة *' : 'City / Governorate *'}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={language === 'ar' ? 'بورسعيد، القاهرة، الإسكندرية...' : 'Port Said, Cairo, Alexandria...'}
+                      value={address.city}
+                      onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                      className="w-full input-minimal py-2.5 px-3.5 border border-[#c4c7c7] rounded-xl text-[14px] sm:text-[15px] focus:border-black focus:ring-1 focus:ring-black outline-hidden"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-label-caps text-[#444748] text-[12px] font-bold mb-1">
+                      {language === 'ar' ? 'الشقة / الدور (اختياري)' : 'Apartment / Floor'}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={language === 'ar' ? 'شقة 4، الدور 3' : 'Apt 4, 3rd Floor'}
+                      value={address.apartment}
+                      onChange={(e) => setAddress({ ...address, apartment: e.target.value })}
+                      className="w-full input-minimal py-2.5 px-3.5 border border-[#c4c7c7] rounded-xl text-[14px] sm:text-[15px] focus:border-black focus:ring-1 focus:ring-black outline-hidden"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block font-label-caps text-[#444748] text-[12px] font-bold mb-1">
+                      {language === 'ar' ? 'العنوان بالتفصيل (اسم الشارع، رقم العمارة، علامة مميزة) *' : 'Street Address *'}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={language === 'ar' ? 'اسم الشارع، رقم العمارة أو علامة مميزة بجوارك' : 'Street name, building number'}
+                      value={address.street}
+                      onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                      className="w-full input-minimal py-2.5 px-3.5 border border-[#c4c7c7] rounded-xl text-[14px] sm:text-[15px] focus:border-black focus:ring-1 focus:ring-black outline-hidden"
+                      required
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block font-label-caps text-[#444748] text-[12px] font-bold mb-1">
+                      {language === 'ar' ? 'ملاحظات إضافية على الطلب (اختياري)' : 'Order Notes (Optional)'}
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder={language === 'ar' ? 'أي تعليمات للمندوب أو مقاسات خاصة...' : 'Any special delivery instructions...'}
+                      value={orderNotes}
+                      onChange={(e) => setOrderNotes(e.target.value)}
+                      className="w-full input-minimal py-2 px-3.5 border border-[#c4c7c7] rounded-xl text-[13px] sm:text-[14px] focus:border-black focus:ring-1 focus:ring-black outline-hidden resize-none"
                     />
                   </div>
                 </div>
@@ -886,18 +670,24 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                 <button
                   type="button"
                   onClick={handleProceedToPayment}
-                  className="w-full bg-[#000000] text-white py-4 rounded-xl font-label-caps hover:bg-[#2f3131] transition-all cursor-pointer shadow-md mt-4 text-[15px] font-bold"
+                  className="w-full bg-[#000000] text-white py-3.5 sm:py-4 rounded-xl font-label-caps hover:bg-[#2f3131] transition-all cursor-pointer shadow-md mt-2 text-[14px] sm:text-[15px] font-bold flex items-center justify-center gap-2 active:scale-[0.99]"
                 >
-                  {language === 'ar' ? 'الانتقال إلى خيارات الدفع' : 'Continue to Payment'}
+                  <span>{language === 'ar' ? 'متابعة إلى اختيار طريقة الدفع' : 'Continue to Payment Method'}</span>
+                  {language === 'ar' ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
                 </button>
               </div>
             )}
 
             {step === 'payment' && (
-              <div className="space-y-5 fade-in-up">
-                <h2 className="font-display text-[22px] text-[#000000] border-b border-[#c4c7c7]/40 pb-3 font-bold">
-                  {language === 'ar' ? 'اختر طريقة الدفع' : 'Select Payment Method'}
-                </h2>
+              <div className="space-y-5 bg-white p-5 sm:p-7 rounded-2xl border border-[#c4c7c7]/40 shadow-xs fade-in-up">
+                <div className="flex items-center justify-between border-b border-[#c4c7c7]/30 pb-3">
+                  <h2 className="font-display text-[18px] sm:text-[22px] text-[#000000] font-bold">
+                    {language === 'ar' ? 'اختر طريقة الدفع المناسبة' : 'Select Payment Method'}
+                  </h2>
+                  <span className="text-xs text-[#747878] font-label-caps">
+                    {language === 'ar' ? 'خطوة 2 من 2' : 'Step 2 of 2'}
+                  </span>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {/* Option 1: Cash on Delivery */}
@@ -987,7 +777,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                         {language === 'ar' ? 'بيانات تحويل إنستا باي (InstaPay):' : 'InstaPay Transfer Details:'}
                       </p>
                       <div className="p-3 bg-white rounded-lg border border-purple-200 font-mono text-[14px] text-purple-950 space-y-1">
-                        <p><strong>Account / IPA:</strong> {activeSettings?.instaPayAccount || activeSettings?.instaPayAddress || 'touza@instapay'}</p>
+                        <p><strong>Account / IPA:</strong> {activeSettings?.instaPayAccount || activeSettings?.instaPayAddress || 'm.fathyabdallah95@instapay'}</p>
                         {activeSettings?.instaPayPhone && (
                           <p><strong>Phone Number:</strong> {activeSettings.instaPayPhone}</p>
                         )}
@@ -1025,7 +815,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                         {language === 'ar' ? 'بيانات تحويل محفظة فودافون كاش:' : 'Vodafone Cash Wallet Details:'}
                       </p>
                       <div className="p-3 bg-white rounded-lg border border-red-200 font-mono text-[14px] text-red-950 space-y-1">
-                        <p><strong>Wallet Number:</strong> {activeSettings?.vodafoneCashNumber || '01012345678'}</p>
+                        <p><strong>Wallet Number:</strong> {activeSettings?.vodafoneCashNumber || '01070606272'}</p>
                         <p className="text-[12px] text-red-700 font-sans">
                           {language === 'ar' ? `المبلغ المطلوب تحويله: ${formatPrice(total)}` : `Amount to transfer: ${formatPrice(total)}`}
                         </p>
@@ -1061,7 +851,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                         <span>{language === 'ar' ? 'بيانات تحويل محفظة أورانج كاش (Orange Cash):' : 'Orange Cash Wallet Details:'}</span>
                       </p>
                       <div className="p-3 bg-white rounded-lg border border-orange-200 font-mono text-[14px] text-orange-950 space-y-1">
-                        <p><strong>Wallet Number:</strong> {activeSettings?.orangeCashNumber || '01200031140'}</p>
+                        <p><strong>Wallet Number:</strong> {activeSettings?.orangeCashNumber || '01070606272'}</p>
                         <p className="text-[12px] text-orange-700 font-sans">
                           {language === 'ar' ? `المبلغ المطلوب تحويله: ${formatPrice(total)}` : `Amount to transfer: ${formatPrice(total)}`}
                         </p>
@@ -1089,30 +879,33 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                   </div>
                 )}
 
-                <div className="flex gap-4 pt-4">
+                <div className="flex gap-3 sm:gap-4 pt-3">
                   <button
                     type="button"
                     onClick={() => setStep('shipping')}
-                    className="w-1/3 border border-[#000000] text-[#000000] py-3.5 rounded-xl font-label-caps hover:bg-[#f3f3f4] transition-colors cursor-pointer text-[14px]"
+                    className="w-1/3 border border-[#000000] text-[#000000] py-3.5 rounded-xl font-label-caps hover:bg-[#f3f3f4] transition-colors cursor-pointer text-[13px] sm:text-[14px] font-bold"
                   >
-                    {language === 'ar' ? 'رجوع للعنوان' : 'Back'}
+                    {language === 'ar' ? 'تعديل العنوان' : 'Back'}
                   </button>
+
                   <button
                     type="button"
-                    disabled={isSubmitting || !user}
+                    disabled={isSubmitting}
                     onClick={handlePlaceOrder}
-                    className={`w-2/3 py-3.5 rounded-xl font-label-caps font-bold transition-all shadow-md text-[15px] flex items-center justify-center gap-2 cursor-pointer ${
-                      !user
-                        ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                        : 'bg-[#000000] text-white hover:bg-[#2f3131]'
-                    }`}
+                    className="w-2/3 py-3.5 sm:py-4 rounded-xl font-label-caps font-bold transition-all shadow-lg text-[14px] sm:text-[16px] flex items-center justify-center gap-2 cursor-pointer bg-[#25D366] hover:bg-[#20ba5a] text-white active:scale-[0.98]"
                   >
                     {isSubmitting ? (
-                      <span>{language === 'ar' ? 'جاري تأكيد الطلب وحفظه...' : 'Saving Order...'}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>{language === 'ar' ? 'جاري تجهيز الطلب...' : 'Processing...'}</span>
+                      </div>
                     ) : (
-                      <span>
-                        {t('checkout.placeOrder', 'تاكيد الطلب الآن')} ({formatPrice(total)})
-                      </span>
+                      <>
+                        <MessageCircle className="w-5 h-5 fill-current" />
+                        <span>
+                          {language === 'ar' ? 'تأكيد الطلب وإرسال عبر واتساب 💬' : 'Confirm & Send to WhatsApp'}
+                        </span>
+                      </>
                     )}
                   </button>
                 </div>
@@ -1121,24 +914,30 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
           </div>
 
           {/* Right Column Order Summary */}
-          <div className="lg:col-span-5 bg-[#ffffff] border border-[#c4c7c7]/40 p-6 rounded-2xl h-fit space-y-5 shadow-xs">
-            <h2 className="font-display text-[20px] text-[#000000] border-b border-[#c4c7c7]/30 pb-3 font-bold">
-              {t('checkout.orderSummary', 'Order Summary')} ({cartItems.reduce((acc, item) => acc + item.quantity, 0)})
+          <div className="lg:col-span-5 bg-[#ffffff] border border-[#c4c7c7]/40 p-5 sm:p-6 rounded-2xl h-fit space-y-5 shadow-xs">
+            <h2 className="font-display text-[18px] sm:text-[20px] text-[#000000] border-b border-[#c4c7c7]/30 pb-3 font-bold flex items-center justify-between">
+              <span>{t('checkout.orderSummary', 'Order Summary')}</span>
+              <span className="text-xs bg-[#000000] text-white px-2.5 py-0.5 rounded-full font-mono font-bold">
+                {cartItems.reduce((acc, item) => acc + item.quantity, 0)} {language === 'ar' ? 'قطع' : 'items'}
+              </span>
             </h2>
 
             {/* Items List */}
             <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
               {cartItems.map((item) => {
                 const name = getLocalizedProductName(item.product, language);
+                const colorObj = item.product.colors?.find((c) => c.name === item.selectedColor);
+                const rawImg = colorObj?.imageUrl || (item.product.images && item.product.images.length > 0 ? item.product.images[0] : '') || '';
+
                 return (
-                  <div key={item.id} className="flex gap-3 items-center">
+                  <div key={item.id} className="flex gap-3 items-center border-b border-[#c4c7c7]/20 pb-3">
                     <img
-                      src={item.product.images[0]}
+                      src={rawImg || 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=300'}
                       alt={name}
-                      className="w-14 h-16 object-cover bg-[#f3f3f4] shrink-0 rounded-md border border-[#747878]/10"
+                      className="w-14 h-16 object-cover bg-[#f3f3f4] shrink-0 rounded-lg border border-[#747878]/10"
                     />
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-display text-[15px] text-[#000000] truncate font-medium">
+                      <h4 className="font-display text-[14px] sm:text-[15px] text-[#000000] truncate font-bold">
                         {name}
                       </h4>
                       <p className="font-body text-[12px] text-[#747878]">
@@ -1153,61 +952,60 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
               })}
             </div>
 
-            {/* Promo Code Input */}
-            <form onSubmit={handleApplyPromo} className="pt-2 border-t border-[#c4c7c7]/30">
+            {/* Promo Code Form */}
+            <form onSubmit={handleApplyPromo} className="space-y-2 pt-2 border-t border-[#c4c7c7]/30">
+              <label className="block font-label-caps text-[12px] text-[#444748] font-bold">
+                {language === 'ar' ? 'هل لديك كود خصم؟' : 'Have a Promo Code?'}
+              </label>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder={language === 'ar' ? 'كود خصم (مثال: ELEGAN10)' : 'Privilege Code (e.g. ELEGAN10)'}
+                  placeholder="TOUZA10"
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value)}
-                  className="flex-1 input-minimal text-[13px] py-1.5 px-3 border border-[#c4c7c7] rounded-lg"
+                  className="flex-1 input-minimal py-2 px-3 border border-[#c4c7c7] rounded-xl text-[13px] uppercase font-mono tracking-wider focus:border-black outline-hidden"
                 />
                 <button
                   type="submit"
-                  className="bg-[#000000] text-white px-4 py-1.5 font-label-caps text-[12px] rounded-lg hover:bg-[#2f3131] transition-colors cursor-pointer"
+                  className="bg-[#000000] text-white px-4 py-2 rounded-xl font-label-caps text-[12px] font-bold hover:bg-[#2f3131] transition-colors cursor-pointer"
                 >
                   {language === 'ar' ? 'تطبيق' : 'Apply'}
                 </button>
               </div>
-              {promoError && (
-                <p className="text-[12px] text-[#ba1a1a] mt-1 font-body">{promoError}</p>
-              )}
-              {promoSuccess && (
-                <p className="text-[12px] text-[#2e7d32] mt-1 font-body font-medium">
-                  {promoSuccess}
-                </p>
-              )}
+              {promoError && <p className="text-[12px] text-red-600 font-bold">{promoError}</p>}
+              {promoSuccess && <p className="text-[12px] text-emerald-600 font-bold">{promoSuccess}</p>}
             </form>
 
-            {/* Price Calculations */}
-            <div className="border-t border-[#c4c7c7]/30 pt-3 space-y-2 font-body text-[14px]">
-              <div className="flex justify-between text-[#444748]">
-                <span>{t('cart.subtotal', 'Subtotal')}</span>
-                <span className="text-[#000000] font-bold dir-ltr">{formatPrice(subtotal)}</span>
+            {/* Calculations Breakdown */}
+            <div className="space-y-2 pt-3 border-t border-[#c4c7c7]/30 text-[13px] sm:text-[14px]">
+              <div className="flex justify-between font-label-caps text-[#5e5e5c]">
+                <span>{language === 'ar' ? 'المجموع الفرعي' : 'Subtotal'}</span>
+                <span className="font-bold text-[#000000] dir-ltr">{formatPrice(subtotal)}</span>
               </div>
-              {discountPercent > 0 && (
-                <div className="flex justify-between text-[#2e7d32]">
-                  <span>خصم كود التخفيض ({discountPercent}%)</span>
+
+              {discountAmount > 0 && (
+                <div className="flex justify-between font-label-caps text-emerald-700 font-bold">
+                  <span>{language === 'ar' ? 'قيمة الخصم' : 'Discount'}</span>
                   <span className="dir-ltr">-{formatPrice(discountAmount)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-[#444748]">
+
+              <div className="flex justify-between font-label-caps text-[#5e5e5c]">
                 <span>
                   {language === 'ar'
-                    ? (activeSettings?.shippingLabelAr || t('cart.delivery', 'الشحن داخل مصر'))
-                    : (activeSettings?.shippingLabelEn || t('cart.delivery', 'Express Shipping'))}
+                    ? (activeSettings?.shippingLabelAr || 'الشحن لجميع المحافظات')
+                    : (activeSettings?.shippingLabelEn || 'Shipping across Egypt')}
                 </span>
                 {shipping === 0 ? (
-                  <span className="text-[#2e7d32] font-bold">{t('cart.free', 'Complimentary')}</span>
+                  <span className="text-emerald-700 font-bold">{language === 'ar' ? 'مجاني ✨' : 'Free'}</span>
                 ) : (
-                  <span className="text-[#000000] font-bold dir-ltr">{formatPrice(shipping)}</span>
+                  <span className="font-bold text-[#000000] dir-ltr">{formatPrice(shipping)}</span>
                 )}
               </div>
 
-              <div className="flex justify-between font-display text-[20px] text-[#000000] pt-3 border-t border-[#c4c7c7]/30 font-bold">
-                <span>{t('checkout.total', 'Total')}</span>
-                <span className="dir-ltr">{formatPrice(total)}</span>
+              <div className="flex justify-between font-label-caps text-[16px] sm:text-[17px] font-bold text-[#000000] pt-2 border-t border-[#c4c7c7]/40">
+                <span>{language === 'ar' ? 'الإجمالي المطلوب' : 'Total Amount'}</span>
+                <span className="dir-ltr text-[18px]">{formatPrice(total)}</span>
               </div>
             </div>
           </div>

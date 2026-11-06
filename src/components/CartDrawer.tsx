@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, X, Trash2, Plus, Minus, ArrowRight, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, X, Trash2, Plus, Minus, ArrowRight, ArrowLeft, MessageCircle } from 'lucide-react';
 import { CartItem, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getLocalizedProductName } from '../data/products';
@@ -304,9 +304,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     onClose();
                     onProceedToCheckout();
                   }}
-                  className="w-full bg-[#000000] text-white py-3.5 sm:py-4 rounded-xl font-label-caps hover:bg-[#2f3131] transition-all cursor-pointer text-center shadow-md active:scale-[0.99] text-[14px] sm:text-[15px] font-bold flex items-center justify-center gap-2"
+                  className="w-full bg-[#000000] hover:bg-[#25D366] text-white py-3.5 sm:py-4 rounded-xl font-label-caps transition-all cursor-pointer text-center shadow-md active:scale-[0.99] text-[14px] sm:text-[15px] font-bold flex items-center justify-center gap-2 group"
                 >
-                  <span>{t('cart.checkout', 'Proceed to Checkout')}</span>
+                  <MessageCircle className="w-5 h-5 text-[#25D366] group-hover:text-white transition-colors fill-current" />
+                  <span>{language === 'ar' ? 'إتمام الطلب وتأكيده عبر واتساب' : 'Checkout & Send to WhatsApp'}</span>
                   {direction === 'rtl' ? (
                     <ArrowLeft className="w-4 h-4" />
                   ) : (

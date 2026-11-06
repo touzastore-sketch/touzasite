@@ -5,15 +5,12 @@ import { useLanguage } from '../context/LanguageContext';
 import { subscribeToReviews, SavedReview } from '../firebase';
 
 interface CustomerReviewsSectionProps {
-  user: User | null;
-  onSignInGoogle: () => Promise<void>;
-  onOpenAccount: () => void;
+  user?: User | null;
+  onSignInGoogle?: () => Promise<void>;
+  onOpenAccount?: () => void;
 }
 
-const CustomerReviewsSectionComponent: React.FC<CustomerReviewsSectionProps> = ({
-  user,
-  onOpenAccount,
-}) => {
+const CustomerReviewsSectionComponent: React.FC<CustomerReviewsSectionProps> = () => {
   const { language } = useLanguage();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [reviews, setReviews] = useState<SavedReview[]>([]);
@@ -115,18 +112,6 @@ const CustomerReviewsSectionComponent: React.FC<CustomerReviewsSectionProps> = (
               : 'Your feedback inspires us. Here’s how men are styling and enjoying Touza casual menswear.'}
           </p>
 
-          {/* If logged in, show quick button to rate orders inside Account */}
-          {user && (
-            <div className="pt-2">
-              <button
-                onClick={onOpenAccount}
-                className="inline-flex items-center gap-2 bg-[#000000] text-white px-5 py-2.5 rounded-full font-body text-[13px] font-bold hover:bg-[#222222] transition-all cursor-pointer shadow-xs"
-              >
-                <MessageSquarePlus className="w-4.5 h-4.5" />
-                <span>{language === 'ar' ? 'إضافة تقييم لطلباتك' : 'Review Your Orders'}</span>
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Right Carousel Section with Slider Navigation */}
