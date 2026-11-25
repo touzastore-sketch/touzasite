@@ -74,7 +74,7 @@ try {
     app,
     {
       localCache: memoryLocalCache(),
-      experimentalAutoDetectLongPolling: true,
+      experimentalForceLongPolling: true,
     },
     resolvedFirebaseConfig.firestoreDatabaseId
   );
@@ -142,11 +142,26 @@ export function handleFirestoreError(
 }
 
 async function testConnection() {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return;
+  }
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase configuration.');
+      // Retry once after brief warm-up in case the first long-polling channel was still establishing
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      try {
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } catch (retryError) {
+        if (
+          retryError instanceof Error &&
+          retryError.message.includes('the client is offline') &&
+          (typeof navigator === 'undefined' || navigator.onLine !== false)
+        ) {
+          console.warn('Firestore connection check: client temporarily offline or restricted network.');
+        }
+      }
     }
   }
 }
