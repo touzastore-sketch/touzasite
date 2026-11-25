@@ -1,47 +1,212 @@
 {
   "entities": {
-    "User": {
-      "collectionName": "users",
-      "fields": {
-        "uid": { "type": "string", "required": true },
-        "email": { "type": "string", "required": true },
-        "displayName": { "type": "string", "required": false },
-        "photoURL": { "type": "string", "required": false },
-        "createdAt": { "type": "timestamp", "required": true }
-      }
+    "Product": {
+      "title": "Product",
+      "description": "Catalog product displayed on the storefront and managed from the admin dashboard",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "nameAr": { "type": "string", "maxLength": 200 },
+        "subtitle": { "type": "string", "maxLength": 300 },
+        "subtitleAr": { "type": "string", "maxLength": 300 },
+        "category": { "type": "string", "maxLength": 120 },
+        "categoryAr": { "type": "string", "maxLength": 120 },
+        "price": { "type": "number" },
+        "originalPrice": { "type": "number" },
+        "description": { "type": "string", "maxLength": 5000 },
+        "descriptionAr": { "type": "string", "maxLength": 5000 },
+        "colors": { "type": "array" },
+        "sizes": { "type": "array" },
+        "images": { "type": "array" },
+        "isNewArrival": { "type": "boolean" },
+        "isFeatured": { "type": "boolean" },
+        "showOnHome": { "type": "boolean" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["id", "name", "price"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Store product category",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "nameEn": { "type": "string", "maxLength": 120 },
+        "nameAr": { "type": "string", "maxLength": 120 },
+        "descriptionEn": { "type": "string", "maxLength": 500 },
+        "descriptionAr": { "type": "string", "maxLength": 500 },
+        "imageUrl": { "type": "string", "maxLength": 2000 }
+      },
+      "required": ["nameEn", "nameAr"]
     },
     "Order": {
-      "collectionName": "users/{userId}/orders",
-      "fields": {
-        "id": { "type": "string", "required": true },
-        "userId": { "type": "string", "required": true },
-        "userEmail": { "type": "string", "required": true },
-        "orderNumber": { "type": "string", "required": true },
-        "items": { "type": "array", "required": true },
-        "subtotal": { "type": "number", "required": true },
-        "discountAmount": { "type": "number", "required": true },
-        "shipping": { "type": "number", "required": true },
-        "total": { "type": "number", "required": true },
-        "status": { "type": "string", "required": true },
-        "shippingAddress": { "type": "map", "required": true },
-        "paymentMethod": { "type": "string", "required": true },
-        "createdAt": { "type": "timestamp", "required": true }
+      "title": "Order",
+      "description": "Customer WhatsApp order record synced with the admin dashboard",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "orderNumber": { "type": "string", "maxLength": 64 },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "discountAmount": { "type": "number" },
+        "shipping": { "type": "number" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "maxLength": 64 },
+        "shippingAddress": { "type": "object" },
+        "paymentMethod": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["orderNumber", "total", "status"]
+    },
+    "PromoCode": {
+      "title": "PromoCode",
+      "description": "Store discount promo code",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "code": { "type": "string", "maxLength": 64 },
+        "discountType": { "type": "string", "maxLength": 32 },
+        "discountPercent": { "type": "number" },
+        "discountAmount": { "type": "number" },
+        "maxUses": { "type": "number" },
+        "usedCount": { "type": "number" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["code"]
+    },
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "Global storefront branding, hero, policies, shipping, and WhatsApp settings",
+      "type": "object",
+      "properties": {
+        "storeNameAr": { "type": "string", "maxLength": 200 },
+        "storeNameEn": { "type": "string", "maxLength": 200 },
+        "whatsappNumber": { "type": "string", "maxLength": 40 },
+        "shippingFree": { "type": "boolean" },
+        "shippingFee": { "type": "number" }
       }
     },
     "Review": {
-      "collectionName": "reviews",
-      "fields": {
-        "id": { "type": "string", "required": true },
-        "productId": { "type": "string", "required": true },
-        "productTitle": { "type": "string", "required": true },
-        "rating": { "type": "number", "required": true },
-        "comment": { "type": "string", "required": true },
-        "userId": { "type": "string", "required": true },
-        "userName": { "type": "string", "required": true },
-        "userPhoto": { "type": "string", "required": false },
-        "orderNumber": { "type": "string", "required": false },
-        "createdAt": { "type": "timestamp", "required": true }
+      "title": "Review",
+      "description": "Customer product review",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "productId": { "type": "string", "maxLength": 128 },
+        "rating": { "type": "number" },
+        "comment": { "type": "string", "maxLength": 2000 },
+        "userName": { "type": "string", "maxLength": 120 }
+      },
+      "required": ["rating", "comment"]
+    },
+    "Subscriber": {
+      "title": "Subscriber",
+      "description": "Newsletter subscriber",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "status": { "type": "string", "maxLength": 32 }
+      },
+      "required": ["email"]
+    },
+    "NewsletterCampaign": {
+      "title": "NewsletterCampaign",
+      "description": "Newsletter campaign sent from admin dashboard",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "subject": { "type": "string", "maxLength": 300 },
+        "content": { "type": "string", "maxLength": 20000 }
       }
+    },
+    "Tombstone": {
+      "title": "Tombstone",
+      "description": "Deletion tombstone record preventing stale local cache resurrection",
+      "type": "object",
+      "properties": {
+        "deletedAt": { "type": "string", "maxLength": 64 }
+      }
+    },
+    "User": {
+      "title": "User",
+      "description": "Legacy user profile document",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 }
+      }
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Active store products displayed on homepage and shop"
+    },
+    "/deleted_products/{deletedId}": {
+      "schema": { "$ref": "#/entities/Tombstone" },
+      "description": "Deleted product ID tombstones"
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Storefront categories"
+    },
+    "/deleted_categories/{deletedId}": {
+      "schema": { "$ref": "#/entities/Tombstone" },
+      "description": "Deleted category ID tombstones"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/StoreSettings" },
+      "description": "Primary storefront settings document (store)"
+    },
+    "/storeSettings/{settingId}": {
+      "schema": { "$ref": "#/entities/StoreSettings" },
+      "description": "Secondary storefront settings path"
+    },
+    "/promoCodes/{promoId}": {
+      "schema": { "$ref": "#/entities/PromoCode" },
+      "description": "Store discount promo codes"
+    },
+    "/deleted_promos/{deletedId}": {
+      "schema": { "$ref": "#/entities/Tombstone" },
+      "description": "Deleted promo code tombstones"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "WhatsApp orders synced with the admin dashboard"
+    },
+    "/deleted_orders/{deletedId}": {
+      "schema": { "$ref": "#/entities/Tombstone" },
+      "description": "Deleted order ID tombstones"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Legacy user documents"
+    },
+    "/users/{userId}/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Legacy user order subcollection"
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Customer reviews"
+    },
+    "/deleted_reviews/{deletedId}": {
+      "schema": { "$ref": "#/entities/Tombstone" },
+      "description": "Deleted review ID tombstones"
+    },
+    "/subscribers/{subscriberId}": {
+      "schema": { "$ref": "#/entities/Subscriber" },
+      "description": "Newsletter subscribers"
+    },
+    "/deleted_subscribers/{deletedId}": {
+      "schema": { "$ref": "#/entities/Tombstone" },
+      "description": "Deleted subscriber tombstones"
+    },
+    "/newsletterCampaigns/{campaignId}": {
+      "schema": { "$ref": "#/entities/NewsletterCampaign" },
+      "description": "Admin newsletter campaigns"
     }
   }
 }

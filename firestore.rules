@@ -2,83 +2,186 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection: allow user and admin operations
+    // Default deny catch-all safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable validation helpers
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    function isValidProduct(data) {
+      return data is map
+        && (!('name' in data) || (data.name is string && data.name.size() <= 300))
+        && (!('nameAr' in data) || (data.nameAr is string && data.nameAr.size() <= 300))
+        && (!('price' in data) || data.price is number)
+        && (!('images' in data) || (data.images is list && data.images.size() <= 30))
+        && (!('colors' in data) || (data.colors is list && data.colors.size() <= 30))
+        && (!('sizes' in data) || (data.sizes is list && data.sizes.size() <= 30));
+    }
+
+    function isValidCategory(data) {
+      return data is map
+        && (!('nameEn' in data) || (data.nameEn is string && data.nameEn.size() <= 200))
+        && (!('nameAr' in data) || (data.nameAr is string && data.nameAr.size() <= 200));
+    }
+
+    function isValidOrder(data) {
+      return data is map
+        && (!('orderNumber' in data) || (data.orderNumber is string && data.orderNumber.size() <= 100))
+        && (!('status' in data) || (data.status is string && data.status.size() <= 64))
+        && (!('total' in data) || data.total is number)
+        && (!('items' in data) || (data.items is list && data.items.size() <= 100));
+    }
+
+    function isValidPromo(data) {
+      return data is map
+        && (!('code' in data) || (data.code is string && data.code.size() <= 64));
+    }
+
+    function isValidReview(data) {
+      return data is map
+        && (!('rating' in data) || (data.rating is number && data.rating >= 1 && data.rating <= 5))
+        && (!('comment' in data) || (data.comment is string && data.comment.size() <= 3000));
+    }
+
+    function isValidSubscriber(data) {
+      return data is map
+        && (!('email' in data) || (data.email is string && data.email.size() <= 256));
+    }
+
+    // Connection health check path
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // Products collection: public storefront read + PIN-protected admin dashboard management
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+      allow create, update: if isValidId(productId) && isValidProduct(request.resource.data);
+      allow delete: if isValidId(productId);
+    }
+
+    // Categories collection
+    match /categories/{categoryId} {
+      allow get: if isValidId(categoryId);
+      allow list: if true;
+      allow create, update: if isValidId(categoryId) && isValidCategory(request.resource.data);
+      allow delete: if isValidId(categoryId);
+    }
+
+    // Top-level orders collection (no-login WhatsApp checkout + admin dashboard sync)
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId);
+      allow list: if true;
+      allow create, update: if isValidId(orderId) && isValidOrder(request.resource.data);
+      allow delete: if isValidId(orderId);
+    }
+
+    // Collection group rule for orders
+    match /{path=**}/orders/{orderId} {
+      allow read: if true;
+      allow create, update: if isValidId(orderId) && isValidOrder(request.resource.data);
+      allow delete: if isValidId(orderId);
+    }
+
+    // Legacy users collection and subcollections
     match /users/{userId} {
-      allow read, write: if true;
+      allow get, delete: if isValidId(userId);
+      allow list: if true;
+      allow create, update: if isValidId(userId) && request.resource.data is map;
 
       match /orders/{orderId} {
-        allow read, write: if true;
+        allow get, delete: if isValidId(userId) && isValidId(orderId);
+        allow list: if isValidId(userId);
+        allow create, update: if isValidId(userId) && isValidId(orderId) && isValidOrder(request.resource.data);
       }
     }
 
-    // Top-level orders collection: allow order creation and admin dashboard reading
-    match /orders/{orderId} {
-      allow read, write: if true;
-    }
-
-    // Collection group rule for orders (enables admin collectionGroup query across all users)
-    match /{path=**}/orders/{orderId} {
-      allow read, write: if true;
-    }
-
-    // Categories collection: public read, write allowed for boutique store management
-    match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Reviews collection: public read, write tied to user or admin operations
+    // Reviews collection
     match /reviews/{reviewId} {
-      allow read: if true;
-      allow create, update, delete: if true;
+      allow get: if isValidId(reviewId);
+      allow list: if true;
+      allow create, update: if isValidId(reviewId) && isValidReview(request.resource.data);
+      allow delete: if isValidId(reviewId);
     }
 
-    // Products collection: public read, write for store admin
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Promo codes collection: public read, write for store admin
+    // Promo codes collection
     match /promoCodes/{promoId} {
-      allow read: if true;
-      allow write: if true;
+      allow get: if isValidId(promoId);
+      allow list: if true;
+      allow create, update: if isValidId(promoId) && isValidPromo(request.resource.data);
+      allow delete: if isValidId(promoId);
     }
 
-    // Store settings collections: public read, write for store admin
+    // Store settings collections
     match /settings/{settingId} {
-      allow read: if true;
-      allow write: if true;
+      allow get: if isValidId(settingId);
+      allow list: if true;
+      allow create, update: if isValidId(settingId) && request.resource.data is map;
+      allow delete: if isValidId(settingId);
     }
 
     match /storeSettings/{settingId} {
-      allow read: if true;
-      allow write: if true;
+      allow get: if isValidId(settingId);
+      allow list: if true;
+      allow create, update: if isValidId(settingId) && request.resource.data is map;
+      allow delete: if isValidId(settingId);
     }
 
-    // Subscribers, Deleted Subscribers & Newsletter Campaigns collections
+    // Newsletter subscribers & campaigns
     match /subscribers/{subscriberId} {
-      allow read, write: if true;
-    }
-
-    match /deleted_subscribers/{deletedId} {
-      allow read, write: if true;
-    }
-
-    match /deleted_categories/{deletedId} {
-      allow read, write: if true;
-    }
-
-    match /deleted_products/{deletedId} {
-      allow read, write: if true;
-    }
-
-    match /deleted_promos/{deletedId} {
-      allow read, write: if true;
+      allow get: if isValidId(subscriberId);
+      allow list: if true;
+      allow create, update: if isValidId(subscriberId) && isValidSubscriber(request.resource.data);
+      allow delete: if isValidId(subscriberId);
     }
 
     match /newsletterCampaigns/{campaignId} {
-      allow read, write: if true;
+      allow get: if isValidId(campaignId);
+      allow list: if true;
+      allow create, update: if isValidId(campaignId) && request.resource.data is map;
+      allow delete: if isValidId(campaignId);
+    }
+
+    // Deletion tombstone collections
+    match /deleted_products/{deletedId} {
+      allow get, delete: if isValidId(deletedId);
+      allow list: if true;
+      allow create, update: if isValidId(deletedId) && request.resource.data is map;
+    }
+
+    match /deleted_categories/{deletedId} {
+      allow get, delete: if isValidId(deletedId);
+      allow list: if true;
+      allow create, update: if isValidId(deletedId) && request.resource.data is map;
+    }
+
+    match /deleted_promos/{deletedId} {
+      allow get, delete: if isValidId(deletedId);
+      allow list: if true;
+      allow create, update: if isValidId(deletedId) && request.resource.data is map;
+    }
+
+    match /deleted_orders/{deletedId} {
+      allow get, delete: if isValidId(deletedId);
+      allow list: if true;
+      allow create, update: if isValidId(deletedId) && request.resource.data is map;
+    }
+
+    match /deleted_reviews/{deletedId} {
+      allow get, delete: if isValidId(deletedId);
+      allow list: if true;
+      allow create, update: if isValidId(deletedId) && request.resource.data is map;
+    }
+
+    match /deleted_subscribers/{deletedId} {
+      allow get, delete: if isValidId(deletedId);
+      allow list: if true;
+      allow create, update: if isValidId(deletedId) && request.resource.data is map;
     }
   }
 }

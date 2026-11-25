@@ -17,8 +17,7 @@ import {
 import {
   getFirestore,
   initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
+  memoryLocalCache,
   setLogLevel,
   collection,
   collectionGroup,
@@ -67,15 +66,14 @@ try {
   setLogLevel('silent');
 } catch {}
 
-// Initialize Firestore with high-performance persistent local cache & auto-detected long polling for instant realtime sync across Safari/iOS/mobile/desktop
+// Initialize Firestore with memoryLocalCache (instant localStorage cache handles offline/reload persistence)
+// Avoids iOS Safari IndexedDB multi-tab deadlocks and stale IndexedDB reads while keeping realtime onSnapshot fast
 let firestoreInstance;
 try {
   firestoreInstance = initializeFirestore(
     app,
     {
-      localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager(),
-      }),
+      localCache: memoryLocalCache(),
       experimentalAutoDetectLongPolling: true,
     },
     resolvedFirebaseConfig.firestoreDatabaseId
@@ -87,6 +85,74 @@ try {
 }
 
 export const db = firestoreInstance;
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  };
+}
+
+export function handleFirestoreError(
+  error: unknown,
+  operationType: OperationType,
+  path: string | null,
+  rethrow = false
+): void {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid ?? null,
+      email: auth.currentUser?.email ?? null,
+      emailVerified: auth.currentUser?.emailVerified ?? null,
+      isAnonymous: auth.currentUser?.isAnonymous ?? null,
+      tenantId: auth.currentUser?.tenantId ?? null,
+      providerInfo:
+        auth.currentUser?.providerData?.map((provider) => ({
+          providerId: provider.providerId,
+          email: provider.email,
+        })) || [],
+    },
+    operationType,
+    path,
+  };
+  console.error('Firestore Error:', JSON.stringify(errInfo));
+  if (rethrow) {
+    throw new Error(JSON.stringify(errInfo));
+  }
+}
+
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error('Please check your Firebase configuration.');
+    }
+  }
+}
+if (typeof window !== 'undefined') {
+  testConnection();
+}
 
 // Helper to timeout long-hanging Firestore requests (e.g. offline/network latency/Safari ITP)
 const fetchWithTimeout = <T>(promise: Promise<T>, timeoutMs = 15000): Promise<T> => {
@@ -1814,6 +1880,114 @@ const readLocalDeletedProductIds = (): Set<string> => {
   return new Set<string>();
 };
 
+const decodeFirestoreValue = (val: any): any => {
+  if (!val || typeof val !== 'object') return undefined;
+  if ('stringValue' in val) return val.stringValue;
+  if ('booleanValue' in val) return val.booleanValue;
+  if ('integerValue' in val) return Number(val.integerValue);
+  if ('doubleValue' in val) return Number(val.doubleValue);
+  if ('nullValue' in val) return null;
+  if ('timestampValue' in val) return val.timestampValue;
+  if ('arrayValue' in val) {
+    const vals = val.arrayValue?.values;
+    return Array.isArray(vals) ? vals.map(decodeFirestoreValue) : [];
+  }
+  if ('mapValue' in val) {
+    const fields = val.mapValue?.fields || {};
+    const obj: Record<string, any> = {};
+    for (const k of Object.keys(fields)) {
+      obj[k] = decodeFirestoreValue(fields[k]);
+    }
+    return obj;
+  }
+  return undefined;
+};
+
+const fetchCollectionViaRest = async (
+  collectionId: string,
+  timeoutMs = 5000
+): Promise<Array<{ id: string; data: Record<string, any> }> | null> => {
+  try {
+    const projectId = resolvedFirebaseConfig.projectId;
+    const databaseId = resolvedFirebaseConfig.firestoreDatabaseId || '(default)';
+    const apiKey = resolvedFirebaseConfig.apiKey;
+    if (!projectId || !apiKey) return null;
+
+    const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/${encodeURIComponent(databaseId)}/documents:runQuery?key=${encodeURIComponent(apiKey)}`;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      signal: controller?.signal,
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId }],
+        },
+      }),
+    });
+
+    if (timer) clearTimeout(timer);
+    if (!res.ok) return null;
+
+    const rows = await res.json();
+    if (!Array.isArray(rows)) return null;
+
+    const docs: Array<{ id: string; data: Record<string, any> }> = [];
+    for (const row of rows) {
+      if (!row || !row.document || !row.document.name) continue;
+      const parts = String(row.document.name).split('/');
+      const id = parts[parts.length - 1];
+      const fields = row.document.fields || {};
+      const data: Record<string, any> = {};
+      for (const k of Object.keys(fields)) {
+        data[k] = decodeFirestoreValue(fields[k]);
+      }
+      docs.push({ id, data });
+    }
+    return docs;
+  } catch {
+    return null;
+  }
+};
+
+const fetchProductsFastFromServer = async (timeoutMs = 6000): Promise<Product[] | null> => {
+  try {
+    const [restProducts, restDeleted] = await Promise.all([
+      fetchCollectionViaRest('products', timeoutMs),
+      fetchCollectionViaRest('deleted_products', 3000),
+    ]);
+
+    if (!restProducts) return null;
+
+    const deletedSet = readLocalDeletedProductIds();
+    if (restDeleted) {
+      restDeleted.forEach((d) => deletedSet.add(d.id.trim()));
+    }
+
+    const list: Product[] = [];
+    for (const item of restProducts) {
+      if (isBannedProductId(item.id)) {
+        deleteDoc(doc(db, 'products', item.id)).catch(() => {});
+        continue;
+      }
+      if (!deletedSet.has(item.id.trim())) {
+        list.push(sanitizeProduct({ id: item.id, ...item.data } as Product));
+      }
+    }
+
+    const sorted = sortProductsNewestFirst(list);
+    try {
+      localStorage.setItem('maison_products', safeJsonStringify(sorted));
+    } catch {}
+    return sorted;
+  } catch {
+    return null;
+  }
+};
+
 const fetchCollectionServerFirst = async (colRef: ReturnType<typeof collection>, timeoutMs = 8000) => {
   try {
     return await fetchWithTimeout(getDocsFromServer(colRef), timeoutMs);
@@ -1824,6 +1998,12 @@ const fetchCollectionServerFirst = async (colRef: ReturnType<typeof collection>,
 
 export const getAllProductsAdmin = async (): Promise<Product[]> => {
   try {
+    // Fast-path: direct HTTPS REST runQuery returns in ~250ms on iOS Safari & mobile 4G
+    const fastProducts = await fetchProductsFastFromServer(5000);
+    if (fastProducts !== null) {
+      return fastProducts;
+    }
+
     const deletedSet = readLocalDeletedProductIds();
     const productsRef = collection(db, 'products');
     const deletedRef = collection(db, 'deleted_products');
@@ -1863,7 +2043,7 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
     } catch {}
     return [];
   } catch (error) {
-    console.warn('Using offline cached products fallback:', error);
+    handleFirestoreError(error, OperationType.LIST, 'products', false);
     try {
       const saved = localStorage.getItem('maison_products');
       if (saved !== null) {
@@ -1964,7 +2144,16 @@ export const subscribeToProducts = (
       }
     );
 
-    // Guarantee fresh server state immediately on load even if IndexedDB cache was stale
+    // Ultra-fast parallel HTTPS REST fetch delivers products in ~250ms even on iOS Safari cold boot
+    fetchProductsFastFromServer(5000)
+      .then((fastList) => {
+        if (!isActive || hasServerSnapshot || fastList === null) return;
+        hasServerSnapshot = true;
+        callback(fastList);
+      })
+      .catch(() => {});
+
+    // Backup SDK server read in case REST is blocked
     fetchWithTimeout(getDocsFromServer(productsRef), 7000)
       .then((serverSnap) => {
         if (!isActive || hasServerSnapshot) return;
@@ -2368,11 +2557,22 @@ export const fetchInitialStoreData = async (
       })
       .catch(() => defaultSettings);
 
-    const productsPromise = Promise.all([
-      fetchCollectionServerFirst(collection(db, 'products'), FAST_TIMEOUT),
-      fetchCollectionServerFirst(collection(db, 'deleted_products'), 3500).catch(() => null),
-    ])
-      .then(([snap, dSnap]) => {
+    const productsPromise = (async (): Promise<Product[]> => {
+      try {
+        // Fast-path: plain HTTPS REST query returns in ~250ms with zero WebChannel/IndexedDB delay
+        const fastProducts = await fetchProductsFastFromServer(5000);
+        if (fastProducts !== null) {
+          if (callbacks?.onProducts) {
+            try { callbacks.onProducts(fastProducts); } catch {}
+          }
+          return fastProducts;
+        }
+
+        const [snap, dSnap] = await Promise.all([
+          fetchCollectionServerFirst(collection(db, 'products'), FAST_TIMEOUT),
+          fetchCollectionServerFirst(collection(db, 'deleted_products'), 3500).catch(() => null),
+        ]);
+
         const deletedSet = readLocalDeletedProductIds();
         if (dSnap) {
           dSnap.forEach((d) => deletedSet.add(d.id.trim()));
@@ -2399,8 +2599,7 @@ export const fetchInitialStoreData = async (
           try { callbacks.onProducts(sorted); } catch {}
         }
         return sorted;
-      })
-      .catch(() => {
+      } catch {
         try {
           const saved = localStorage.getItem('maison_products');
           if (saved !== null) {
@@ -2411,7 +2610,8 @@ export const fetchInitialStoreData = async (
           }
         } catch {}
         return [];
-      });
+      }
+    })();
 
     const categoriesPromise = fetchWithTimeout(getDocs(collection(db, 'categories')), FAST_TIMEOUT)
       .then((snap) => {

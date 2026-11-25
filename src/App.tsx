@@ -1127,6 +1127,25 @@ export const AppContent: React.FC = () => {
                   const homeSelected = products.filter((p) => p.showOnHome !== false);
                   const displayList = homeSelected.length > 0 ? homeSelected : products;
 
+                  if (displayList.length === 0 && !isInitialSyncDone) {
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {[0, 1, 2, 3].map((slot) => (
+                          <div
+                            key={slot}
+                            className="bg-white rounded-2xl overflow-hidden border border-[#c4c7c7]/25 animate-pulse"
+                          >
+                            <div className="aspect-[3/4] bg-[#ececec]" />
+                            <div className="p-4 space-y-2.5">
+                              <div className="h-4 bg-[#e6e6e6] rounded w-3/4" />
+                              <div className="h-3.5 bg-[#efefef] rounded w-1/2" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+
                   if (displayList.length === 0) {
                     return (
                       <div className="py-12 text-center bg-[#f9f9f9] rounded-2xl border border-[#c4c7c7]/30 p-8">

@@ -108,17 +108,17 @@ export const StorePreloader: React.FC<StorePreloaderProps> = ({
     };
   }, []);
 
-  // 4. Intelligent dismissal when minimum duration has passed and data is ready
+  // 4. Intelligent dismissal when minimum duration has passed and products are ready (3500ms safety ceiling still applies)
   useEffect(() => {
     if (!isHomeView) {
       dismiss();
       return;
     }
 
-    if (minDisplayPassed) {
+    if (minDisplayPassed && (isInitialSyncDone || products.length > 0)) {
       dismiss();
     }
-  }, [isHomeView, minDisplayPassed, dismiss]);
+  }, [isHomeView, minDisplayPassed, isInitialSyncDone, products.length, dismiss]);
 
   return (
     <div
