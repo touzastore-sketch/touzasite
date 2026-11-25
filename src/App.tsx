@@ -41,6 +41,8 @@ import {
   incrementPromoCodeUsageAdmin,
   safeJsonStringify,
   isBannedProductId,
+  sortProductsNewestFirst,
+  getAllProductsAdmin,
 } from './firebase';
 import {
   initTikTokPixel,
@@ -142,7 +144,9 @@ export const AppContent: React.FC = () => {
       if (saved !== null) {
         const parsed: Product[] = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.filter((p) => p && !deletedSet.has(p.id) && !isBannedProductId(p.id));
+          return sortProductsNewestFirst(
+            parsed.filter((p) => p && !deletedSet.has(p.id) && !isBannedProductId(p.id))
+          );
         }
       }
       return [];
@@ -151,7 +155,11 @@ export const AppContent: React.FC = () => {
     }
   });
 
+  const productsRef = useRef<Product[]>(products);
+  const lastLocalProductMutationRef = useRef<number>(0);
+
   useEffect(() => {
+    productsRef.current = products;
     try {
       localStorage.setItem('maison_products', safeJsonStringify(products));
     } catch (err) {
@@ -423,8 +431,9 @@ export const AppContent: React.FC = () => {
   // Streamlined Real-time Firestore synchronization with guaranteed fresh initial server load
   useEffect(() => {
     let isSubscribed = true;
+    let hasReceivedRealtimeProducts = false;
 
-    // 1. High-priority direct initial fetch from Firestore server to guarantee 100% fresh data on first load with instant progressive rendering
+    // 1. High-priority direct initial fetch from Firestore server with instant progressive rendering
     fetchInitialStoreData(defaultSettings, {
       onSettings: (settings) => {
         if (!isSubscribed) return;
@@ -441,26 +450,19 @@ export const AppContent: React.FC = () => {
       },
       onProducts: (prods) => {
         if (!isSubscribed) return;
+        // Never overwrite fresher local mutations or live realtime snapshots
+        if (hasReceivedRealtimeProducts || Date.now() - lastLocalProductMutationRef.current < 4000) {
+          setIsInitialSyncDone(true);
+          return;
+        }
         if (Array.isArray(prods)) {
-          setProducts(prods);
+          setProducts(sortProductsNewestFirst(prods));
+          setIsInitialSyncDone(true);
         }
       },
     })
-      .then((initialData) => {
+      .then(() => {
         if (!isSubscribed) return;
-        if (initialData.settings) {
-          hasServerSettingsLoadedRef.current = true;
-          setStoreSettings(initialData.settings);
-        }
-        if (initialData.categories && initialData.categories.length > 0) {
-          setCategories(initialData.categories);
-        }
-        if (initialData.promoCodes && initialData.promoCodes.length > 0) {
-          setPromoCodes(initialData.promoCodes);
-        }
-        if (Array.isArray(initialData.products)) {
-          setProducts(initialData.products);
-        }
         setIsInitialSyncDone(true);
       })
       .catch((err) => {
@@ -468,10 +470,11 @@ export const AppContent: React.FC = () => {
         setIsInitialSyncDone(true);
       });
 
-    // 2. Subscribe to continuous live Firestore updates with real snapshot triggers
+    // 2. Subscribe to continuous live Firestore updates with instant 0ms snapshot triggers
     const unsubscribeProducts = subscribeToProducts((liveProducts) => {
       if (isSubscribed && Array.isArray(liveProducts)) {
-        setProducts(liveProducts);
+        hasReceivedRealtimeProducts = true;
+        setProducts(sortProductsNewestFirst(liveProducts));
         setIsInitialSyncDone(true);
       }
     });
@@ -495,12 +498,13 @@ export const AppContent: React.FC = () => {
       }
     });
 
-    // 3. Listen for internal admin updates dispatched within the same or other tabs via BroadcastChannel & CustomEvents
+    // 3. Listen for internal admin updates dispatched within the same or other tabs via CustomEvents, BroadcastChannel & localStorage
     const handleStoreSyncEvent = (e: any) => {
       if (!isSubscribed) return;
       const { type, data } = e.detail || {};
       if (type === 'products' && Array.isArray(data)) {
-        setProducts(data);
+        hasReceivedRealtimeProducts = true;
+        setProducts(sortProductsNewestFirst(data));
       } else if (type === 'categories' && Array.isArray(data)) {
         setCategories(data);
       } else if (type === 'settings' && data) {
@@ -511,6 +515,30 @@ export const AppContent: React.FC = () => {
     };
     window.addEventListener('touza_store_sync', handleStoreSyncEvent);
 
+    const handleStorageSync = (e: StorageEvent) => {
+      if (!isSubscribed || !e.newValue) return;
+      try {
+        if (e.key === 'maison_products') {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            hasReceivedRealtimeProducts = true;
+            setProducts(sortProductsNewestFirst(parsed.filter((p) => p && !isBannedProductId(p.id))));
+          }
+        } else if (e.key === 'maison_categories') {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setCategories(parsed);
+          }
+        } else if (e.key === 'maison_settings_v4' || e.key === 'maison_settings') {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && typeof parsed === 'object') {
+            setStoreSettings((prev) => ({ ...prev, ...parsed }));
+          }
+        }
+      } catch {}
+    };
+    window.addEventListener('storage', handleStorageSync);
+
     let bc: BroadcastChannel | null = null;
     try {
       if (typeof BroadcastChannel !== 'undefined') {
@@ -519,7 +547,8 @@ export const AppContent: React.FC = () => {
           if (!isSubscribed) return;
           const { type, data } = event.data || {};
           if (type === 'products' && Array.isArray(data)) {
-            setProducts(data);
+            hasReceivedRealtimeProducts = true;
+            setProducts(sortProductsNewestFirst(data));
           } else if (type === 'categories' && Array.isArray(data)) {
             setCategories(data);
           } else if (type === 'settings' && data) {
@@ -538,17 +567,18 @@ export const AppContent: React.FC = () => {
     };
     window.addEventListener('touza_settings_updated', handleSettingsUpdated);
 
-    // Fallback safety: ensure isInitialSyncDone becomes true within 6.0s even under extreme offline latency
+    // Fallback safety: ensure isInitialSyncDone becomes true within 4.0s even under extreme offline latency
     const fallbackTimer = setTimeout(() => {
       if (isSubscribed) {
         setIsInitialSyncDone(true);
       }
-    }, 6000);
+    }, 4000);
 
     return () => {
       isSubscribed = false;
       clearTimeout(fallbackTimer);
       window.removeEventListener('touza_store_sync', handleStoreSyncEvent);
+      window.removeEventListener('storage', handleStorageSync);
       window.removeEventListener('touza_settings_updated', handleSettingsUpdated);
       if (bc) {
         try {
@@ -563,41 +593,27 @@ export const AppContent: React.FC = () => {
   }, []);
 
   // Cross-device and Safari BFCache synchronization hook:
-  // When a user unlocks their phone, switches back to the tab, or focuses the browser on mobile, laptop, or desktop,
-  // guarantee that the newest store settings, products, categories, and banners from Firestore are instantly fetched.
+  // When a user unlocks their phone, switches back to the tab, or focuses the browser,
+  // pull fresh server products immediately so newly published items appear with zero delay.
   useEffect(() => {
     let isMounted = true;
     let throttleTimer: NodeJS.Timeout | null = null;
 
     const syncLatestFromFirestore = () => {
       if (!isMounted) return;
-      if (throttleTimer) return; // Prevent excessive rapid firing within 2 seconds
+      if (Date.now() - lastLocalProductMutationRef.current < 3000) return;
+      if (throttleTimer) return;
       throttleTimer = setTimeout(() => {
         throttleTimer = null;
       }, 2000);
 
-      fetchInitialStoreData(defaultSettings, {
-        onSettings: (freshSettings) => {
-          if (isMounted && freshSettings) {
-            setStoreSettings(freshSettings);
+      getAllProductsAdmin()
+        .then((freshProducts) => {
+          if (isMounted && Array.isArray(freshProducts) && Date.now() - lastLocalProductMutationRef.current >= 3000) {
+            setProducts(sortProductsNewestFirst(freshProducts));
           }
-        },
-        onProducts: (freshProducts) => {
-          if (isMounted && Array.isArray(freshProducts)) {
-            setProducts(freshProducts);
-          }
-        },
-        onCategories: (freshCategories) => {
-          if (isMounted && freshCategories && freshCategories.length > 0) {
-            setCategories(freshCategories);
-          }
-        },
-        onPromoCodes: (freshPromos) => {
-          if (isMounted && freshPromos && freshPromos.length > 0) {
-            setPromoCodes(freshPromos);
-          }
-        },
-      }).catch(() => {});
+        })
+        .catch(() => {});
     };
 
     const handleVisibilityChange = () => {
@@ -679,30 +695,57 @@ export const AppContent: React.FC = () => {
 
   // Admin Handlers
   const handleAddProduct = async (newProduct: Product) => {
-    setProducts((prev) => [newProduct, ...prev.filter((p) => p.id !== newProduct.id)]);
+    const now = Date.now();
+    const stampedProduct: Product = {
+      ...newProduct,
+      createdAt: newProduct.createdAt || now,
+      updatedAt: now,
+      showOnHome: typeof newProduct.showOnHome === 'boolean' ? newProduct.showOnHome : true,
+    };
+    lastLocalProductMutationRef.current = now;
+    const nextList = sortProductsNewestFirst([
+      stampedProduct,
+      ...productsRef.current.filter((p) => p.id !== stampedProduct.id),
+    ]);
+    productsRef.current = nextList;
+    setProducts(nextList);
     try {
-      await saveProductAdmin(newProduct, products);
+      await saveProductAdmin(stampedProduct, nextList);
     } catch (err) {
       console.error('Failed to save product in Firestore:', err);
     }
   };
 
   const handleUpdateProduct = async (updatedProduct: Product) => {
-    setProducts((prev) => prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)));
-    if (selectedProduct && selectedProduct.id === updatedProduct.id) {
-      setSelectedProduct(updatedProduct);
+    const now = Date.now();
+    const stampedProduct: Product = {
+      ...updatedProduct,
+      updatedAt: now,
+    };
+    lastLocalProductMutationRef.current = now;
+    const nextList = sortProductsNewestFirst(
+      productsRef.current.map((p) => (p.id === stampedProduct.id ? stampedProduct : p))
+    );
+    productsRef.current = nextList;
+    setProducts(nextList);
+    if (selectedProduct && selectedProduct.id === stampedProduct.id) {
+      setSelectedProduct(stampedProduct);
     }
     try {
-      await saveProductAdmin(updatedProduct, products);
+      await saveProductAdmin(stampedProduct, nextList);
     } catch (err) {
       console.error('Failed to update product in Firestore:', err);
     }
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== productId));
+    lastLocalProductMutationRef.current = Date.now();
+    const nextList = productsRef.current.filter((p) => p.id !== productId);
+    productsRef.current = nextList;
+    setProducts(nextList);
     try {
-      const updated = await deleteProductAdmin(productId, products);
+      const updated = await deleteProductAdmin(productId, nextList);
+      productsRef.current = updated;
       setProducts(updated);
     } catch (err) {
       console.error('Failed to delete product from Firestore:', err);
@@ -710,10 +753,14 @@ export const AppContent: React.FC = () => {
   };
 
   const handleDeleteMultipleProducts = async (productIds: string[]) => {
+    lastLocalProductMutationRef.current = Date.now();
     const idSet = new Set(productIds);
-    setProducts((prev) => prev.filter((p) => !idSet.has(p.id)));
+    const nextList = productsRef.current.filter((p) => !idSet.has(p.id));
+    productsRef.current = nextList;
+    setProducts(nextList);
     try {
-      const updated = await deleteMultipleProductsAdmin(productIds, products);
+      const updated = await deleteMultipleProductsAdmin(productIds, nextList);
+      productsRef.current = updated;
       setProducts(updated);
     } catch (err) {
       console.error('Failed to delete multiple products from Firestore:', err);
@@ -1077,7 +1124,7 @@ export const AppContent: React.FC = () => {
                 </div>
 
                 {(() => {
-                  const homeSelected = products.filter((p) => p.showOnHome === true || (p.showOnHome !== false && p.isFeatured));
+                  const homeSelected = products.filter((p) => p.showOnHome !== false);
                   const displayList = homeSelected.length > 0 ? homeSelected : products;
 
                   if (displayList.length === 0) {

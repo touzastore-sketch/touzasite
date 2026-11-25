@@ -386,14 +386,19 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     onClearCart();
     setIsSubmitting(false);
 
-    // 5. Open WhatsApp immediately in the synchronous user click event context (avoids Safari popup blocker)
+    // 5. Open WhatsApp safely in a new tab without navigating inside preview iframes
     try {
-      const opened = window.open(generatedWaUrl, '_blank');
-      if (!opened || opened.closed || typeof opened.closed === 'undefined') {
+      const link = document.createElement('a');
+      link.href = generatedWaUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch {
+      if (window.self === window.top) {
         window.location.href = generatedWaUrl;
       }
-    } catch {
-      window.location.href = generatedWaUrl;
     }
   };
 

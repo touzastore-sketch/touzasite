@@ -41,6 +41,8 @@ export interface Product {
   isNewArrival?: boolean;
   isFeatured?: boolean;
   showOnHome?: boolean;
+  createdAt?: number | string;
+  updatedAt?: number | string;
 }
 
 export interface CartItem {

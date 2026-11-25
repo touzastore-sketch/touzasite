@@ -1161,11 +1161,15 @@ ${itemsSummary}
         originalPrice: cleanedOriginalPrice,
         images: fallbackImages,
         colors: cleanedColors.length > 0 ? cleanedColors : editingProduct.colors,
+        showOnHome: typeof formData.showOnHome === 'boolean' ? formData.showOnHome : (editingProduct.showOnHome ?? true),
+        createdAt: editingProduct.createdAt || Date.now(),
+        updatedAt: Date.now(),
       };
       onUpdateProduct(updated);
     } else {
+      const now = Date.now();
       const newProd: Product = {
-        id: 'prod-item-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+        id: 'prod-item-' + now + '-' + Math.random().toString(36).substring(2, 6),
         name: formData.name || 'New Item',
         nameAr: formData.nameAr || formData.name,
         subtitle: formData.subtitle || 'TOUZA Casual Collection',
@@ -1187,6 +1191,8 @@ ${itemsSummary}
         isNewArrival: formData.isNewArrival ?? true,
         isFeatured: formData.isFeatured ?? true,
         showOnHome: formData.showOnHome ?? true,
+        createdAt: now,
+        updatedAt: now,
       };
       onAddProduct(newProd);
     }
