@@ -1,557 +1,141 @@
-import React, { useEffect, useRef, useState, useCallback, useLayoutEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { StoreSettings } from '../types';
-import { SocialLinks } from './SocialLinks';
-import { getOptimizedVideoUrl, getVideoPosterUrl, getRawVideoUrl, DEFAULT_HEADER_VIDEO_URL } from '../utils/cloudinary';
+import heroDarkStack from '../assets/images/touza_hero_jacket_stack_1795730395438.jpg';
+import heroDarkHangers from '../assets/images/touza_hero_jacket_rack_1795730396212.jpg';
 
 interface HeroBannerProps {
   onShopNow: () => void;
+  onShopSecondary?: () => void;
   storeSettings?: StoreSettings;
   onVideoReady?: () => void;
 }
 
-const isDev = process.env.NODE_ENV !== 'production';
+const HeroBannerComponent: React.FC<HeroBannerProps> = ({
+  onShopNow,
+  onShopSecondary,
+  storeSettings,
+  onVideoReady,
+}) => {
+  const { language } = useLanguage();
+  const isAr = language === 'ar';
 
-const HeroBannerComponent: React.FC<HeroBannerProps> = ({ onShopNow, storeSettings, onVideoReady }) => {
-  const { language, t } = useLanguage();
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const sectionRef = useRef<HTMLElement | null>(null);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
-  const [videoError, setVideoError] = useState(false);
-  const [usingFallbackVideo, setUsingFallbackVideo] = useState(false);
-  const isMountedRef = useRef(true);
-  const isPlayingRef = useRef(false);
-  const retryCountRef = useRef(0);
-
-  const heroTitle = (language === 'ar'
-    ? storeSettings?.heroTitleAr
-    : storeSettings?.heroTitleEn
-  )?.trim() || (language === 'ar' ? 'ستايلك يبدأ من هنا' : 'Your Style Starts Here');
-
-  const heroSubtitle = (language === 'ar'
-    ? storeSettings?.heroSubtitleAr
-    : storeSettings?.heroSubtitleEn
-  )?.trim() || (language === 'ar' ? 'تشكيلة رجالية مميزة صُممت بعناية لتمنحك إطلالة أنيقة وعصرية تناسب مختلف المناسبات، مع اختيارات تجمع بين الجودة، الراحة، والأناقة في كل تفصيلة.' : 'A distinctive men’s collection crafted with care to give you a stylish and modern look for all occasions, combining quality, comfort, and elegance in every detail.');
-
-  const heroBadge = (language === 'ar'
-    ? storeSettings?.heroBadgeAr
-    : storeSettings?.heroBadgeEn
-  )?.trim() || (language === 'ar' ? 'تشكيلة توزا الرجالية • بورسعيد ومصر' : 'TOUZA MENSWEAR • EGYPT');
-
-  const rawMedia = storeSettings?.heroImageUrl?.trim();
-
-  // Resolve video delivery URL
-  const primaryVideoUrl = rawMedia ? getOptimizedVideoUrl(rawMedia) : DEFAULT_HEADER_VIDEO_URL;
-  const rawVideoUrl = rawMedia ? getRawVideoUrl(rawMedia) : undefined;
-  const [activeStreamUrl, setActiveStreamUrl] = useState<string>(primaryVideoUrl);
-  const hasAttemptedRawFallbackRef = useRef(false);
-
-  // Synchronize active stream whenever store settings change
   useEffect(() => {
-    setActiveStreamUrl(primaryVideoUrl);
-    hasAttemptedRawFallbackRef.current = false;
-    setUsingFallbackVideo(false);
-    retryCountRef.current = 0;
-    setVideoError(false);
-    isPlayingRef.current = false;
-    setIsVideoLoaded(false);
-  }, [rawMedia, primaryVideoUrl]);
-
-  const videoSrc = usingFallbackVideo ? '/hero-video.mp4' : activeStreamUrl;
-
-  // Dynamically derive current video frame poster from the video itself (e.g. Cloudinary .jpg transformation)
-  // Guaranteed to always provide a valid high-resolution image so the hero banner is never black
-  const dynamicPoster = useMemo(() => {
-    return (
-      getVideoPosterUrl(videoSrc) ||
-      getVideoPosterUrl(DEFAULT_HEADER_VIDEO_URL) ||
-      '/images/philosophy_model.jpg'
-    );
-  }, [videoSrc]);
-
-  const mediaLower = videoSrc.toLowerCase();
-  const isVideo =
-    mediaLower.includes('.mp4') ||
-    mediaLower.includes('.webm') ||
-    mediaLower.includes('.ogg') ||
-    mediaLower.includes('.mov') ||
-    mediaLower.includes('.m4v') ||
-    mediaLower.includes('video') ||
-    mediaLower.includes('hero') ||
-    mediaLower.includes('desert') ||
-    mediaLower.includes('soli') ||
-    !mediaLower.match(/\.(jpg|jpeg|png|webp|gif|svg)$/);
-
-  // Programmatic play helper that ensures Safari WebKit compatibility
-  const attemptPlay = useCallback((reason = 'direct') => {
-    const video = videoRef.current;
-    if (!video || !isMountedRef.current) return;
-
-    // Strict WebKit / Safari muted & autoplay setup via DOM properties
-    video.muted = true;
-    video.defaultMuted = true;
-    video.playsInline = true;
-    video.loop = true;
-    video.autoplay = true;
-    video.volume = 0;
-    try {
-      video.setAttribute('muted', '');
-      video.setAttribute('webkit-playsinline', '');
-      video.setAttribute('x5-playsinline', '');
-      video.setAttribute('loop', '');
-    } catch {}
-
-    if (isDev) {
-      console.log(`[Hero Video] attempting autoplay (${reason}, readyState: ${video.readyState})`);
-    }
-
-    try {
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            if (!isMountedRef.current) return;
-            isPlayingRef.current = true;
-            setIsVideoLoaded(true);
-            if (onVideoReady) {
-              onVideoReady();
-            }
-            if (isDev) {
-              console.log('[Hero Video] autoplay success via', reason);
-            }
-          })
-          .catch((err) => {
-            if (!isMountedRef.current) return;
-            if (isDev) {
-              console.warn('[Hero Video] autoplay rejected (' + reason + '):', err?.name || 'Error', err?.message || err);
-            }
-          });
-      }
-    } catch (e) {
-      if (isDev) console.warn('[Hero Video] play exception:', e);
-    }
+    onVideoReady?.();
   }, [onVideoReady]);
 
-  // Set up video ref callback to immediately configure DOM properties before media loading starts
-  const setVideoRef = useCallback((el: HTMLVideoElement | null) => {
-    videoRef.current = el;
-    if (el) {
-      el.defaultMuted = true;
-      el.muted = true;
-      el.playsInline = true;
-      el.loop = true;
-      el.autoplay = true;
-      el.volume = 0;
-      el.setAttribute('muted', '');
-      el.setAttribute('webkit-playsinline', '');
-      el.setAttribute('x5-playsinline', '');
-      el.setAttribute('loop', '');
-      try {
-        const p = el.play();
-        if (p && typeof p.catch === 'function') {
-          p.then(() => {
-            if (onVideoReady) onVideoReady();
-          }).catch(() => {});
-        }
-      } catch {}
-    }
-  }, [onVideoReady]);
+  const leftEyebrow =
+    (isAr ? storeSettings?.heroBadgeAr : storeSettings?.heroBadgeEn)?.trim() ||
+    (isAr ? 'تشكيلة الموسم · TOUZA' : 'SEASONAL EDIT · TOUZA');
 
-  // Ensure DOM element attributes are maintained whenever media changes
-  useLayoutEffect(() => {
-    if (isVideo && videoRef.current) {
-      const video = videoRef.current;
-      video.muted = true;
-      video.defaultMuted = true;
-      video.playsInline = true;
-      video.loop = true;
-      video.autoplay = true;
-      video.volume = 0;
-      video.setAttribute('muted', '');
-      video.setAttribute('webkit-playsinline', '');
-      video.setAttribute('x5-playsinline', '');
-      video.setAttribute('loop', '');
-      if (video.src !== videoSrc) {
-        video.src = videoSrc;
-        try {
-          video.load();
-        } catch {}
-      }
-      attemptPlay('media-change');
-    }
-  }, [isVideo, videoSrc, attemptPlay]);
+  const leftTitle =
+    (isAr ? storeSettings?.heroTitleAr : storeSettings?.heroTitleEn)?.trim() ||
+    (isAr ? 'أقوى تشكيلة كاجوال رجالي' : 'Our finest men’s edit');
 
-  // Global listeners for Safari Desktop and general browser autoplay triggers
-  useEffect(() => {
-    isMountedRef.current = true;
+  const leftSubtitle =
+    (isAr ? storeSettings?.heroSubtitleAr : storeSettings?.heroSubtitleEn)?.trim() ||
+    (isAr
+      ? 'خامات فاخرة وقصّات عصرية مريحة تناسب كل يوم — شحن سريع لجميع محافظات مصر.'
+      : 'Heavyweight everyday staples tailored with quiet Scandinavian restraint.');
 
-    if (!isVideo) {
-      setIsVideoLoaded(true);
-      if (onVideoReady) onVideoReady();
-      return;
-    }
-
-    const video = videoRef.current;
-    if (video) {
-      // If already ready, attempt play immediately
-      if (video.readyState >= 2) {
-        attemptPlay('immediate-ready');
-      }
-
-      // Intersection Observer: Trigger play when hero enters viewport
-      let observer: IntersectionObserver | null = null;
-      if (sectionRef.current && typeof IntersectionObserver !== 'undefined') {
-        observer = new IntersectionObserver(
-          (entries) => {
-            entries.forEach((entry) => {
-              if (entry.isIntersecting && videoRef.current && videoRef.current.paused) {
-                attemptPlay('intersection-visible');
-              }
-            });
-          },
-          { threshold: 0.1 }
-        );
-        observer.observe(sectionRef.current);
-      }
-
-      // Safari Desktop Activation: Listen to user interactions anywhere on the window/document
-      // Any mouse movement, hover, touch, click, keydown or scroll instantly unlocks audio-less video in Safari
-      const handleUserActivity = () => {
-        if (isMountedRef.current && videoRef.current && videoRef.current.paused) {
-          attemptPlay('user-activity');
-        }
-      };
-
-      const interactionEvents = [
-        'mousemove',
-        'pointermove',
-        'mouseenter',
-        'mouseover',
-        'mousedown',
-        'mouseup',
-        'pointerdown',
-        'pointerup',
-        'touchstart',
-        'touchend',
-        'touchmove',
-        'wheel',
-        'scroll',
-        'keydown',
-        'focus',
-        'click',
-      ];
-
-      interactionEvents.forEach((evt) => {
-        window.addEventListener(evt, handleUserActivity, { passive: true, capture: true });
-        document.addEventListener(evt, handleUserActivity, { passive: true, capture: true });
-      });
-
-      // Handle pageshow event (Safari macOS/iOS bfcache restoration)
-      const handlePageShow = (e: PageTransitionEvent) => {
-        if (videoRef.current) {
-          if (isDev) console.log('[Hero Video] pageshow event, attempting play');
-          attemptPlay('pageshow');
-        }
-      };
-
-      // Handle document visibility changes (switching tabs and coming back)
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible' && videoRef.current && videoRef.current.paused) {
-          if (isDev) console.log('[Hero Video] visibility changed to visible, resuming');
-          attemptPlay('visibilitychange');
-        }
-      };
-
-      // Handle window focus (switching desktop apps / windows)
-      const handleWindowFocus = () => {
-        if (videoRef.current && videoRef.current.paused) {
-          attemptPlay('window-focus');
-        }
-      };
-
-      window.addEventListener('pageshow', handlePageShow);
-      window.addEventListener('focus', handleWindowFocus);
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-
-      // Failsafe timer checks
-      const t1 = setTimeout(() => {
-        if (videoRef.current && videoRef.current.paused) {
-          attemptPlay('failsafe-300ms');
-        }
-      }, 300);
-
-      const t2 = setTimeout(() => {
-        if (videoRef.current && videoRef.current.paused) {
-          attemptPlay('failsafe-1000ms');
-        }
-      }, 1000);
-
-      const interval = setInterval(() => {
-        if (!isMountedRef.current) {
-          clearInterval(interval);
-          return;
-        }
-        if (videoRef.current && videoRef.current.paused) {
-          attemptPlay('interval-poll');
-        } else if (videoRef.current && !videoRef.current.paused) {
-          isPlayingRef.current = true;
-          clearInterval(interval);
-        }
-      }, 1000);
-
-      return () => {
-        isMountedRef.current = false;
-        clearTimeout(t1);
-        clearTimeout(t2);
-        clearInterval(interval);
-        if (observer) observer.disconnect();
-        window.removeEventListener('pageshow', handlePageShow);
-        window.removeEventListener('focus', handleWindowFocus);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        interactionEvents.forEach((evt) => {
-          window.removeEventListener(evt, handleUserActivity, { capture: true });
-          document.removeEventListener(evt, handleUserActivity, { capture: true });
-        });
-      };
-    }
-  }, [isVideo, videoSrc, attemptPlay, onVideoReady]);
-
-  // Video media event handlers
-  const handleLoadedMetadata = () => {
-    if (isDev) console.log('[Hero Video] loadedmetadata');
-    attemptPlay('loadedmetadata');
-    if (videoRef.current && videoRef.current.readyState >= 2 && onVideoReady) {
-      onVideoReady();
-    }
-  };
-
-  const handleLoadedData = () => {
-    if (isDev) console.log('[Hero Video] loadeddata');
-    attemptPlay('loadeddata');
-    if (onVideoReady) {
-      onVideoReady();
-    }
-  };
-
-  const handleCanPlay = () => {
-    if (isDev) console.log('[Hero Video] canplay');
-    attemptPlay('canplay');
-    if (onVideoReady) {
-      onVideoReady();
-    }
-  };
-
-  const handleCanPlayThrough = () => {
-    if (isDev) console.log('[Hero Video] canplaythrough');
-    attemptPlay('canplaythrough');
-    if (onVideoReady) {
-      onVideoReady();
-    }
-  };
-
-  const handleVideoPlaying = () => {
-    isPlayingRef.current = true;
-    setIsVideoLoaded(true);
-    if (onVideoReady) {
-      onVideoReady();
-    }
-  };
-
-  const handleTimeUpdate = () => {
-    if (videoRef.current && videoRef.current.currentTime > 0.05 && !isVideoLoaded) {
-      isPlayingRef.current = true;
-      setIsVideoLoaded(true);
-      if (onVideoReady) {
-        onVideoReady();
-      }
-    }
-  };
-
-  const handleVideoEnded = () => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
-      attemptPlay('loop-restart');
-    }
-  };
-
-  const handleVideoError = () => {
-    const video = videoRef.current;
-    if (isDev) {
-      console.warn('[Hero Video] video playback note:', {
-        activeStream: activeStreamUrl,
-        src: video?.src,
-        currentSrc: video?.currentSrc,
-        readyState: video?.readyState,
-        networkState: video?.networkState,
-        errorCode: video?.error?.code,
-        errorMessage: video?.error?.message,
-        retry: retryCountRef.current,
-      });
-    }
-
-    // Step 1: If optimized stream (ac_none,vc_h264,q_auto) is still transcoding on Cloudinary,
-    // immediately try the RAW uploaded video stream (which Cloudinary serves immediately without waiting!)
-    if (rawVideoUrl && activeStreamUrl !== rawVideoUrl && !hasAttemptedRawFallbackRef.current) {
-      hasAttemptedRawFallbackRef.current = true;
-      if (isDev) {
-        console.log('[Hero Video] switching to raw video stream while Cloudinary encodes:', rawVideoUrl);
-      }
-      setActiveStreamUrl(rawVideoUrl);
-      setTimeout(() => {
-        if (videoRef.current && isMountedRef.current) {
-          try {
-            videoRef.current.load();
-            attemptPlay('raw-stream-switch');
-          } catch {}
-        }
-      }, 100);
-      return;
-    }
-
-    // Step 2: Cloudinary newly uploaded video processing: allow progressive retries
-    // This gives Cloudinary time to finalize on-the-fly streaming derivatives without abandoning the user's video!
-    if (retryCountRef.current < 6 && !usingFallbackVideo && rawMedia) {
-      retryCountRef.current += 1;
-      const delay = Math.min(retryCountRef.current * 1500, 4500);
-      if (isDev) {
-        console.log(`[Hero Video] Retrying video playback (attempt ${retryCountRef.current}) in ${delay}ms...`);
-      }
-      setTimeout(() => {
-        if (videoRef.current && isMountedRef.current) {
-          try {
-            videoRef.current.load();
-            attemptPlay(`retry-${retryCountRef.current}`);
-          } catch {}
-        }
-      }, delay);
-      return;
-    }
-
-    // Step 3: Only switch to bundled fallback if user's video permanently failed after all retries
-    if (!usingFallbackVideo && videoSrc !== '/hero-video.mp4') {
-      if (isDev) {
-        console.log('[Hero Video] switching to local fallback video /hero-video.mp4 after exhaustive retries');
-      }
-      setUsingFallbackVideo(true);
-      setVideoError(false);
-      setTimeout(() => {
-        if (videoRef.current && isMountedRef.current) {
-          try {
-            videoRef.current.load();
-            attemptPlay('fallback-switch');
-          } catch {}
-        }
-      }, 50);
-    } else {
-      setVideoError(true);
-      setIsVideoLoaded(true);
-      if (onVideoReady) onVideoReady();
-    }
-  };
-
-  // Section interactive fallback triggers
-  const handleSectionInteraction = () => {
-    if (videoRef.current && videoRef.current.paused) {
-      attemptPlay('section-interaction');
-    }
-  };
+  const leftCta =
+    (isAr ? storeSettings?.heroCtaAr : storeSettings?.heroCtaEn)?.trim() ||
+    (isAr ? 'تسوق الكل' : 'SHOP ALL MEN');
 
   return (
-    <section
-      ref={sectionRef}
-      onMouseEnter={handleSectionInteraction}
-      onMouseMove={handleSectionInteraction}
-      onPointerDown={handleSectionInteraction}
-      onClick={handleSectionInteraction}
-      className="relative h-[100dvh] min-h-[550px] sm:min-h-[600px] w-full flex items-end justify-center pb-10 sm:pb-16 md:pb-20 pt-24 sm:pt-28 px-4 overflow-hidden bg-[#0c0c0e] select-none"
-    >
-      {/* High-Resolution Luxury Poster Backdrop (Layer 1 - Guarantees zero black screen on Safari/iOS/Mobile) */}
-      <img
-        src={dynamicPoster}
-        alt={heroTitle}
-        decoding="async"
-        loading="eager"
-        className="absolute inset-0 w-full h-full object-cover object-center z-[1] pointer-events-none"
-      />
-
-      {/* Hero Media Background Video (Layer 2) */}
-      {isVideo && (
-        <video
-          ref={setVideoRef}
-          src={videoSrc}
-          poster={dynamicPoster || undefined}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          disablePictureInPicture
-          controls={false}
-          onLoadedMetadata={handleLoadedMetadata}
-          onLoadedData={handleLoadedData}
-          onCanPlay={handleCanPlay}
-          onCanPlayThrough={handleCanPlayThrough}
-          onPlaying={handleVideoPlaying}
-          onTimeUpdate={handleTimeUpdate}
-          onEnded={handleVideoEnded}
-          onError={handleVideoError}
-          className="hero-video absolute inset-0 w-full h-full object-cover object-center z-[2] pointer-events-none bg-transparent"
-        >
-          {/* Primary optimized video URL */}
-          <source
-            src={videoSrc}
-            type={videoSrc.toLowerCase().includes('.webm') ? 'video/webm' : 'video/mp4'}
-          />
-          {/* Direct raw Cloudinary video URL fallback for instant playback before derivative finishes */}
-          {rawVideoUrl && rawVideoUrl !== videoSrc && !usingFallbackVideo && (
-            <source
-              src={rawVideoUrl}
-              type={rawVideoUrl.toLowerCase().includes('.webm') ? 'video/webm' : 'video/mp4'}
-            />
-          )}
-        </video>
-      )}
-
-      {/* If mediaUrl is a custom static image URL */}
-      {!isVideo && (
-        <img
-          src={videoSrc}
-          alt={heroTitle}
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
-          className="absolute inset-0 w-full h-full object-cover object-center z-[2] pointer-events-none"
-        />
-      )}
-
-      {/* Gradient Overlay covering top navbar down to bottom text for readability (Layer 3) */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/80 z-[3] pointer-events-none" />
-
-      {/* Hero Content positioned elegantly - renders immediately upon page load (Layer 10) */}
-      <div className="relative z-10 text-center px-4 flex flex-col items-center max-w-2xl mx-auto pb-2 sm:pb-4 pointer-events-auto">
-        <span className="font-label-caps text-white/95 text-[11px] md:text-[13px] tracking-widest mb-3 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 shadow-xs">
-          {heroBadge}
-        </span>
-        <h1 className="font-display text-[28px] sm:text-[36px] md:text-[52px] text-white mb-3 drop-shadow-lg font-bold leading-tight">
-          {heroTitle}
-        </h1>
-        <p className="font-body text-[14px] sm:text-[16px] md:text-[18px] text-white/90 max-w-lg mx-auto mb-7 drop-shadow-md leading-relaxed">
-          {heroSubtitle}
-        </p>
-        <button
+    <section className="w-full pt-[88px] md:pt-[100px] bg-[#0a0a0a]">
+      {/* Exact Bread & Boxers Full-Bleed 50/50 Dark Split Hero */}
+      <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-0">
+        {/* Hero Panel 1 (Start): Moody Folded Menswear Stack */}
+        <div
           onClick={onShopNow}
-          className="inline-block bg-white text-black font-label-caps py-3.5 px-9 rounded-xl hover:bg-[#f0f0f0] transition-all duration-300 cursor-pointer shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 text-[14px] md:text-[15px] font-bold"
+          className="group relative w-full h-[64vh] sm:h-[72vh] md:h-[80vh] max-h-[820px] min-h-[480px] overflow-hidden bg-[#0a0a0a] cursor-pointer"
         >
-          {t('hero.shopNow', 'Shop Collection')}
-        </button>
-      </div>
+          <img
+            src={heroDarkStack}
+            alt={leftTitle}
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
+            className="w-full h-full object-cover object-center transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10 pointer-events-none" />
 
-      {/* Floating Vertical Social Icons */}
-      <SocialLinks variant="floating-hero" storeSettings={storeSettings} />
+          <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 md:p-14 flex flex-col items-start text-start text-white z-10 max-w-xl">
+            <span className="inline-block border-b border-white/80 pb-1 text-[11px] tracking-[0.14em] uppercase font-body text-white/95 mb-3">
+              {leftEyebrow}
+            </span>
+
+            <h1 className="font-editorial editorial-italic text-[34px] sm:text-[42px] lg:text-[50px] font-normal leading-[1.12] text-white text-balance mb-3">
+              {leftTitle}
+            </h1>
+
+            <p className="font-body text-[14px] sm:text-[15px] text-white/85 leading-[1.6] max-w-md mb-6 line-clamp-2">
+              {leftSubtitle}
+            </p>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onShopNow();
+              }}
+              className="border border-white/80 bg-transparent text-white hover:bg-white hover:text-[#111111] transition-colors duration-200 px-7 py-3 rounded-none text-[11px] font-medium tracking-[0.16em] uppercase cursor-pointer"
+            >
+              {leftCta}
+            </button>
+          </div>
+        </div>
+
+        {/* Hero Panel 2 (End): Moody Hanging Menswear Rack */}
+        <div
+          onClick={() => (onShopSecondary ? onShopSecondary() : onShopNow())}
+          className="group relative w-full h-[64vh] sm:h-[72vh] md:h-[80vh] max-h-[820px] min-h-[480px] overflow-hidden bg-[#0a0a0a] cursor-pointer border-t md:border-t-0 md:border-s border-white/10"
+        >
+          <img
+            src={heroDarkHangers}
+            alt={isAr ? 'إصدار شتاء ٢٠٢٦ للرجال' : 'Winter 2026 Menswear Drop'}
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
+            className="w-full h-full object-cover object-center transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10 pointer-events-none" />
+
+          <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 md:p-14 flex flex-col items-start text-start text-white z-10 max-w-xl">
+            <span className="inline-block border-b border-white/80 pb-1 text-[11px] tracking-[0.14em] uppercase font-body text-white/95 mb-3">
+              {isAr ? 'وصل حديثاً · شتاء ٢٠٢٦' : 'NEW DROP · WINTER 2026'}
+            </span>
+
+            <h2 className="font-editorial editorial-italic text-[34px] sm:text-[42px] lg:text-[50px] font-normal leading-[1.12] text-white text-balance mb-3">
+              {isAr ? 'قطع شتوية متكاملة' : 'Crafted for colder days'}
+            </h2>
+
+            <p className="font-body text-[14px] sm:text-[15px] text-white/85 leading-[1.6] max-w-md mb-6 line-clamp-2">
+              {isAr
+                ? 'جواكيت وأوفرشيرت بخامات ثقيلة — اطلب مباشرة عبر واتساب مع معاينة قبل الاستلام.'
+                : 'Structured overshirts and tailored winter layers — order effortlessly via WhatsApp.'}
+            </p>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onShopSecondary) {
+                  onShopSecondary();
+                } else {
+                  onShopNow();
+                }
+              }}
+              className="border border-white/80 bg-transparent text-white hover:bg-white hover:text-[#111111] transition-colors duration-200 px-7 py-3 rounded-none text-[11px] font-medium tracking-[0.16em] uppercase cursor-pointer"
+            >
+              {isAr ? 'تسوق الشتوي' : 'SHOP WINTER'}
+            </button>
+          </div>
+        </div>
+      </div>
     </section>
   );
 };
 
 export const HeroBanner = React.memo(HeroBannerComponent);
-
-

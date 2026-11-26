@@ -2,8 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   ArrowRight,
   ArrowLeft,
-  LayoutGrid,
-  Tag,
   SlidersHorizontal,
   X,
   FilterX,
@@ -14,7 +12,6 @@ import { Category, Product, StoreSettings } from '../types';
 import { ProductCard } from './ProductCard';
 import { useLanguage } from '../context/LanguageContext';
 import { DEFAULT_CATEGORIES } from '../data/defaultCategories';
-import { CategorySection } from './CategorySection';
 import { ScrollReveal } from './ScrollReveal';
 
 interface CollectionsViewProps {
@@ -42,17 +39,16 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
 }) => {
   const allProducts = Array.isArray(customProducts) ? customProducts : [];
   const categoriesList = customCategories || DEFAULT_CATEGORIES;
-  const { language, formatPrice, t } = useLanguage();
+  const { language, formatPrice } = useLanguage();
+  const isAr = language === 'ar';
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || 'All');
 
-  // Synchronize category filter whenever initialCategory changes (e.g. navigation from Home or Navbar)
   useEffect(() => {
     if (initialCategory) {
       setSelectedCategory(initialCategory);
     }
   }, [initialCategory]);
 
-  // Exact matching helper to ensure ONLY products in the selected category are shown
   const matchesCategory = (p: Product, catName: string) => {
     if (!catName || catName === 'All') return true;
     if (catName === 'New Arrivals') return !!p.isNewArrival;
@@ -94,21 +90,18 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
     );
   };
 
-  // Calculate highest price in catalog dynamically
   const maxCatalogPrice = useMemo(() => {
     if (!allProducts || allProducts.length === 0) return 10000;
     const maxP = Math.max(...allProducts.map((p) => p.price));
     return Math.ceil(maxP / 500) * 500 || 10000;
   }, [allProducts]);
 
-  // Default maxPrice set to highest catalog price so no products are hidden initially
   const [maxPrice, setMaxPrice] = useState<number>(10000);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>('Featured');
   const [mobileFilterOpen, setMobileFilterOpen] = useState<boolean>(false);
 
-  // Pagination & URL State
   const getInitialPageFromUrl = () => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -119,50 +112,43 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
   };
 
   const [currentPage, setCurrentPage] = useState<number>(getInitialPageFromUrl);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(9);
-  const [copySuccess, setCopySuccess] = useState<boolean>(false);
+  const itemsPerPage = 12;
 
-  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedCategory, maxPrice, selectedColor, selectedSize, sortBy]);
 
   const colors = [
-    { name: 'Noir', hex: '#000000' },
+    { name: 'Noir', hex: '#111111' },
     { name: 'White', hex: '#FFFFFF' },
     { name: 'Beige', hex: '#E5DCC4' },
-    { name: 'Ivory', hex: '#F9F8F3' },
-    { name: 'Silver', hex: '#D8D8D8' },
+    { name: 'Ivory', hex: '#F4F3F0' },
+    { name: 'Silver', hex: '#B8B6B0' },
   ];
 
-  const sizes = ['XS', 'S', 'M', 'L', 'XL', '34', '36', '38', '40'];
+  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '34', '36', '38', '40'];
 
   const filteredProducts = useMemo(() => {
     let result = [...allProducts];
 
-    // Category filter: Strictly match only products belonging to selected category
     if (selectedCategory && selectedCategory !== 'All') {
       result = result.filter((p) => matchesCategory(p, selectedCategory));
     }
 
-    // Price filter
     result = result.filter((p) => p.price <= maxPrice);
 
-    // Color filter
     if (selectedColor) {
       result = result.filter((p) =>
         p.colors.some((c) => c.name.toLowerCase() === selectedColor.toLowerCase())
       );
     }
 
-    // Size filter
     if (selectedSize) {
       result = result.filter((p) =>
         p.sizes.some((s) => s.size === selectedSize)
       );
     }
 
-    // Sort
     if (sortBy === 'Price: Low to High') {
       result.sort((a, b) => a.price - b.price);
     } else if (sortBy === 'Price: High to Low') {
@@ -177,7 +163,6 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
   const totalItems = filteredProducts.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
-  // Sync state with URL parameters so links are copyable and Facebook Ads ready
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -203,20 +188,17 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
   const endIndex = startIndex + itemsPerPage;
   const displayedProducts = filteredProducts.slice(startIndex, endIndex);
 
-  const handleCopyPageLink = () => {
-    if (typeof window !== 'undefined') {
-      const currentUrl = window.location.href;
-      navigator.clipboard.writeText(currentUrl).then(() => {
-        setCopySuccess(true);
-        setTimeout(() => setCopySuccess(false), 3000);
-      });
-    }
+  const resetAllFilters = () => {
+    setSelectedCategory('All');
+    setMaxPrice(10000);
+    setSelectedColor(null);
+    setSelectedSize(null);
   };
 
   return (
-    <div className="pt-24 pb-20 max-w-[1440px] mx-auto w-full px-5 md:px-16">
-      {/* Top Navigation & Return to Home Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-8 bg-white/80 backdrop-blur-sm p-4 rounded-2xl border border-[#c5a059]/20 shadow-xs">
+    <div className="pt-[116px] md:pt-[132px] pb-24 max-w-[1440px] mx-auto w-full px-5 sm:px-8 md:px-14 bg-[#ffffff]">
+      {/* Quiet Top Breadcrumb Bar */}
+      <div className="flex items-center justify-between gap-4 pb-6 mb-10 border-b border-[#e6e4df]">
         <button
           type="button"
           onClick={() => {
@@ -226,74 +208,69 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
               window.location.href = '/';
             }
           }}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#000000] text-white font-label-caps text-[13px] font-bold hover:bg-[#222222] transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+          className="inline-flex items-center gap-2 text-[#111111] hover:text-[#6e6c68] font-label-caps text-[12px] transition-colors cursor-pointer"
         >
-          {language === 'ar' ? (
-            <ArrowRight className="w-4.5 h-4.5" />
-          ) : (
-            <ArrowLeft className="w-4.5 h-4.5" />
-          )}
-          <span>{language === 'ar' ? 'الرجوع للرئيسية' : 'Back to Home'}</span>
+          {isAr ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+          <span>{isAr ? 'الرجوع للرئيسية' : 'BACK TO HOME'}</span>
         </button>
 
-        <div className="font-body text-[13px] text-[#747878]">
-          {language === 'ar' ? 'تصفح كافة المعروضات والقطع الحصرية' : 'Explore All Exclusive Pieces'}
-        </div>
+        <span className="font-body text-[12px] text-[#6e6c68] tabular-nums">
+          {isAr ? `${totalItems} قطعة` : `${totalItems} PIECES`}
+        </span>
       </div>
 
-      {/* Header Banner */}
+      {/* Editorial Collection Header */}
       <ScrollReveal>
-        <div className="mb-8 text-center max-w-3xl mx-auto">
-          <h1 className="font-display text-[32px] md:text-[50px] text-[#000000] mb-3 leading-tight font-bold">
-            {language === 'ar'
+        <div className="mb-12 max-w-2xl space-y-3">
+          <span className="font-label-caps text-[11px] text-[#6e6c68] uppercase block">
+            {isAr ? 'تشكيلة توزا' : 'TOUZA COLLECTION'}
+          </span>
+          <h1 className="font-display text-[30px] sm:text-[40px] md:text-[48px] text-[#111111] leading-[1.12] font-semibold tracking-tight text-balance">
+            {isAr
               ? (storeSettings?.collectionsTitleAr || 'استايلك يبدأ من هنا')
-              : (storeSettings?.collectionsTitleEn || "Your Style Starts Here")}
+              : (storeSettings?.collectionsTitleEn || 'Everyday Essentials')}
           </h1>
-          <p className="font-body text-[15px] md:text-[17px] text-[#444748] leading-relaxed">
-            {language === 'ar'
+          <p className="font-body text-[15px] text-[#6e6c68] leading-[1.75]">
+            {isAr
               ? (storeSettings?.collectionsSubtitleAr || 'تشكيلة راقية صُممت بعناية فائقة لتمنحك إطلالة جذابة تناسب جميع المناسبات في مصر.')
-              : (storeSettings?.collectionsSubtitleEn || 'A curated selection of luxury pieces tailored with precision and unhurried elegance.')}
+              : (storeSettings?.collectionsSubtitleEn || 'A curated selection of refined casual pieces tailored with precision and lasting comfort.')}
           </p>
         </div>
       </ScrollReveal>
 
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* Sidebar Filters - Desktop */}
-        <aside className="w-full lg:w-1/4 xl:w-1/5 shrink-0 hidden lg:block pr-6 border-r border-[#c4c7c7]/20 rtl:border-r-0 rtl:border-l rtl:pl-6 rtl:pr-0">
-          <div className="sticky top-[100px] space-y-7">
-            {/* Filter: Categories */}
-            <div className="border-b border-[#c4c7c7]/30 pb-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-display text-[18px] text-[#000000] font-bold">
-                  {language === 'ar' ? 'الأقسام والتصنيفات' : 'Categories'}
+      <div className="flex flex-col lg:flex-row gap-10 lg:gap-12">
+        {/* Desktop Sidebar Filters */}
+        <aside className="w-full lg:w-[240px] shrink-0 hidden lg:block ltr:pr-8 ltr:border-r rtl:pl-8 rtl:border-l border-[#e6e4df]">
+          <div className="sticky top-[104px] space-y-8">
+            {/* Categories */}
+            <div className="border-b border-[#e6e4df] pb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-label-caps text-[11px] font-semibold text-[#111111] uppercase">
+                  {isAr ? 'الأقسام' : 'CATEGORIES'}
                 </h3>
                 {selectedCategory !== 'All' && (
                   <button
+                    type="button"
                     onClick={() => setSelectedCategory('All')}
-                    className="text-[11px] font-label-caps text-[#747878] hover:text-[#000000] underline"
+                    className="text-[11px] font-body text-[#6e6c68] hover:text-[#111111] underline cursor-pointer"
                   >
-                    {language === 'ar' ? 'عرض الكل' : 'Clear'}
+                    {isAr ? 'إلغاء' : 'Reset'}
                   </button>
                 )}
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <button
                   type="button"
                   onClick={() => setSelectedCategory('All')}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[13px] font-body transition-colors cursor-pointer ${
+                  className={`w-full flex items-center justify-between py-1.5 text-[14px] font-body transition-colors cursor-pointer ${
                     selectedCategory === 'All'
-                      ? 'bg-[#000000] text-white font-bold shadow-2xs'
-                      : 'text-[#444748] hover:bg-[#f3f3f4] hover:text-[#000000]'
+                      ? 'text-[#111111] font-semibold'
+                      : 'text-[#6e6c68] hover:text-[#111111]'
                   }`}
                 >
-                  <span className="flex items-center gap-2">
-                    <LayoutGrid className="w-4 h-4" />
-                    <span>{language === 'ar' ? 'جميع المنتجات' : 'All Products'}</span>
-                  </span>
-                  <span className={`text-[11px] font-mono ${selectedCategory === 'All' ? 'text-white/80' : 'text-[#747878]'}`}>
-                    {allProducts.length}
-                  </span>
+                  <span>{isAr ? 'جميع المنتجات' : 'All Products'}</span>
+                  <span className="text-[12px] tabular-nums text-[#6e6c68]">{allProducts.length}</span>
                 </button>
 
                 {categoriesList.map((cat) => {
@@ -307,86 +284,59 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                       key={cat.id}
                       type="button"
                       onClick={() => setSelectedCategory(cat.nameEn)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[13px] font-body transition-colors cursor-pointer ${
+                      className={`w-full flex items-center justify-between py-1.5 text-[14px] font-body transition-colors cursor-pointer ${
                         isSelected
-                          ? 'bg-[#000000] text-white font-bold shadow-2xs'
-                          : 'text-[#444748] hover:bg-[#f3f3f4] hover:text-[#000000]'
+                          ? 'text-[#111111] font-semibold'
+                          : 'text-[#6e6c68] hover:text-[#111111]'
                       }`}
                     >
-                      <span className="flex items-center gap-2">
-                        <Tag className="w-4 h-4 text-[#c5a059]" />
-                        <span>{language === 'ar' ? cat.nameAr : cat.nameEn}</span>
-                      </span>
-                      <span className={`text-[11px] font-mono ${isSelected ? 'text-white/80' : 'text-[#747878]'}`}>
-                        {count}
-                      </span>
+                      <span>{isAr ? cat.nameAr : cat.nameEn}</span>
+                      <span className="text-[12px] tabular-nums text-[#6e6c68]">{count}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Filter: Price */}
-            <div className="border-b border-[#c4c7c7]/30 pb-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-display text-[18px] text-[#000000] font-bold">
-                  {language === 'ar' ? 'السعر' : 'Price'}
+            {/* Price */}
+            <div className="border-b border-[#e6e4df] pb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-label-caps text-[11px] font-semibold text-[#111111] uppercase">
+                  {isAr ? 'السعر' : 'PRICE'}
                 </h3>
                 {maxPrice < maxCatalogPrice && (
                   <button
+                    type="button"
                     onClick={() => setMaxPrice(10000)}
-                    className="text-[11px] font-label-caps text-[#747878] hover:text-[#000000] underline"
+                    className="text-[11px] font-body text-[#6e6c68] hover:text-[#111111] underline cursor-pointer"
                   >
-                    {language === 'ar' ? 'عرض الكل' : 'Show All'}
+                    {isAr ? 'الكل' : 'All'}
                   </button>
                 )}
               </div>
 
-              {/* Quick Preset Range Pills */}
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                <button
-                  onClick={() => setMaxPrice(10000)}
-                  className={`px-3 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
-                    maxPrice >= maxCatalogPrice
-                      ? 'bg-[#000000] text-white border-[#000000] font-bold shadow-2xs'
-                      : 'bg-white text-[#444748] border-[#c4c7c7] hover:border-[#000000]'
-                  }`}
-                >
-                  {language === 'ar' ? 'كل الأسعار' : 'All Prices'}
-                </button>
-                <button
-                  onClick={() => setMaxPrice(1000)}
-                  className={`px-2.5 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
-                    maxPrice === 1000
-                      ? 'bg-[#000000] text-white border-[#000000] font-bold shadow-2xs'
-                      : 'bg-white text-[#444748] border-[#c4c7c7] hover:border-[#000000]'
-                  }`}
-                >
-                  {language === 'ar' ? 'حتى 1,000 ج.م' : 'Under 1,000'}
-                </button>
-                <button
-                  onClick={() => setMaxPrice(2000)}
-                  className={`px-2.5 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
-                    maxPrice === 2000
-                      ? 'bg-[#000000] text-white border-[#000000] font-bold shadow-2xs'
-                      : 'bg-white text-[#444748] border-[#c4c7c7] hover:border-[#000000]'
-                  }`}
-                >
-                  {language === 'ar' ? 'حتى 2,000 ج.م' : 'Under 2,000'}
-                </button>
-                <button
-                  onClick={() => setMaxPrice(3000)}
-                  className={`px-2.5 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
-                    maxPrice === 3000
-                      ? 'bg-[#000000] text-white border-[#000000] font-bold shadow-2xs'
-                      : 'bg-white text-[#444748] border-[#c4c7c7] hover:border-[#000000]'
-                  }`}
-                >
-                  {language === 'ar' ? 'حتى 3,000 ج.م' : 'Under 3,000'}
-                </button>
+              <div className="grid grid-cols-2 gap-1.5 mb-4">
+                {[
+                  { label: isAr ? 'الكل' : 'All', value: 10000, active: maxPrice >= maxCatalogPrice },
+                  { label: isAr ? 'حتى 1,000' : '≤ 1,000', value: 1000, active: maxPrice === 1000 },
+                  { label: isAr ? 'حتى 2,000' : '≤ 2,000', value: 2000, active: maxPrice === 2000 },
+                  { label: isAr ? 'حتى 3,000' : '≤ 3,000', value: 3000, active: maxPrice === 3000 },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setMaxPrice(opt.value)}
+                    className={`py-2 px-2 text-[12px] font-body border transition-colors cursor-pointer rounded-none tabular-nums ${
+                      opt.active
+                        ? 'bg-[#111111] text-white border-[#111111] font-medium'
+                        : 'bg-[#ffffff] text-[#444444] border-[#e6e4df] hover:border-[#111111]'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
 
-              {/* Range Slider */}
               <div className="space-y-2">
                 <input
                   type="range"
@@ -395,72 +345,84 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                   step="100"
                   value={Math.min(maxPrice, maxCatalogPrice)}
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
-                  className="w-full accent-[#000000] h-1.5 bg-[#eeeeee] rounded-full appearance-none cursor-pointer"
+                  className="w-full accent-[#111111] h-[2px] bg-[#e6e4df] appearance-none cursor-pointer"
                 />
-                <div className="flex justify-between font-label-caps text-[#444748] text-[12px] dir-ltr">
+                <div className="flex justify-between font-body text-[#6e6c68] text-[12px] dir-ltr tabular-nums">
                   <span>{formatPrice(500)}</span>
-                  <span className="font-bold text-[#000000]">
+                  <span className="font-medium text-[#111111]">
                     {maxPrice >= maxCatalogPrice
-                      ? (language === 'ar' ? 'الكل (بلا حد)' : 'All Prices')
-                      : `${formatPrice(maxPrice)}`}
+                      ? (isAr ? 'الكل' : 'All')
+                      : formatPrice(maxPrice)}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Filter: Color */}
-            <div className="border-b border-[#c4c7c7]/30 pb-5">
-              <h3 className="font-display text-[18px] text-[#000000] mb-3 font-bold">
-                {language === 'ar' ? 'اللون' : 'Color'}
-              </h3>
+            {/* Color */}
+            <div className="border-b border-[#e6e4df] pb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-label-caps text-[11px] font-semibold text-[#111111] uppercase">
+                  {isAr ? 'اللون' : 'COLOR'}
+                </h3>
+                {selectedColor && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedColor(null)}
+                    className="text-[11px] font-body text-[#6e6c68] hover:text-[#111111] underline cursor-pointer"
+                  >
+                    {isAr ? 'إلغاء' : 'Clear'}
+                  </button>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2.5">
                 {colors.map((c) => {
                   const isSelected = selectedColor === c.name;
                   return (
                     <button
                       key={c.name}
-                      onClick={() =>
-                        setSelectedColor(isSelected ? null : c.name)
-                      }
+                      type="button"
+                      onClick={() => setSelectedColor(isSelected ? null : c.name)}
                       title={c.name}
-                      className={`w-7 h-7 rounded-full border transition-all cursor-pointer ${
+                      className={`w-6 h-6 rounded-full border transition-transform cursor-pointer ${
                         isSelected
-                          ? 'ring-2 ring-[#000000] ring-offset-2 border-transparent scale-110'
-                          : 'border-[#c4c7c7] hover:scale-105'
+                          ? 'ring-1 ring-[#111111] ring-offset-2 border-black/30 scale-105'
+                          : 'border-black/20 hover:scale-105'
                       }`}
                       style={{ backgroundColor: c.hex }}
                     />
                   );
                 })}
               </div>
-              {selectedColor && (
-                <button
-                  onClick={() => setSelectedColor(null)}
-                  className="mt-3 text-[12px] font-label-caps text-[#747878] hover:text-[#000000] underline"
-                >
-                  {language === 'ar' ? 'إلغاء تصفية اللون' : 'Clear color'}
-                </button>
-              )}
             </div>
 
-            {/* Filter: Size */}
-            <div className="pb-5">
-              <h3 className="font-display text-[18px] text-[#000000] mb-3 font-bold">
-                {language === 'ar' ? 'المقاس' : 'Size'}
-              </h3>
-              <div className="flex flex-wrap gap-2">
+            {/* Size */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-label-caps text-[11px] font-semibold text-[#111111] uppercase">
+                  {isAr ? 'المقاس' : 'SIZE'}
+                </h3>
+                {selectedSize && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSize(null)}
+                    className="text-[11px] font-body text-[#6e6c68] hover:text-[#111111] underline cursor-pointer"
+                  >
+                    {isAr ? 'إلغاء' : 'Clear'}
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-4 gap-1.5">
                 {sizes.map((sz) => {
                   const isSelected = selectedSize === sz;
                   return (
                     <button
                       key={sz}
-                      onClick={() =>
-                        setSelectedSize(isSelected ? null : sz)
-                      }
-                      className={`w-8 h-8 rounded border font-label-caps text-[12px] transition-colors cursor-pointer ${
+                      type="button"
+                      onClick={() => setSelectedSize(isSelected ? null : sz)}
+                      className={`h-9 border font-label-caps text-[11px] transition-colors cursor-pointer rounded-none ${
                         isSelected
-                          ? 'border-[#000000] bg-[#000000] text-white font-bold'
-                          : 'border-[#c4c7c7] text-[#444748] hover:border-[#000000]'
+                          ? 'border-[#111111] bg-[#111111] text-white font-semibold'
+                          : 'border-[#e6e4df] text-[#444444] hover:border-[#111111]'
                       }`}
                     >
                       {sz}
@@ -473,24 +435,20 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
         </aside>
 
         {/* Product Grid Area */}
-        <div id="product-grid-section" className="w-full lg:w-3/4 xl:w-4/5 flex flex-col scroll-mt-28">
-          {/* Classic Category Quick Bar (Horizontal Scrolling Pills) */}
-          <div className="mb-6 overflow-x-auto no-scrollbar pb-1">
-            <div className="flex items-center gap-2 min-w-max">
+        <div id="product-grid-section" className="flex-1 flex flex-col scroll-mt-28 min-w-0">
+          {/* Horizontal Category Tabs (Clean Architectural Underline Strip) */}
+          <div className="mb-6 overflow-x-auto no-scrollbar border-b border-[#e6e4df]">
+            <div className="flex items-center gap-6 min-w-max">
               <button
                 type="button"
                 onClick={() => setSelectedCategory('All')}
-                className={`px-4 py-2 rounded-xl text-[13px] font-body transition-all cursor-pointer flex items-center gap-2 border shadow-2xs ${
+                className={`pb-3 text-[13px] font-body transition-colors cursor-pointer border-b-2 -mb-[1px] ${
                   selectedCategory === 'All'
-                    ? 'bg-[#000000] text-white border-[#000000] font-bold ring-1 ring-black'
-                    : 'bg-white text-[#444748] border-[#c4c7c7]/50 hover:border-[#000000] hover:text-[#000000]'
+                    ? 'border-[#111111] text-[#111111] font-semibold'
+                    : 'border-transparent text-[#6e6c68] hover:text-[#111111]'
                 }`}
               >
-                <LayoutGrid className="w-4 h-4" />
-                <span>{language === 'ar' ? 'الكل' : 'All'}</span>
-                <span className={`text-[10px] font-mono ${selectedCategory === 'All' ? 'text-white/80' : 'text-[#747878]'}`}>
-                  ({allProducts.length})
-                </span>
+                {isAr ? `الكل (${allProducts.length})` : `All (${allProducts.length})`}
               </button>
 
               {categoriesList.map((cat) => {
@@ -504,186 +462,114 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                     key={cat.id}
                     type="button"
                     onClick={() => setSelectedCategory(cat.nameEn)}
-                    className={`px-4 py-2 rounded-xl text-[13px] font-body transition-all cursor-pointer flex items-center gap-2 border shadow-2xs ${
+                    className={`pb-3 text-[13px] font-body transition-colors cursor-pointer border-b-2 -mb-[1px] ${
                       isSelected
-                        ? 'bg-[#000000] text-white border-[#000000] font-bold ring-1 ring-black'
-                        : 'bg-white text-[#444748] border-[#c4c7c7]/50 hover:border-[#000000] hover:text-[#000000]'
+                        ? 'border-[#111111] text-[#111111] font-semibold'
+                        : 'border-transparent text-[#6e6c68] hover:text-[#111111]'
                     }`}
                   >
-                    <Tag className="w-4 h-4 text-[#c5a059]" />
-                    <span>{language === 'ar' ? cat.nameAr : cat.nameEn}</span>
-                    {count > 0 && (
-                      <span className={`text-[10px] font-mono ${isSelected ? 'text-white/80' : 'text-[#747878]'}`}>
-                        ({count})
-                      </span>
-                    )}
+                    {isAr ? cat.nameAr : cat.nameEn}
+                    {count > 0 && <span className="ms-1 text-[11px] tabular-nums opacity-70">({count})</span>}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Top Control Bar */}
-          <div className="flex justify-between items-center mb-6 pb-4 border-b border-[#c4c7c7]/30">
+          {/* Sort & Mobile Filter Row */}
+          <div className="flex justify-between items-center mb-8 gap-4">
             <button
+              type="button"
               onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
-              className="lg:hidden flex items-center gap-2 font-label-caps text-[#000000] border border-[#c4c7c7] px-4 py-2 rounded-full cursor-pointer text-[13px]"
+              className="lg:hidden flex items-center gap-2 font-label-caps text-[#111111] border border-[#e6e4df] px-4 py-2.5 rounded-none cursor-pointer text-[12px] hover:border-[#111111]"
             >
-              <SlidersHorizontal className="w-4 h-4" />
-              {language === 'ar' ? 'تصفية المنتجات' : 'Filters'}
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>{isAr ? 'تصفية' : 'FILTER'}</span>
             </button>
-            <div className="hidden lg:block font-body text-[14px] text-[#444748]">
-              {language === 'ar'
-                ? `عرض ${startIndex + 1} - ${Math.min(endIndex, totalItems)} من أصل ${totalItems} قطعة`
-                : `Showing ${startIndex + 1} - ${Math.min(endIndex, totalItems)} of ${totalItems} products`}
+
+            <div className="hidden lg:block font-body text-[13px] text-[#6e6c68] tabular-nums">
+              {totalItems > 0
+                ? isAr
+                  ? `عرض ${startIndex + 1}–${Math.min(endIndex, totalItems)} من ${totalItems} قطعة`
+                  : `Showing ${startIndex + 1}–${Math.min(endIndex, totalItems)} of ${totalItems} pieces`
+                : isAr
+                ? '٠ قطعة'
+                : '0 pieces'}
             </div>
+
             <div className="relative flex items-center">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="appearance-none bg-transparent border border-[#747878]/30 rounded-lg px-3 py-1.5 font-label-caps text-[#000000] text-[13px] pr-8 cursor-pointer focus:ring-0 focus:outline-none"
+                className="bg-transparent border border-[#e6e4df] rounded-none px-3.5 py-2 font-body text-[#111111] text-[13px] cursor-pointer focus:border-[#111111] focus:outline-none"
               >
-                <option value="Featured">{language === 'ar' ? 'ترتيب: المميزة' : 'Sort By: Featured'}</option>
-                <option value="Price: Low to High">{language === 'ar' ? 'السعر: من الأقل للأعلى' : 'Price: Low to High'}</option>
-                <option value="Price: High to Low">{language === 'ar' ? 'السعر: من الأعلى للأقل' : 'Price: High to Low'}</option>
-                <option value="Newest Arrivals">{language === 'ar' ? 'الأحدث أولاً' : 'Newest Arrivals'}</option>
+                <option value="Featured">{isAr ? 'الترتيب: المميزة' : 'Sort: Featured'}</option>
+                <option value="Price: Low to High">{isAr ? 'السعر: من الأقل للأعلى' : 'Price: Low to High'}</option>
+                <option value="Price: High to Low">{isAr ? 'السعر: من الأعلى للأقل' : 'Price: High to Low'}</option>
+                <option value="Newest Arrivals">{isAr ? 'الأحدث أولاً' : 'Newest Arrivals'}</option>
               </select>
             </div>
           </div>
 
-          {/* Mobile Filters Modal */}
+          {/* Mobile Filter Panel */}
           {mobileFilterOpen && (
-            <div className="lg:hidden mb-6 p-5 bg-[#ffffff] border border-[#c4c7c7]/40 rounded-2xl space-y-5 shadow-md">
-              <div className="flex items-center justify-between border-b border-[#c4c7c7]/30 pb-3">
-                <h3 className="font-display text-[18px] text-[#000000] font-bold">
-                  {language === 'ar' ? 'تصفية المنتجات' : 'Filter Products'}
+            <div className="lg:hidden mb-8 p-6 bg-[#faf9f7] border border-[#e6e4df] space-y-6">
+              <div className="flex items-center justify-between border-b border-[#e6e4df] pb-3">
+                <h3 className="font-label-caps text-[12px] font-semibold text-[#111111] uppercase">
+                  {isAr ? 'تصفية المنتجات' : 'FILTERS'}
                 </h3>
                 <button
                   type="button"
                   onClick={() => setMobileFilterOpen(false)}
-                  className="p-1 text-[#747878] hover:text-[#000000]"
+                  className="p-1 text-[#6e6c68] hover:text-[#111111]"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Mobile Category Filter */}
+              {/* Mobile Price */}
               <div>
-                <h4 className="font-label-caps text-[13px] font-bold text-[#000000] mb-2">
-                  {language === 'ar' ? 'الأقسام والتصنيفات' : 'Category'}
+                <h4 className="font-label-caps text-[11px] font-semibold text-[#111111] uppercase mb-3">
+                  {isAr ? 'السعر' : 'PRICE'}
                 </h4>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    onClick={() => setSelectedCategory('All')}
-                    className={`px-3 py-1.5 rounded-xl text-[12px] font-body border cursor-pointer ${
-                      selectedCategory === 'All'
-                        ? 'bg-[#000000] text-white border-[#000000] font-bold'
-                        : 'bg-white text-[#444748] border-[#c4c7c7]'
-                    }`}
-                  >
-                    {language === 'ar' ? 'الكل' : 'All'}
-                  </button>
-                  {categoriesList.map((cat) => {
-                    const isSelected =
-                      selectedCategory === cat.nameEn ||
-                      selectedCategory === cat.nameAr;
-                    return (
-                      <button
-                        key={cat.id}
-                        onClick={() => setSelectedCategory(cat.nameEn)}
-                        className={`px-3 py-1.5 rounded-xl text-[12px] font-body border cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#000000] text-white border-[#000000] font-bold'
-                            : 'bg-white text-[#444748] border-[#c4c7c7]'
-                        }`}
-                      >
-                        {language === 'ar' ? cat.nameAr : cat.nameEn}
-                      </button>
-                    );
-                  })}
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  {[
+                    { label: isAr ? 'كل الأسعار' : 'All Prices', value: 10000, active: maxPrice >= maxCatalogPrice },
+                    { label: isAr ? 'حتى 1,000' : '≤ 1,000', value: 1000, active: maxPrice === 1000 },
+                    { label: isAr ? 'حتى 2,000' : '≤ 2,000', value: 2000, active: maxPrice === 2000 },
+                    { label: isAr ? 'حتى 3,000' : '≤ 3,000', value: 3000, active: maxPrice === 3000 },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setMaxPrice(opt.value)}
+                      className={`py-2 text-[12px] font-body border cursor-pointer ${
+                        opt.active
+                          ? 'bg-[#111111] text-white border-[#111111]'
+                          : 'bg-white text-[#444444] border-[#e6e4df]'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Mobile Price Filter */}
+              {/* Mobile Color */}
               <div>
-                <h4 className="font-label-caps text-[13px] font-bold text-[#000000] mb-2">
-                  {language === 'ar' ? 'السعر' : 'Price'}
+                <h4 className="font-label-caps text-[11px] font-semibold text-[#111111] uppercase mb-3">
+                  {isAr ? 'اللون' : 'COLOR'}
                 </h4>
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  <button
-                    onClick={() => setMaxPrice(10000)}
-                    className={`px-3 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
-                      maxPrice >= maxCatalogPrice
-                        ? 'bg-[#000000] text-white border-[#000000] font-bold'
-                        : 'bg-white text-[#444748] border-[#c4c7c7]'
-                    }`}
-                  >
-                    {language === 'ar' ? 'كل الأسعار' : 'All Prices'}
-                  </button>
-                  <button
-                    onClick={() => setMaxPrice(1000)}
-                    className={`px-2.5 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
-                      maxPrice === 1000
-                        ? 'bg-[#000000] text-white border-[#000000] font-bold'
-                        : 'bg-white text-[#444748] border-[#c4c7c7]'
-                    }`}
-                  >
-                    {language === 'ar' ? 'حتى 1,000 ج.م' : 'Under 1,000'}
-                  </button>
-                  <button
-                    onClick={() => setMaxPrice(2000)}
-                    className={`px-2.5 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
-                      maxPrice === 2000
-                        ? 'bg-[#000000] text-white border-[#000000] font-bold'
-                        : 'bg-white text-[#444748] border-[#c4c7c7]'
-                    }`}
-                  >
-                    {language === 'ar' ? 'حتى 2,000 ج.م' : 'Under 2,000'}
-                  </button>
-                  <button
-                    onClick={() => setMaxPrice(3000)}
-                    className={`px-2.5 py-1 text-[11px] font-label-caps rounded-full border transition-all cursor-pointer ${
-                      maxPrice === 3000
-                        ? 'bg-[#000000] text-white border-[#000000] font-bold'
-                        : 'bg-white text-[#444748] border-[#c4c7c7]'
-                    }`}
-                  >
-                    {language === 'ar' ? 'حتى 3,000 ج.م' : 'Under 3,000'}
-                  </button>
-                </div>
-                <input
-                  type="range"
-                  min="500"
-                  max={maxCatalogPrice}
-                  step="100"
-                  value={Math.min(maxPrice, maxCatalogPrice)}
-                  onChange={(e) => setMaxPrice(Number(e.target.value))}
-                  className="w-full accent-[#000000] h-1.5 bg-[#eeeeee] rounded-full appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-[11px] font-label-caps text-[#444748] mt-1 dir-ltr">
-                  <span>{formatPrice(500)}</span>
-                  <span className="font-bold text-[#000000]">
-                    {maxPrice >= maxCatalogPrice
-                      ? (language === 'ar' ? 'الكل (بلا حد)' : 'All Prices')
-                      : `${formatPrice(maxPrice)}`}
-                  </span>
-                </div>
-              </div>
-
-              {/* Mobile Color Filter */}
-              <div>
-                <h4 className="font-label-caps text-[13px] font-bold text-[#000000] mb-2">
-                  {language === 'ar' ? 'اللون' : 'Color'}
-                </h4>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2.5">
                   {colors.map((c) => {
                     const isSelected = selectedColor === c.name;
                     return (
                       <button
                         key={c.name}
+                        type="button"
                         onClick={() => setSelectedColor(isSelected ? null : c.name)}
-                        className={`w-7 h-7 rounded-full border transition-all ${
-                          isSelected ? 'ring-2 ring-black border-transparent' : 'border-[#c4c7c7]'
+                        className={`w-7 h-7 rounded-full border ${
+                          isSelected ? 'ring-1 ring-[#111111] ring-offset-2 border-black/30' : 'border-black/20'
                         }`}
                         style={{ backgroundColor: c.hex }}
                       />
@@ -692,10 +578,10 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                 </div>
               </div>
 
-              {/* Mobile Size Filter */}
+              {/* Mobile Size */}
               <div>
-                <h4 className="font-label-caps text-[13px] font-bold text-[#000000] mb-2">
-                  {language === 'ar' ? 'المقاس' : 'Size'}
+                <h4 className="font-label-caps text-[11px] font-semibold text-[#111111] uppercase mb-3">
+                  {isAr ? 'المقاس' : 'SIZE'}
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
                   {sizes.map((sz) => {
@@ -703,9 +589,12 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                     return (
                       <button
                         key={sz}
+                        type="button"
                         onClick={() => setSelectedSize(isSelected ? null : sz)}
-                        className={`w-8 h-8 rounded border text-[12px] font-label-caps ${
-                          isSelected ? 'bg-black text-white font-bold' : 'border-[#c4c7c7] text-[#444748]'
+                        className={`w-9 h-9 border text-[11px] font-label-caps ${
+                          isSelected
+                            ? 'bg-[#111111] text-white border-[#111111]'
+                            : 'bg-white border-[#e6e4df] text-[#444444]'
                         }`}
                       >
                         {sz}
@@ -718,53 +607,44 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
               <div className="flex items-center gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setSelectedCategory('All');
-                    setMaxPrice(10000);
-                    setSelectedColor(null);
-                    setSelectedSize(null);
-                  }}
-                  className="w-1/2 py-2.5 border border-[#c4c7c7] text-[#000000] font-label-caps rounded-xl text-[13px] font-bold"
+                  onClick={resetAllFilters}
+                  className="w-1/2 py-3 border border-[#111111] text-[#111111] font-label-caps text-[12px]"
                 >
-                  {language === 'ar' ? 'إعادة ضبط' : 'Reset All'}
+                  {isAr ? 'إعادة ضبط' : 'RESET'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setMobileFilterOpen(false)}
-                  className="w-1/2 bg-[#000000] text-white py-2.5 font-label-caps rounded-xl text-[13px] font-bold shadow-xs"
+                  className="w-1/2 bg-[#111111] text-white py-3 font-label-caps text-[12px]"
                 >
-                  {language === 'ar' ? 'تطبيق التصفية' : 'Apply Filters'}
+                  {isAr ? 'تطبيق' : 'APPLY'}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Grid Layout */}
+          {/* Product Grid */}
           {displayedProducts.length === 0 ? (
-            <div className="py-16 text-center bg-[#fafafa] rounded-2xl border border-dashed border-[#c4c7c7]/50 p-8 my-4">
-              <FilterX className="w-12 h-12 text-[#c4c7c7] mx-auto mb-3" />
-              <p className="font-display text-[20px] text-[#000000] font-bold mb-2">
-                {language === 'ar' ? 'لا توجد منتجات تطابق اختياراتك حالياً' : 'No products match your selected filters'}
+            <div className="py-20 text-center bg-[#faf9f7] border border-[#e6e4df] p-8 my-2">
+              <FilterX className="w-9 h-9 text-[#9c9992] mx-auto mb-4 stroke-[1.5]" />
+              <p className="font-display text-[20px] text-[#111111] font-semibold mb-2">
+                {isAr ? 'لا توجد منتجات تطابق اختياراتك' : 'No matching pieces found'}
               </p>
-              <p className="font-body text-[14px] text-[#747878] mb-6 max-w-md mx-auto">
-                {language === 'ar'
-                  ? 'يرجى تغيير نطاق السعر أو إلغاء فلترة المقاسات والألوان للوصول إلى كافة المعروضات.'
-                  : 'Try adjusting the price range or clearing color and size filters to view all pieces.'}
+              <p className="font-body text-[14px] text-[#6e6c68] mb-6 max-w-md mx-auto">
+                {isAr
+                  ? 'جرّب تعديل نطاق السعر أو إلغاء تصفية المقاسات والألوان لعرض كافة المعروضات.'
+                  : 'Try adjusting your price range or clearing filters to view the full collection.'}
               </p>
               <button
-                onClick={() => {
-                  setSelectedCategory('All');
-                  setMaxPrice(10000);
-                  setSelectedColor(null);
-                  setSelectedSize(null);
-                }}
-                className="px-6 py-3 bg-[#000000] text-white font-label-caps text-[13px] font-bold rounded-xl shadow-xs hover:bg-[#222222] transition-all cursor-pointer"
+                type="button"
+                onClick={resetAllFilters}
+                className="px-7 py-3 bg-[#111111] text-white font-label-caps text-[12px] hover:bg-[#2b2b2b] transition-colors cursor-pointer"
               >
-                {language === 'ar' ? 'إعادة عرض جميع المنتجات' : 'Reset Filters & Show All'}
+                {isAr ? 'عرض جميع المنتجات' : 'SHOW ALL PIECES'}
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-10 md:gap-x-6 md:gap-y-12">
               {displayedProducts.map((p, idx) => (
                 <ProductCard
                   key={p.id}
@@ -785,31 +665,27 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
             </div>
           )}
 
-          {/* Numbered Pagination Control (Only shown when multiple pages exist) */}
+          {/* Pagination */}
           {totalPages > 1 && (
-            <div className="mt-12 pt-6 border-t border-[#c4c7c7]/30 flex justify-center items-center gap-4">
-              {/* Numbered Page Buttons */}
+            <div className="mt-14 pt-8 border-t border-[#e6e4df] flex justify-center items-center">
               <div className="flex items-center gap-1.5 dir-ltr">
-                {/* Previous Page Button */}
                 <button
                   type="button"
                   disabled={currentPage === 1}
                   onClick={() => {
                     setCurrentPage((prev) => Math.max(1, prev - 1));
-                    const elem = document.getElementById('product-grid-section');
-                    if (elem) elem.scrollIntoView({ behavior: 'smooth' });
+                    document.getElementById('product-grid-section')?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className={`p-2 rounded-xl border flex items-center justify-center cursor-pointer transition-colors ${
+                  className={`w-10 h-10 border flex items-center justify-center transition-colors ${
                     currentPage === 1
-                      ? 'text-[#c4c7c7] border-[#c4c7c7]/30 cursor-not-allowed bg-[#f9f9f9]'
-                      : 'text-[#000000] border-[#c4c7c7] hover:bg-[#000000] hover:text-white'
+                      ? 'text-[#c9c6bf] border-[#e6e4df] cursor-not-allowed'
+                      : 'text-[#111111] border-[#e6e4df] hover:border-[#111111] hover:bg-[#111111] hover:text-white cursor-pointer'
                   }`}
-                  title={language === 'ar' ? 'الصفحة السابقة' : 'Previous Page'}
+                  title={isAr ? 'الصفحة السابقة' : 'Previous Page'}
                 >
-                  <ChevronLeft className="w-4.5 h-4.5" />
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
 
-                {/* Individual Page Number Buttons */}
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
                   const isActive = pageNum === currentPage;
                   return (
@@ -818,13 +694,12 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                       type="button"
                       onClick={() => {
                         setCurrentPage(pageNum);
-                        const elem = document.getElementById('product-grid-section');
-                        if (elem) elem.scrollIntoView({ behavior: 'smooth' });
+                        document.getElementById('product-grid-section')?.scrollIntoView({ behavior: 'smooth' });
                       }}
-                      className={`w-9 h-9 rounded-xl font-label-caps font-bold text-[13px] flex items-center justify-center transition-all cursor-pointer ${
+                      className={`w-10 h-10 border font-body text-[13px] tabular-nums flex items-center justify-center transition-colors cursor-pointer ${
                         isActive
-                          ? 'bg-[#000000] text-white shadow-xs scale-105'
-                          : 'bg-[#f3f3f4] text-[#444748] hover:bg-[#e5e5e7] hover:text-[#000000]'
+                          ? 'bg-[#111111] text-white border-[#111111] font-semibold'
+                          : 'bg-[#ffffff] text-[#444444] border-[#e6e4df] hover:border-[#111111] hover:text-[#111111]'
                       }`}
                     >
                       {pageNum}
@@ -832,23 +707,21 @@ export const CollectionsView: React.FC<CollectionsViewProps> = ({
                   );
                 })}
 
-                {/* Next Page Button */}
                 <button
                   type="button"
                   disabled={currentPage === totalPages}
                   onClick={() => {
                     setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-                    const elem = document.getElementById('product-grid-section');
-                    if (elem) elem.scrollIntoView({ behavior: 'smooth' });
+                    document.getElementById('product-grid-section')?.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className={`p-2 rounded-xl border flex items-center justify-center cursor-pointer transition-colors ${
+                  className={`w-10 h-10 border flex items-center justify-center transition-colors ${
                     currentPage === totalPages
-                      ? 'text-[#c4c7c7] border-[#c4c7c7]/30 cursor-not-allowed bg-[#f9f9f9]'
-                      : 'text-[#000000] border-[#c4c7c7] hover:bg-[#000000] hover:text-white'
+                      ? 'text-[#c9c6bf] border-[#e6e4df] cursor-not-allowed'
+                      : 'text-[#111111] border-[#e6e4df] hover:border-[#111111] hover:bg-[#111111] hover:text-white cursor-pointer'
                   }`}
-                  title={language === 'ar' ? 'الصفحة التالية' : 'Next Page'}
+                  title={isAr ? 'الصفحة التالية' : 'Next Page'}
                 >
-                  <ChevronRight className="w-4.5 h-4.5" />
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>

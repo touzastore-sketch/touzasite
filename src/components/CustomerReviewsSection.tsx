@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { MessageSquarePlus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { useLanguage } from '../context/LanguageContext';
 import { subscribeToReviews, SavedReview } from '../firebase';
@@ -12,6 +12,7 @@ interface CustomerReviewsSectionProps {
 
 const CustomerReviewsSectionComponent: React.FC<CustomerReviewsSectionProps> = () => {
   const { language } = useLanguage();
+  const isAr = language === 'ar';
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [reviews, setReviews] = useState<SavedReview[]>([]);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -37,12 +38,10 @@ const CustomerReviewsSectionComponent: React.FC<CustomerReviewsSectionProps> = (
     }
 
     const sLeft = el.scrollLeft;
-    const isRTL = language === 'ar';
-
     let atLeftEdge = false;
     let atRightEdge = false;
 
-    if (isRTL) {
+    if (isAr) {
       if (sLeft < 0) {
         atRightEdge = Math.abs(sLeft) <= 10;
         atLeftEdge = Math.abs(sLeft) >= maxScroll - 10;
@@ -72,138 +71,117 @@ const CustomerReviewsSectionComponent: React.FC<CustomerReviewsSectionProps> = (
     };
   }, [reviews, language]);
 
-  // Display list from database reviews (or default list returned by getAllReviews)
   const displayList = reviews.map((r) => ({
     id: r.id,
-    userName: r.userName || (language === 'ar' ? 'عميل توزا' : 'Touza Client'),
-    city: r.orderNumber || r.productTitle || (language === 'ar' ? 'عميل موثق' : 'Verified Purchase'),
+    userName: r.userName || (isAr ? 'عميل توزا' : 'TOUZA Client'),
+    meta: r.productTitle || r.orderNumber || (isAr ? 'عميل موثق' : 'Verified Purchase'),
     comment: r.comment,
-    image: r.userPhoto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600',
+    rating: r.rating || 5,
   }));
 
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
-      const card = scrollContainerRef.current.querySelector('div');
-      const step = card ? card.clientWidth + 24 : 280;
-      scrollContainerRef.current.scrollBy({ left: -step, behavior: 'smooth' });
+      scrollContainerRef.current.scrollBy({ left: -340, behavior: 'smooth' });
     }
   };
 
   const scrollRight = () => {
     if (scrollContainerRef.current) {
-      const card = scrollContainerRef.current.querySelector('div');
-      const step = card ? card.clientWidth + 24 : 280;
-      scrollContainerRef.current.scrollBy({ left: step, behavior: 'smooth' });
+      scrollContainerRef.current.scrollBy({ left: 340, behavior: 'smooth' });
     }
   };
 
+  if (displayList.length === 0) {
+    return null;
+  }
+
   return (
-    <section className="py-16 md:py-20 px-4 sm:px-8 md:px-16 bg-[#ffffff] border-t border-[#c5a059]/20 overflow-hidden">
-      <div className="max-w-[1340px] mx-auto flex flex-col lg:flex-row items-start lg:items-center gap-8 lg:gap-16">
-        
-        {/* Left Headline Section */}
-        <div className="lg:w-1/3 shrink-0 space-y-3.5 text-center sm:text-start mx-auto sm:mx-0">
-          <h2 className="font-display text-[32px] sm:text-[38px] md:text-[52px] text-[#000000] font-bold leading-[1.15] tracking-tight">
-            {language === 'ar' ? 'ماذا يقول عملاؤنا' : 'What Our Customers Say'}
-          </h2>
-          <p className="font-body text-[14px] sm:text-[15px] md:text-[16px] text-[#555555] leading-relaxed max-w-md mx-auto sm:mx-0">
-            {language === 'ar'
-              ? 'آراؤكم هي مصدر إلهامنا اليومي. إليك كيف يتألق ويستمتع عملاؤنا بقطع توزا (Touza) الرجالية الكاجوال.'
-              : 'Your feedback inspires us. Here’s how men are styling and enjoying Touza casual menswear.'}
-          </p>
-
-        </div>
-
-        {/* Right Carousel Section with Slider Navigation */}
-        <div className="lg:w-2/3 w-full relative group min-w-0">
-          
-          {/* Scroll Container */}
-          <div
-            ref={scrollContainerRef}
-            onScroll={updateScrollButtons}
-            className="flex gap-5 sm:gap-8 overflow-x-auto hide-scrollbar scroll-smooth py-6 px-4 sm:px-6 snap-x snap-mandatory"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
-          >
-            {displayList.map((item) => (
-              <div
-                key={item.id}
-                className="w-[82vw] sm:w-[280px] md:w-[300px] shrink-0 snap-center sm:snap-start flex flex-col space-y-4"
-              >
-                {/* Image Container with Quote Badge */}
-                <div className="relative w-[190px] h-[210px] sm:w-[220px] sm:h-[240px] mx-auto rounded-[50%] overflow-hidden bg-[#eaeaea] shadow-xs">
-                  <img
-                    src={item.image}
-                    alt={item.userName}
-                    loading="lazy"
-                    className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-500"
-                  />
-                  {/* Circular Quote Icon Badge */}
-                  <div className="absolute bottom-2.5 left-2.5 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#000000] text-white flex items-center justify-center shadow-lg border-2 border-white">
-                    <span className="font-serif text-[20px] sm:text-[22px] leading-none font-bold">”</span>
-                  </div>
-                </div>
-
-                {/* Name & City */}
-                <div className="text-center sm:text-start space-y-0.5 pt-1">
-                  <h3 className="font-display text-[20px] sm:text-[22px] font-bold text-[#000000]">
-                    {item.userName}
-                  </h3>
-                  <p className="font-body text-[12px] sm:text-[13px] text-[#747878]">
-                    {item.city}
-                  </p>
-                </div>
-
-                {/* Review Comment text */}
-                <p className="font-body text-[13px] sm:text-[14px] text-[#222222] leading-relaxed text-center sm:text-start">
-                  "{item.comment}"
-                </p>
-              </div>
-            ))}
+    <section className="py-16 md:py-24 px-5 sm:px-8 md:px-14 bg-[#ffffff] overflow-hidden">
+      <div className="max-w-[1440px] mx-auto">
+        {/* Header Row */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10 md:mb-12">
+          <div className="space-y-2 max-w-xl">
+            <span className="font-label-caps text-[11px] text-[#6e6c68] uppercase block">
+              {isAr ? 'انطباعات العملاء' : 'CLIENT NOTES'}
+            </span>
+            <h2 className="font-display text-[26px] sm:text-[34px] md:text-[38px] text-[#111111] font-semibold leading-[1.15] tracking-tight">
+              {isAr ? 'ماذا يقول عملاؤنا' : 'Worn & Reviewed'}
+            </h2>
           </div>
 
-          {/* Slider Left & Right Arrow Buttons */}
-          <div className="flex items-center justify-center lg:justify-between gap-4 mt-2 lg:mt-0 lg:absolute lg:top-1/2 lg:-translate-y-1/2 lg:w-full lg:left-0 pointer-events-none px-2">
+          {/* Crisp Architectural Arrow Controls */}
+          <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={scrollLeft}
               disabled={!canScrollLeft}
-              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#000000] text-white flex items-center justify-center shadow-md transition-all ${
-                canScrollLeft
-                  ? 'pointer-events-auto opacity-100 hover:bg-[#333333] cursor-pointer hover:scale-110 active:scale-95'
-                  : 'opacity-20 cursor-not-allowed pointer-events-none'
-              }`}
               aria-label="Previous review"
+              className={`w-10 h-10 border border-[#e6e4df] flex items-center justify-center transition-colors ${
+                canScrollLeft
+                  ? 'text-[#111111] hover:border-[#111111] hover:bg-[#111111] hover:text-white cursor-pointer'
+                  : 'text-[#c9c6bf] cursor-not-allowed'
+              }`}
             >
-              {language === 'ar' ? (
-                <ChevronRight className="w-5 h-5" />
-              ) : (
-                <ChevronLeft className="w-5 h-5" />
-              )}
+              {isAr ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
             </button>
-
             <button
+              type="button"
               onClick={scrollRight}
               disabled={!canScrollRight}
-              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#000000] text-white flex items-center justify-center shadow-md transition-all ${
-                canScrollRight
-                  ? 'pointer-events-auto opacity-100 hover:bg-[#333333] cursor-pointer hover:scale-110 active:scale-95'
-                  : 'opacity-20 cursor-not-allowed pointer-events-none'
-              }`}
               aria-label="Next review"
+              className={`w-10 h-10 border border-[#e6e4df] flex items-center justify-center transition-colors ${
+                canScrollRight
+                  ? 'text-[#111111] hover:border-[#111111] hover:bg-[#111111] hover:text-white cursor-pointer'
+                  : 'text-[#c9c6bf] cursor-not-allowed'
+              }`}
             >
-              {language === 'ar' ? (
-                <ChevronLeft className="w-5 h-5" />
-              ) : (
-                <ChevronRight className="w-5 h-5" />
-              )}
+              {isAr ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             </button>
           </div>
-
         </div>
 
+        {/* Minimalist Editorial Review Track */}
+        <div
+          ref={scrollContainerRef}
+          onScroll={updateScrollButtons}
+          className="flex gap-5 md:gap-6 overflow-x-auto hide-scrollbar scroll-smooth snap-x snap-mandatory pb-2"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+        >
+          {displayList.map((item) => (
+            <article
+              key={item.id}
+              className="w-[82vw] sm:w-[340px] md:w-[380px] shrink-0 snap-start border border-[#e6e4df] bg-[#faf9f7] p-6 sm:p-8 flex flex-col justify-between gap-6"
+            >
+              <div className="space-y-4">
+                <div className="flex items-center gap-1 text-[#111111]">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`w-3.5 h-3.5 ${
+                        star <= item.rating ? 'fill-[#111111] text-[#111111]' : 'text-[#d4d1ca]'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <p className="font-body text-[14px] sm:text-[15px] text-[#222222] leading-[1.8]">
+                  “{item.comment}”
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-[#e6e4df] flex items-baseline justify-between gap-3">
+                <span className="font-display text-[15px] font-semibold text-[#111111]">
+                  {item.userName}
+                </span>
+                <span className="font-body text-[12px] text-[#6e6c68] truncate max-w-[160px]">
+                  {item.meta}
+                </span>
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );
 };
 
 export const CustomerReviewsSection = React.memo(CustomerReviewsSectionComponent);
-

@@ -1,28 +1,34 @@
 @import "tailwindcss";
 
 @theme {
-  --font-serif: "Cairo", "EB Garamond", Georgia, serif;
-  --font-sans: "Cairo", "Hanken Grotesk", sans-serif;
-  
+  --font-serif: "Playfair Display", "Amiri", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", "IBM Plex Sans Arabic", -apple-system, BlinkMacSystemFont, sans-serif;
+
   --color-background: #ffffff;
-  --color-surface-container-low: #f3f3f4;
+  --color-stone-canvas: #f4f3f0;
+  --color-stone-subtle: #faf9f7;
+  --color-stone-warm: #edebe6;
+  --color-surface-container-low: #f4f3f0;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-high: #e8e8e8;
-  --color-surface-container: #eeeeee;
-  --color-primary: #000000;
+  --color-surface-container-high: #e6e4df;
+  --color-surface-container: #efede9;
+  --color-primary: #111111;
   --color-on-primary: #ffffff;
-  --color-secondary: #5e5e5c;
-  --color-on-surface-variant: #444748;
-  --color-outline: #747878;
-  --color-outline-variant: #c4c7c7;
+  --color-secondary: #6e6c68;
+  --color-on-surface-variant: #4a4845;
+  --color-outline: #8a8782;
+  --color-outline-variant: #e6e4df;
 }
 
 html, body {
-  font-family: "Cairo", sans-serif;
+  font-family: "Plus Jakarta Sans", "IBM Plex Sans Arabic", -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #ffffff;
+  color: #111111;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   overflow-x: hidden;
   width: 100%;
   touch-action: manipulation;
@@ -48,24 +54,62 @@ button, a, select, input {
 
 /* Force -webkit-backdrop-filter for Safari */
 [class*="backdrop-blur"] {
-  -webkit-backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .font-display {
-  font-family: "Cairo", "EB Garamond", Georgia, serif;
+  font-family: "Plus Jakarta Sans", "IBM Plex Sans Arabic", sans-serif;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.font-editorial {
+  font-family: "Playfair Display", "Amiri", Georgia, serif;
+  font-feature-settings: "kern" 1, "liga" 1;
+  text-wrap: balance;
 }
 
 .font-body {
-  font-family: "Cairo", "Hanken Grotesk", sans-serif;
+  font-family: "Plus Jakarta Sans", "IBM Plex Sans Arabic", sans-serif;
 }
 
 .font-label-caps {
-  font-family: "Cairo", "Hanken Grotesk", sans-serif;
+  font-family: "Plus Jakarta Sans", "IBM Plex Sans Arabic", sans-serif;
   font-size: 12px;
   line-height: 1.2;
-  letter-spacing: 0.05em;
-  font-weight: 700;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+
+/* Editorial italics: true serif italic in LTR, dignified upright Amiri in RTL Arabic */
+.editorial-italic {
+  font-style: italic;
+}
+
+/* Preserve clean Arabic cursive connections & natural editorial line-height in RTL */
+[dir="rtl"] * {
+  letter-spacing: 0 !important;
+}
+
+[dir="rtl"] .editorial-italic {
+  font-style: normal !important;
+}
+
+[dir="rtl"] .font-editorial {
+  line-height: 1.28;
+}
+
+/* Keep the Latin TOUZA serif brand mark crisp and subtly tracked in both AR and EN */
+.brand-wordmark {
+  font-family: "Playfair Display", Georgia, serif !important;
+  letter-spacing: 0.05em !important;
+  font-style: normal !important;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 .material-symbols-outlined,
@@ -88,20 +132,22 @@ button, a, select, input {
   text-rendering: optimizeLegibility;
 }
 
-.hide-scrollbar::-webkit-scrollbar {
+.hide-scrollbar::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
   display: none;
 }
-.hide-scrollbar {
+.hide-scrollbar,
+.no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Custom fade-in and zoom effects */
+/* Custom subtle editorial entrance */
 .fade-in-up {
-  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(16px);
 }
 
 @keyframes fadeInUp {
@@ -115,31 +161,29 @@ button, a, select, input {
 .delay-200 { animation-delay: 200ms; }
 .delay-300 { animation-delay: 300ms; }
 
-/* Minimalist form field styling */
+/* Minimalist architectural form fields */
 .input-minimal {
   border: none;
-  border-bottom: 1px solid #c4c7c7;
+  border-bottom: 1px solid #d5d2cc;
   background-color: transparent;
   border-radius: 0;
   padding: 12px 0;
-  font-family: "Hanken Grotesk", sans-serif;
-  font-size: 16px;
-  color: #1a1c1c;
-  transition: border-color 0.3s ease;
+  font-family: "Plus Jakarta Sans", "IBM Plex Sans Arabic", sans-serif;
+  font-size: 15px;
+  color: #111111;
+  transition: border-color 0.2s ease;
   -webkit-appearance: none;
 }
 .input-minimal:focus {
   outline: none;
-  border-bottom-color: #000000;
+  border-bottom-color: #111111;
   box-shadow: none;
 }
 .input-minimal::placeholder {
-  color: #747878;
+  color: #8a8782;
 }
 
-/* ==========================================
-   INFINITE MARQUEE ANIMATIONS
-   ========================================== */
+/* Infinite marquee animations */
 @-webkit-keyframes marquee {
   0% {
     -webkit-transform: translate3d(0, 0, 0);
@@ -167,13 +211,11 @@ button, a, select, input {
   flex-direction: row !important;
   flex-wrap: nowrap !important;
   width: max-content !important;
-  animation: marquee 28s linear infinite !important;
-  -webkit-animation: marquee 28s linear infinite !important;
+  animation: marquee 32s linear infinite !important;
+  -webkit-animation: marquee 32s linear infinite !important;
   will-change: transform;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  -webkit-perspective: 1000;
-  perspective: 1000;
 }
 
 .marquee-container {
@@ -185,12 +227,8 @@ button, a, select, input {
   overflow: hidden;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .marquee-container:hover .animate-marquee {
-    animation-play-state: paused;
-    -webkit-animation-play-state: paused;
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none !important;
   }
 }
-
-
-

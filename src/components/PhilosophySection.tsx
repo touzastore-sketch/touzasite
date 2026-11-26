@@ -25,7 +25,7 @@ const PhilosophySectionComponent: React.FC<PhilosophySectionProps> = ({
     storeSettings?.philosophyImageUrl ||
     imageUrl ||
     DEFAULT_MODEL_IMAGE;
-  const activeImageUrl = getOptimizedImageUrl(rawModelImage, { width: 800, quality: 'auto:good' });
+  const activeImageUrl = getOptimizedImageUrl(rawModelImage, { width: 900, quality: 'auto:good' });
 
   useEffect(() => {
     const element = sectionRef.current;
@@ -67,176 +67,103 @@ const PhilosophySectionComponent: React.FC<PhilosophySectionProps> = ({
     };
   }, []);
 
-  const isRtl = language === 'ar';
+  const isAr = language === 'ar';
 
   return (
     <section
       id="about"
       ref={sectionRef}
-      className="py-10 sm:py-12 md:py-14 bg-[#ffffff] border-y border-[#c5a059]/20 px-4 sm:px-6 md:px-16 overflow-hidden relative"
+      className="py-16 md:py-24 bg-[#f4f3f0] border-y border-[#e6e4df] px-5 sm:px-8 md:px-14 overflow-hidden"
     >
-      {/* Decorative Subtle Background Ambient Glow */}
-      <div className="absolute top-1/2 ltr:left-10 rtl:right-10 -translate-y-1/2 w-96 h-96 bg-[#c5a059]/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
+        {/* Column 1: Editorial Copy */}
+        <div
+          className="lg:col-span-6 order-2 lg:order-1 space-y-6 max-w-xl"
+          style={{
+            opacity: isVisible ? 1 : 0,
+            transform: isVisible ? 'translateY(0)' : 'translateY(16px)',
+            transition: 'opacity 700ms ease-out, transform 700ms ease-out',
+          }}
+        >
+          <span className="font-label-caps text-[#6e6c68] text-[11px] uppercase block">
+            {isAr
+              ? storeSettings?.philosophyBadgeAr || 'فلسفة التصميم'
+              : storeSettings?.philosophyBadgeEn || 'THE PHILOSOPHY'}
+          </span>
 
-      {/* Main Section Container: 2 columns on tablet & desktop (md:grid-cols-2), 1 column on mobile */}
-      <div className="max-w-[1240px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
-        {/* Column 1: Text Content (md:order-1 -> Right side in RTL, Left side in LTR) */}
-        <div className="order-2 md:order-1 z-20 space-y-4 sm:space-y-5 max-w-xl mx-auto md:mx-0 relative">
-          {/* Subtitle & Golden Expanding Accent Line */}
-          <div className="flex items-center gap-3">
-            <span
-              className="h-[1.5px] bg-gradient-to-r from-[#c5a059] to-[#dfc38c] rounded-full transition-all duration-800 ease-out"
-              style={{
-                width: isVisible ? '2.5rem' : '0rem',
-                opacity: isVisible ? 1 : 0,
-              }}
-            />
-            <span
-              className="font-label-caps text-[#8c734b] text-[11px] sm:text-[12px] tracking-[0.28em] font-semibold uppercase transition-all duration-700 ease-out"
-              style={{
-                opacity: isVisible ? 1 : 0,
-                transform: isVisible
-                  ? 'translateX(0)'
-                  : isRtl
-                  ? 'translateX(20px)'
-                  : 'translateX(-20px)',
-                transitionDelay: '200ms',
-              }}
-            >
-              {language === 'ar'
-                ? storeSettings?.philosophyBadgeAr || 'فلسفة دار الأزياء'
-                : storeSettings?.philosophyBadgeEn || 'OUR PHILOSOPHY'}
+          <h2 className="font-display text-[28px] sm:text-[36px] md:text-[44px] text-[#111111] leading-[1.15] font-semibold tracking-tight text-balance">
+            <span className="block">
+              {isAr
+                ? storeSettings?.philosophyTitle1Ar || 'إتقان هادئ في كل تفصيلة'
+                : storeSettings?.philosophyTitle1En || 'Refined Essentials.'}
             </span>
-          </div>
-
-          {/* Main Title */}
-          <h2 className="font-display text-[26px] sm:text-[32px] md:text-[38px] text-[#1a1a1a] leading-[1.22] font-normal tracking-tight">
-            <span
-              className="block transition-all duration-700 ease-out"
-              style={{
-                opacity: isVisible ? 1 : 0,
-                transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
-                transitionDelay: '300ms',
-              }}
-            >
-              {language === 'ar'
-                ? storeSettings?.philosophyTitle1Ar || 'إتقان يدوي..'
-                : storeSettings?.philosophyTitle1En || 'Pure Craftsmanship.'}
-            </span>
-            <span
-              className="block font-italic italic text-[#8c734b] transition-all duration-700 ease-out mt-0.5"
-              style={{
-                opacity: isVisible ? 1 : 0,
-                transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
-                transitionDelay: '420ms',
-              }}
-            >
-              {language === 'ar'
+            <span className="block text-[#6e6c68] font-normal mt-1">
+              {isAr
                 ? storeSettings?.philosophyTitle2Ar || 'وأناقة تدوم طويلاً'
-                : storeSettings?.philosophyTitle2En || 'Unhurried Elegance.'}
+                : storeSettings?.philosophyTitle2En || 'Made to Endure.'}
             </span>
           </h2>
 
-          {/* Golden Horizontal Connecting Line */}
-          <div
-            className="h-[1px] bg-gradient-to-r from-[#c5a059]/40 via-[#c5a059]/15 to-transparent transition-all duration-1000"
-            style={{
-              width: isVisible ? '100%' : '0%',
-              opacity: isVisible ? 1 : 0,
-              transitionDelay: '500ms',
-            }}
-          />
+          <div className="h-[1px] w-16 bg-[#111111]/25" />
 
-          {/* Paragraphs */}
-          <div
-            className="space-y-3 transition-all duration-800 ease-out"
-            style={{
-              opacity: isVisible ? 1 : 0,
-              transform: isVisible ? 'translateY(0)' : 'translateY(16px)',
-              transitionDelay: '580ms',
-            }}
-          >
-            <p className="font-body text-[14px] sm:text-[15px] text-[#2c2c2c] leading-[1.8] font-light">
-              {language === 'ar'
+          <div className="space-y-4">
+            <p className="font-body text-[15px] sm:text-[16px] text-[#2a2a2a] leading-[1.8]">
+              {isAr
                 ? storeSettings?.philosophyParagraph1Ar ||
-                  'في توزا، نركز على تقديم أفضل أزياء كاجوال رجالي تجمع بين العصرية والراحة المطلقة في جميع الأوقات.'
+                  'في توزا، نركز على تقديم أزياء كاجوال رجالي تجمع بين الخطوط البسيطة والخامات المختارة بعناية لتمنحك راحة وثقة في كل يوم.'
                 : storeSettings?.philosophyParagraph1En ||
-                  'At TOUZA, we craft high-end casual menswear built with 280GSM Egyptian cotton, pure flax linen, and custom relaxed tailoring.'}
+                  'At TOUZA, we focus on elevated everyday menswear—clean silhouettes, substantial fabrics, and relaxed tailoring built for lasting comfort.'}
             </p>
-            <p className="font-body text-[13px] sm:text-[14px] text-[#555555] leading-[1.75] font-light">
-              {language === 'ar'
+            <p className="font-body text-[14px] sm:text-[15px] text-[#6e6c68] leading-[1.8]">
+              {isAr
                 ? storeSettings?.philosophyParagraph2Ar ||
-                  'تصاميم تعبر عن الأناقة الهادئة والثقة المطلقة، مع خدمات توصيل سريعة ومميزة في جميع أنحاء مصر.'
+                  'تصاميم تعبر عن الأناقة الهادئة بعيداً عن الصخب، مع شحن سريع وموثوق لجميع محافظات مصر.'
                 : storeSettings?.philosophyParagraph2En ||
-                  'Designed for perpetual relevance across seasons, our garments honor the wearer with quiet confidence.'}
+                  'Designed with restraint for perpetual relevance across seasons, delivered nationwide across Egypt.'}
             </p>
           </div>
 
-          {/* CTA Button */}
-          <div
-            className="pt-1 transition-all duration-800 ease-out"
-            style={{
-              opacity: isVisible ? 1 : 0,
-              transform: isVisible ? 'translateY(0)' : 'translateY(16px)',
-              transitionDelay: '700ms',
-            }}
-          >
+          <div className="pt-3">
             <button
+              type="button"
               onClick={onExplore}
-              className="group relative inline-flex items-center justify-center gap-2.5 border border-[#1a1a1a] text-[#1a1a1a] py-3 px-8 font-label-caps rounded-xl overflow-hidden cursor-pointer text-[12px] sm:text-[13px] font-semibold tracking-wider shadow-2xs transition-all duration-500 hover:shadow-md transform hover:-translate-y-0.5"
+              className="group inline-flex items-center justify-center gap-3 bg-[#111111] text-white py-3.5 px-8 rounded-none font-label-caps text-[12px] font-semibold hover:bg-[#2b2b2b] transition-colors cursor-pointer"
             >
-              {/* Animated Hover Background Fill */}
-              <span className="absolute inset-0 bg-[#1a1a1a] translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out z-0" />
-
-              <span className="relative z-10 group-hover:text-white transition-colors duration-500">
-                {language === 'ar' ? 'اكتشف التشكيلة الكاملة' : 'Explore The Atelier'}
-              </span>
-              {language === 'ar' ? (
-                <ArrowLeft className="relative z-10 w-4.5 h-4.5 group-hover:text-white transition-all duration-500 transform group-hover:-translate-x-1" />
+              <span>{isAr ? 'استكشف التشكيلة الكاملة' : 'EXPLORE THE COLLECTION'}</span>
+              {isAr ? (
+                <ArrowLeft className="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1" />
               ) : (
-                <ArrowRight className="relative z-10 w-4.5 h-4.5 group-hover:text-white transition-all duration-500 transform group-hover:translate-x-1" />
+                <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
               )}
             </button>
           </div>
         </div>
 
-        {/* Column 2: Model Image (md:order-2 -> Left side in RTL, Right side in LTR) */}
-        <div className="order-1 md:order-2 relative z-10 w-full flex justify-center ltr:md:justify-end rtl:md:justify-start">
-          <div
-            className="relative w-full max-w-[320px] sm:max-w-[350px] md:max-w-[380px] transition-all duration-1000 ease-out"
-            style={{
-              opacity: isVisible ? 1 : 0,
-              transform: isVisible
-                ? 'scale(1) translateY(0)'
-                : 'scale(0.95) translateY(20px)',
-              transitionDelay: '250ms',
-            }}
-          >
-            {/* Seamless Model Photo Wrapper - Transparent Cutout with Ground Shadow */}
-            <div className="relative h-[360px] sm:h-[400px] md:h-[430px] w-full flex flex-col items-center justify-end group">
-              {/* Soft Ground Shadow under Model Feet */}
-              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-[60%] h-3.5 bg-black/15 rounded-[100%] blur-md pointer-events-none z-0 transition-opacity duration-700 group-hover:opacity-80" />
-
-              {/* Model Cutout Image - Seamless Transparent PNG with Ground Shadow */}
-              <img
-                key={activeImageUrl}
-                src={activeImageUrl}
-                alt="Maison Atelier Model"
-                referrerPolicy="no-referrer"
-                loading="eager"
-                decoding="async"
-                fetchPriority="high"
-                onError={(e) => {
-                  if (e.currentTarget.src !== DEFAULT_MODEL_IMAGE && !e.currentTarget.src.includes(DEFAULT_MODEL_IMAGE)) {
-                    e.currentTarget.src = DEFAULT_MODEL_IMAGE;
-                  }
-                }}
-                className="relative z-10 max-h-full max-w-full object-contain object-bottom transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                style={{
-                  filter: 'contrast(1.04) brightness(1.02)',
-                }}
-              />
-            </div>
+        {/* Column 2: Architectural Portrait Pedestal */}
+        <div
+          className="lg:col-span-6 order-1 lg:order-2 flex justify-center lg:justify-end"
+          style={{
+            opacity: isVisible ? 1 : 0,
+            transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
+            transition: 'opacity 850ms ease-out 120ms, transform 850ms ease-out 120ms',
+          }}
+        >
+          <div className="relative w-full max-w-[440px] aspect-[4/5] bg-[#edebe6] overflow-hidden flex items-end justify-center group">
+            <img
+              key={activeImageUrl}
+              src={activeImageUrl}
+              alt="TOUZA Atelier"
+              referrerPolicy="no-referrer"
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+              onError={(e) => {
+                if (e.currentTarget.src !== DEFAULT_MODEL_IMAGE && !e.currentTarget.src.includes(DEFAULT_MODEL_IMAGE)) {
+                  e.currentTarget.src = DEFAULT_MODEL_IMAGE;
+                }
+              }}
+              className="w-full h-full object-contain object-bottom pt-6 transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+            />
           </div>
         </div>
       </div>
@@ -245,4 +172,3 @@ const PhilosophySectionComponent: React.FC<PhilosophySectionProps> = ({
 };
 
 export const PhilosophySection = React.memo(PhilosophySectionComponent);
-

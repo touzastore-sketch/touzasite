@@ -7,16 +7,20 @@ import { DEFAULT_CATEGORIES, CATEGORIES_VERSION } from './data/defaultCategories
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { HeroBanner } from './components/HeroBanner';
-import { ProductCard } from './components/ProductCard';
-import { CustomerReviewsSection } from './components/CustomerReviewsSection';
-import { PhilosophySection } from './components/PhilosophySection';
-import { LogoMarqueeSection } from './components/LogoMarqueeSection';
-import { PerksMarqueeBar } from './components/PerksMarqueeBar';
+import { ProductCarouselSection } from './components/ProductCarouselSection';
 import { FloatingContactButtons } from './components/FloatingContactButtons';
 import { ScrollReveal } from './components/ScrollReveal';
 import { StorePreloader } from './components/StorePreloader';
 import { useLanguage } from './context/LanguageContext';
 import { getOptimizedImageUrl, DEFAULT_HEADER_VIDEO_URL, withCacheBuster } from './utils/cloudinary';
+import editorialFabricCraft from './assets/images/touza_split_craft_jackets_1795730398005.jpg';
+import editorialWinterLookbook from './assets/images/touza_split_studio_model_1795730399881.jpg';
+import splitStreetOlive from './assets/images/touza_split_street_blossom_1795730400195.jpg';
+import splitStreetBlack from './assets/images/touza_split_street_tapestry_1795730402236.jpg';
+import catModelBlossom from './assets/images/cat_model_blossom_1795730668487.jpg';
+import catModelTapestry from './assets/images/cat_model_tapestry_1795730668945.jpg';
+import catFlatlayTiger from './assets/images/cat_flatlay_tiger_1795730670964.jpg';
+import catFlatlayPortrait from './assets/images/cat_flatlay_portrait_1795730671087.jpg';
 import {
   subscribeToAuth,
   signInWithGoogle,
@@ -351,10 +355,10 @@ export const AppContent: React.FC = () => {
     socialWhatsappUrl: 'https://wa.me/+201070606272',
     socialYoutubeUrl: '',
     socialSnapchatUrl: '',
-    branchesAr: 'للطلب والاستفسار : 01070606272  📲\nالعنوان : بورسعيد شارع ٢٣ يوليو امام قاعة البوريفاج \nيوجد شحن لجميع المحافظات 🚚',
-    branchesEn: 'For orders and inquiries: 01070606272 📲\nAddress: Port Said, 23 July Street, opposite Al Bourivage Hall.\nShipping is available to all governorates 🚚\n',
-    contactAr: 'للطلب والاستفسار : 01070606272  📲\nالعنوان : بورسعيد شارع ٢٣ يوليو امام قاعة البوريفاج \nيوجد شحن لجميع المحافظات 🚚',
-    contactEn: 'For orders and inquiries: 01070606272 📲\nAddress: Port Said, 23 July Street, opposite Al Bourivage Hall.\nShipping is available to all governorates 🚚',
+    branchesAr: 'للطلب والاستفسار : 01070606272\nالعنوان : بورسعيد شارع ٢٣ يوليو امام قاعة البوريفاج\nيوجد شحن لجميع المحافظات',
+    branchesEn: 'For orders and inquiries: 01070606272\nAddress: Port Said, 23 July Street, opposite Al Bourivage Hall.\nShipping is available to all governorates',
+    contactAr: 'للطلب والاستفسار : 01070606272\nالعنوان : بورسعيد شارع ٢٣ يوليو امام قاعة البوريفاج\nيوجد شحن لجميع المحافظات',
+    contactEn: 'For orders and inquiries: 01070606272\nAddress: Port Said, 23 July Street, opposite Al Bourivage Hall.\nShipping is available to all governorates',
     whatsappNumber: '01070606272',
     phoneNumber: '01200031140',
     privacyAr: 'تلتزم توزا بحماية كافة بيانات العملاء بخصوصية تامة وعدم مشاركتها مع أي جهة خارجية إلا لغرض الشحن.',
@@ -594,26 +598,32 @@ export const AppContent: React.FC = () => {
 
   // Cross-device and Safari BFCache synchronization hook:
   // When a user unlocks their phone, switches back to the tab, or focuses the browser,
-  // pull fresh server products immediately so newly published items appear with zero delay.
+  // pull fresh server products without overlapping in-flight requests or firing while offline.
   useEffect(() => {
     let isMounted = true;
+    let isSyncing = false;
     let throttleTimer: NodeJS.Timeout | null = null;
 
     const syncLatestFromFirestore = () => {
-      if (!isMounted) return;
+      if (!isMounted || isSyncing) return;
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
       if (Date.now() - lastLocalProductMutationRef.current < 3000) return;
       if (throttleTimer) return;
       throttleTimer = setTimeout(() => {
         throttleTimer = null;
-      }, 2000);
+      }, 8000);
 
+      isSyncing = true;
       getAllProductsAdmin()
         .then((freshProducts) => {
           if (isMounted && Array.isArray(freshProducts) && Date.now() - lastLocalProductMutationRef.current >= 3000) {
             setProducts(sortProductsNewestFirst(freshProducts));
           }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          isSyncing = false;
+        });
     };
 
     const handleVisibilityChange = () => {
@@ -1095,161 +1105,300 @@ export const AppContent: React.FC = () => {
         )}
 
         {currentView === 'home' && (
-          <div>
-            {/* Screen 1: Hero Banner */}
+          <div className="bg-[#ffffff]">
+            {/* Band 1 (Screenshot 1): Full-Bleed 50/50 Dark Editorial Split Hero */}
             <HeroBanner
               onShopNow={() => handleNavigate('shop', 'All')}
+              onShopSecondary={() => handleNavigate('shop', categories[0]?.nameEn || 'All')}
               storeSettings={storeSettings}
               onVideoReady={() => setIsVideoReady(true)}
             />
 
-            {/* Featured Collection Grid */}
+            {/* Band 2 (Screenshot 2): 4-Column Horizontal Product Carousel (100% Live Firestore Products) */}
+            <ProductCarouselSection
+              products={products}
+              isInitialSyncDone={isInitialSyncDone}
+              wishlistIds={wishlistIds}
+              onSelectProduct={handleSelectProduct}
+              onToggleWishlist={handleToggleWishlist}
+              onQuickAdd={(p, color, size) => handleAddToCart(p, color, size)}
+              onViewAll={() => handleNavigate('shop', 'All')}
+            />
+
+            {/* Band 3 (Screenshot 2 Bottom / Screenshot 3 Top): Full-Width Black Editorial Strip #1 */}
+            <div className="w-full bg-[#000000] text-white py-3.5 px-6 overflow-hidden">
+              <div className="max-w-[1440px] mx-auto flex items-center justify-center md:justify-between gap-8 text-[11px] sm:text-[12px] tracking-[0.14em] uppercase font-body whitespace-nowrap">
+                <span>{language === 'ar' ? 'طلب فوري عبر واتساب بدون تسجيل' : 'DIRECT WHATSAPP ORDERING'}</span>
+                <span className="hidden sm:inline">{language === 'ar' ? 'شحن سريع لجميع محافظات مصر' : 'EXPRESS NATIONWIDE SHIPPING'}</span>
+                <span className="hidden md:inline">{language === 'ar' ? 'أقوى تشكيلة كاجوال رجالي ٢٠٢٦' : 'MEN’S CASUAL ESSENTIALS 2026'}</span>
+                <span className="hidden lg:inline">{language === 'ar' ? 'استبدال واسترجاع خلال ١٤ يوم' : '14-DAY EASY EXCHANGES'}</span>
+              </div>
+            </div>
+
+            {/* Band 4 (Screenshot 3): Full-Bleed 50/50 Editorial Split #1 — 100% Men's */}
             <ScrollReveal>
-              <section className="py-16 md:py-20 px-5 md:px-16 max-w-[1440px] mx-auto w-full">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10">
-                  <div>
-                    <span className="font-label-caps text-[#747878] mb-1.5 block text-[13px]">
-                      {language === 'ar' ? 'مختارات البوتيك الحصرية' : 'ATELIER SELECTIONS'}
-                    </span>
-                    <h2 className="font-display text-[28px] md:text-[40px] text-[#000000] font-bold">
-                      {language === 'ar' ? 'معروضات الصفحة الرئيسية' : 'Homepage Selection'}
-                    </h2>
+              <section className="w-full grid grid-cols-1 md:grid-cols-2 gap-0 bg-[#111111]">
+                {/* Left Panel: Folded Luxury Men's Essentials */}
+                <div
+                  onClick={() => handleNavigate('shop', 'All')}
+                  className="group relative aspect-[4/5] md:aspect-[1/1.05] max-h-[780px] w-full overflow-hidden bg-[#1a1917] cursor-pointer"
+                >
+                  <img
+                    src={editorialFabricCraft}
+                    alt={language === 'ar' ? 'أساسيات يومية للرجال' : 'Essentials for him'}
+                    loading="lazy"
+                    className="w-full h-full object-cover object-center transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+                  <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 md:p-14 text-white flex flex-col items-start text-start">
+                    <h3 className="font-editorial text-[34px] sm:text-[42px] md:text-[46px] font-normal leading-[1.08] mb-2">
+                      {language === 'ar' ? (
+                        <>
+                          أساسيات <span className="editorial-italic">للرجال</span>
+                        </>
+                      ) : (
+                        <>
+                          Essentials <span className="editorial-italic">for him</span>
+                        </>
+                      )}
+                    </h3>
+                    <p className="font-body text-[14px] sm:text-[15px] text-white/85 mb-6 max-w-md">
+                      {language === 'ar'
+                        ? 'خامات فاخرة ومريحة مصممة للاستخدام اليومي.'
+                        : 'Soft heavyweight essentials crafted for every day.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigate('shop', 'All');
+                      }}
+                      className="border border-white/80 bg-transparent text-white hover:bg-white hover:text-[#111111] transition-colors duration-200 px-7 py-3 rounded-none text-[11px] font-medium tracking-[0.16em] uppercase cursor-pointer"
+                    >
+                      {language === 'ar' ? 'تسوق الأساسيات' : 'MEN’S ESSENTIALS'}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleNavigate('shop', 'All')}
-                    className="font-label-caps text-[#000000] underline underline-offset-8 hover:text-[#747878] transition-colors mt-3 md:mt-0 cursor-pointer text-[14px]"
-                  >
-                    {language === 'ar' ? `عرض كل القطع (${products.length})` : `View All Pieces (${products.length})`}
-                  </button>
                 </div>
 
-                {(() => {
-                  const homeSelected = products.filter((p) => p.showOnHome !== false);
-                  const displayList = homeSelected.length > 0 ? homeSelected : products;
-
-                  if (displayList.length === 0 && !isInitialSyncDone) {
-                    return (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {[0, 1, 2, 3].map((slot) => (
-                          <div
-                            key={slot}
-                            className="bg-white rounded-2xl overflow-hidden border border-[#c4c7c7]/25 animate-pulse"
-                          >
-                            <div className="aspect-[3/4] bg-[#ececec]" />
-                            <div className="p-4 space-y-2.5">
-                              <div className="h-4 bg-[#e6e6e6] rounded w-3/4" />
-                              <div className="h-3.5 bg-[#efefef] rounded w-1/2" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }
-
-                  if (displayList.length === 0) {
-                    return (
-                      <div className="py-12 text-center bg-[#f9f9f9] rounded-2xl border border-[#c4c7c7]/30 p-8">
-                        <span className="material-symbols-outlined text-[40px] text-[#747878] mb-2 block">inventory_2</span>
-                        <p className="font-display text-[18px] font-bold text-[#000000]">
-                          {language === 'ar' ? 'المتجر قيد التحديث' : 'Store Being Updated'}
-                        </p>
-                        <p className="text-[13px] text-[#747878] mt-1">
-                          {language === 'ar' ? 'سيتم إضافة قطع ومجموعات جديدة قريباً جداً.' : 'New pieces and collections will be added very soon.'}
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {displayList.map((product, idx) => (
-                        <ProductCard
-                          key={product.id}
-                          product={product}
-                          priority={idx < 4}
-                          onSelectProduct={handleSelectProduct}
-                          isWishlisted={wishlistIds.includes(product.id)}
-                          onToggleWishlist={(p, e) => {
-                            e.stopPropagation();
-                            handleToggleWishlist(p);
-                          }}
-                          onQuickAdd={(p, color, size) => {
-                            handleAddToCart(p, color, size);
-                          }}
-                        />
-                      ))}
-                    </div>
-                  );
-                })()}
+                {/* Right Panel: Male Model Tailored Casual Lookbook (Replacing Female Image with 100% Male Model) */}
+                <div
+                  onClick={() => handleNavigate('shop', categories[0]?.nameEn || 'All')}
+                  className="group relative aspect-[4/5] md:aspect-[1/1.05] max-h-[780px] w-full overflow-hidden bg-[#1a1917] cursor-pointer"
+                >
+                  <img
+                    src={editorialWinterLookbook}
+                    alt={language === 'ar' ? 'جاكيت كوردروي رجالي مطرز من توزا' : 'TOUZA embroidered corduroy jacket editorial'}
+                    loading="lazy"
+                    className="w-full h-full object-cover object-top transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+                  <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 md:p-14 text-white flex flex-col items-start text-start">
+                    <h3 className="font-editorial text-[34px] sm:text-[42px] md:text-[46px] font-normal leading-[1.08] mb-2">
+                      {language === 'ar' ? (
+                        <>
+                          أناقة <span className="editorial-italic">يومية</span>
+                        </>
+                      ) : (
+                        <>
+                          Tailored <span className="editorial-italic">casual</span>
+                        </>
+                      )}
+                    </h3>
+                    <p className="font-body text-[14px] sm:text-[15px] text-white/85 mb-6 max-w-md">
+                      {language === 'ar'
+                        ? 'جواكيت وأوفرشيرت بقصّات عصرية تناسب كل المناسبات.'
+                        : 'Structured overshirts and outerwear in refined earthy tones.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigate('shop', categories[0]?.nameEn || 'All');
+                      }}
+                      className="border border-white/80 bg-transparent text-white hover:bg-white hover:text-[#111111] transition-colors duration-200 px-7 py-3 rounded-none text-[11px] font-medium tracking-[0.16em] uppercase cursor-pointer"
+                    >
+                      {language === 'ar' ? 'تسوق الجواكيت' : 'SHOP OUTERWEAR'}
+                    </button>
+                  </div>
+                </div>
               </section>
             </ScrollReveal>
 
-            {/* Seamless Full-Width Perks Marquee Bar */}
-            <PerksMarqueeBar storeSettings={storeSettings} />
+            {/* Band 5 (Screenshot 4 Top): Full-Width Black Editorial Strip #2 */}
+            <div className="w-full bg-[#000000] text-white py-3.5 px-6 overflow-hidden">
+              <div className="max-w-[1440px] mx-auto flex items-center justify-center md:justify-between gap-8 text-[11px] sm:text-[12px] tracking-[0.14em] uppercase font-body whitespace-nowrap">
+                <span>{language === 'ar' ? 'توصيل لجميع المحافظات' : 'FAST EGYPT DELIVERY'}</span>
+                <span className="hidden sm:inline">{language === 'ar' ? 'استبدال خلال ١٤ يوم' : '14-DAY RETURNS'}</span>
+                <span className="hidden md:inline">{language === 'ar' ? 'معاينة قبل الاستلام' : 'INSPECT ON DELIVERY'}</span>
+                <span className="hidden lg:inline">{language === 'ar' ? 'بورسعيد — شارع ٢٣ يوليو' : 'PORT SAID ATELIER'}</span>
+              </div>
+            </div>
 
-            {/* Editorial Brand Highlight Section (Atelier Philosophy) */}
-            <PhilosophySection
-              storeSettings={storeSettings}
-              onExplore={() => handleNavigate('shop', 'All')}
-            />
-
-            {/* Customer Reviews Section */}
+            {/* Band 6 (Screenshot 4): Full-Bleed 50/50 Street Layering Split #2 — 100% Men's */}
             <ScrollReveal>
-              <CustomerReviewsSection
-                user={user}
-                onSignInGoogle={handleSignInGoogle}
-                onOpenAccount={() => setIsAccountOpen(true)}
-              />
-            </ScrollReveal>
-
-            {/* Press & Partner Logo Marquee */}
-            <LogoMarqueeSection />
-
-            {/* Newsletter Section */}
-            <ScrollReveal>
-              <section className="py-20 md:py-28 px-5 md:px-16 bg-[#ffffff] border-t border-[#c5a059]/20">
-                <div className="max-w-[850px] mx-auto text-center">
-                  <span className="font-label-caps text-[#8c734b] mb-2 block text-[12px] tracking-[0.25em] uppercase font-semibold">
-                    {language === 'ar'
-                      ? storeSettings?.newsletterBadgeAr || 'توزا'
-                      : storeSettings?.newsletterBadgeEn || 'TOUZA'}
-                  </span>
-                  <h2 className="font-display text-[30px] md:text-[42px] text-[#1a1a1a] mb-3 font-normal tracking-tight">
-                    {language === 'ar'
-                      ? storeSettings?.newsletterTitleAr || 'انضم إلى مجتمع توزا'
-                      : storeSettings?.newsletterTitleEn || 'Join TOUZA Sanctuary'}
-                  </h2>
-                  <p className="font-body text-[15px] sm:text-[16px] text-[#555555] mb-8 leading-relaxed max-w-xl mx-auto font-light">
-                    {language === 'ar'
-                      ? storeSettings?.newsletterSubtitleAr || 'اشترك للحصول على دعوات حصرية لمعاينة التشكيلات الجديدة قبل الجميع وحصولك على خصم ١٠٪ عند أول طلب.'
-                      : storeSettings?.newsletterSubtitleEn || 'Subscribe to receive private client invitations, seasonal lookbook previews, and VIP privileges.'}
-                  </p>
-
-                  {newsletterSubscribed ? (
-                    <div className="p-5 bg-[#2e7d32]/10 border border-[#2e7d32]/30 text-[#2e7d32] font-body rounded-2xl max-w-md mx-auto font-bold text-[15px] shadow-2xs">
-                      {language === 'ar' ? '✓ تم الاشتراك بنجاح! تفقد بريدك للحصول على كود الخصم.' : '✓ Welcome to Maison Élégant. Check your inbox for your privilege code.'}
-                    </div>
-                  ) : (
-                    <form
-                      onSubmit={handleNewsletterSubmit}
-                      className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+              <section className="w-full grid grid-cols-1 md:grid-cols-2 gap-0 bg-[#111111]">
+                {/* Left Panel: Male Model in Olive Half-Zip on Autumn Street */}
+                <div
+                  onClick={() => handleNavigate('shop', categories[0]?.nameEn || 'All')}
+                  className="group relative aspect-[4/5] md:aspect-[1/1.05] max-h-[780px] w-full overflow-hidden bg-[#1a1917] cursor-pointer"
+                >
+                  <img
+                    src={splitStreetOlive}
+                    alt={language === 'ar' ? 'إطلالة شتاء دافئة للرجال' : 'Layer up menswear'}
+                    loading="lazy"
+                    className="w-full h-full object-cover object-top transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+                  <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 md:p-14 text-white flex flex-col items-start text-start">
+                    <h3 className="font-editorial text-[34px] sm:text-[42px] md:text-[46px] font-normal leading-[1.08] mb-2">
+                      {language === 'ar' ? (
+                        <>
+                          دفء <span className="editorial-italic">الشتاء</span>
+                        </>
+                      ) : (
+                        <>
+                          Layer <span className="editorial-italic">up</span>
+                        </>
+                      )}
+                    </h3>
+                    <p className="font-body text-[14px] sm:text-[15px] text-white/85 mb-6 max-w-md">
+                      {language === 'ar'
+                        ? 'سويت شيرتات وجواكيت ثقيلة مصممة لأيام البرد.'
+                        : 'Long sleeves, sweats, and jackets built for colder days.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigate('shop', categories[0]?.nameEn || 'All');
+                      }}
+                      className="border border-white/80 bg-transparent text-white hover:bg-white hover:text-[#111111] transition-colors duration-200 px-7 py-3 rounded-none text-[11px] font-medium tracking-[0.16em] uppercase cursor-pointer"
                     >
-                      <input
-                        type="email"
-                        placeholder={language === 'ar' ? 'أدخل بريدك الإلكتروني' : 'Enter your email address'}
-                        value={newsletterEmail}
-                        onChange={(e) => setNewsletterEmail(e.target.value)}
-                        required
-                        className="flex-1 input-minimal text-[15px] py-3.5 px-5 border border-[#c5a059]/40 rounded-xl bg-white/70 focus:bg-white focus:border-[#000000]"
+                      {language === 'ar' ? 'تسوق الشتوي' : 'SHOP WINTER'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right Panel: Male Model in All-Black Minimalist Streetwear (100% Male Model!) */}
+                <div
+                  onClick={() => handleNavigate('shop', 'All')}
+                  className="group relative aspect-[4/5] md:aspect-[1/1.05] max-h-[780px] w-full overflow-hidden bg-[#1a1917] cursor-pointer"
+                >
+                  <img
+                    src={splitStreetBlack}
+                    alt={language === 'ar' ? 'كاجوال أسود يومي للرجال' : 'Minimalist black menswear'}
+                    loading="lazy"
+                    className="w-full h-full object-cover object-top transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+                  <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 md:p-14 text-white flex flex-col items-start text-start">
+                    <h3 className="font-editorial text-[34px] sm:text-[42px] md:text-[46px] font-normal leading-[1.08] mb-2">
+                      {language === 'ar' ? (
+                        <>
+                          إطلالة <span className="editorial-italic">بسيطة</span>
+                        </>
+                      ) : (
+                        <>
+                          Everyday <span className="editorial-italic">minimal</span>
+                        </>
+                      )}
+                    </h3>
+                    <p className="font-body text-[14px] sm:text-[15px] text-white/85 mb-6 max-w-md">
+                      {language === 'ar'
+                        ? 'قطع يومية مريحة وأنيقة — مثالية للخروج والعمل.'
+                        : 'Relaxed silhouettes and timeless blacks — effortless anywhere.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigate('shop', 'All');
+                      }}
+                      className="border border-white/80 bg-transparent text-white hover:bg-white hover:text-[#111111] transition-colors duration-200 px-7 py-3 rounded-none text-[11px] font-medium tracking-[0.16em] uppercase cursor-pointer"
+                    >
+                      {language === 'ar' ? 'تسوق الكل' : 'SHOP ALL'}
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </ScrollReveal>
+            {/* Band 7: "Our categories" — Full-Width Seamless Studio 4-Column Band (100% TOUZA Men's Jackets) */}
+            <ScrollReveal>
+              <section className="w-full bg-[#ffffff] pt-14 md:pt-20 pb-10 md:pb-14">
+                <div className="max-w-[1440px] mx-auto px-6 sm:px-10 md:px-14 mb-6 md:mb-8">
+                  <h2 className="font-editorial text-[32px] sm:text-[38px] md:text-[42px] font-normal leading-[1.1] text-[#111111]">
+                    {language === 'ar' ? 'أقسامنا' : 'Our categories'}
+                  </h2>
+                </div>
+
+                <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-0 bg-[#dcdad6]">
+                  {[
+                    {
+                      id: 'cat-corduroy',
+                      image: catModelBlossom,
+                      objectPos: 'object-top',
+                      labelAr: 'جواكيت كوردروي',
+                      labelEn: 'CORDUROY JACKETS',
+                      altAr: 'موديل رجالي بجاكيت كوردروي أسود مطرز من توزا',
+                      altEn: 'TOUZA black embroidered corduroy jacket on male model',
+                      targetCategory: categories[0]?.nameEn || 'All',
+                    },
+                    {
+                      id: 'cat-tapestry',
+                      image: catModelTapestry,
+                      objectPos: 'object-top',
+                      labelAr: 'جواكيت تابستري',
+                      labelEn: 'TAPESTRY JACKETS',
+                      altAr: 'موديل رجالي بجاكيت تابستري رمادي من توزا',
+                      altEn: 'TOUZA grey woven tapestry jacket on male model',
+                      targetCategory: categories[0]?.nameEn || 'All',
+                    },
+                    {
+                      id: 'cat-winter',
+                      image: catFlatlayTiger,
+                      objectPos: 'object-center',
+                      labelAr: 'تشكيلة الشتاء',
+                      labelEn: 'WINTER EDITION',
+                      altAr: 'جاكيت كوردروي بيج مطرز من تشكيلة الشتاء لتوزا',
+                      altEn: 'TOUZA sand beige embroidered winter corduroy jacket',
+                      targetCategory: categories[0]?.nameEn || 'All',
+                    },
+                    {
+                      id: 'cat-new',
+                      image: catFlatlayPortrait,
+                      objectPos: 'object-center',
+                      labelAr: 'وصل حديثاً',
+                      labelEn: 'NEW ARRIVALS',
+                      altAr: 'جاكيت كوردروي كحلي داكن مطرز وصل حديثاً من توزا',
+                      altEn: 'TOUZA midnight navy embroidered jacket new arrivals',
+                      targetCategory: products.some((p) => p.isNewArrival) ? 'New Arrivals' : 'All',
+                    },
+                  ].map((tile) => (
+                    <div
+                      key={tile.id}
+                      onClick={() => handleNavigate('shop', tile.targetCategory)}
+                      className="group relative aspect-[4/4.5] w-full overflow-hidden bg-[#dcdad6] cursor-pointer"
+                    >
+                      <img
+                        src={tile.image}
+                        alt={language === 'ar' ? tile.altAr : tile.altEn}
+                        loading="lazy"
+                        className={`w-full h-full object-cover ${tile.objectPos} transition-transform duration-700 ease-out group-hover:scale-[1.03]`}
                       />
-                      <button
-                        type="submit"
-                        className="bg-[#1a1a1a] text-white py-3.5 px-8 font-label-caps rounded-xl hover:bg-[#c5a059] transition-all duration-300 cursor-pointer shrink-0 text-[13px] font-semibold tracking-wider shadow-xs"
-                      >
-                        {language === 'ar' ? 'اشتراك' : 'Subscribe'}
-                      </button>
-                    </form>
-                  )}
+                      <div className="absolute inset-x-0 bottom-5 sm:bottom-7 flex justify-center px-3 pointer-events-none">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleNavigate('shop', tile.targetCategory);
+                          }}
+                          className="pointer-events-auto bg-[#ffffff] border border-[#111111] text-[#111111] group-hover:bg-[#111111] group-hover:text-white transition-colors duration-200 px-4 sm:px-6 py-2.5 sm:py-3 rounded-none text-[10px] sm:text-[12px] tracking-[0.1em] uppercase font-body font-medium whitespace-nowrap cursor-pointer"
+                        >
+                          {language === 'ar' ? tile.labelAr : tile.labelEn}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </section>
             </ScrollReveal>
@@ -1426,7 +1575,7 @@ export const AppContent: React.FC = () => {
             }}
             className="bg-white/20 hover:bg-white/30 text-white text-[12px] font-bold px-3 py-1 rounded-lg transition-colors cursor-pointer mr-2"
           >
-            {language === 'ar' ? 'عرض السلة 🛍️' : 'View Cart 🛍️'}
+            {language === 'ar' ? 'عرض السلة' : 'View Cart'}
           </button>
         </div>
       )}

@@ -74,7 +74,7 @@ try {
     app,
     {
       localCache: memoryLocalCache(),
-      experimentalForceLongPolling: true,
+      experimentalAutoDetectLongPolling: true,
     },
     resolvedFirebaseConfig.firestoreDatabaseId
   );
@@ -1968,11 +1968,14 @@ const fetchCollectionViaRest = async (
   }
 };
 
-const fetchProductsFastFromServer = async (timeoutMs = 6000): Promise<Product[] | null> => {
+const fetchProductsFastFromServer = async (timeoutMs = 10000): Promise<Product[] | null> => {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return null;
+  }
   try {
     const [restProducts, restDeleted] = await Promise.all([
       fetchCollectionViaRest('products', timeoutMs),
-      fetchCollectionViaRest('deleted_products', 3000),
+      fetchCollectionViaRest('deleted_products', 6000),
     ]);
 
     if (!restProducts) return null;
@@ -2012,9 +2015,28 @@ const fetchCollectionServerFirst = async (colRef: ReturnType<typeof collection>,
 };
 
 export const getAllProductsAdmin = async (): Promise<Product[]> => {
+  const readCachedProducts = (): Product[] => {
+    try {
+      const saved = localStorage.getItem('maison_products');
+      if (saved !== null) {
+        const parsed: Product[] = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return sortProductsNewestFirst(
+            parsed.filter((p) => p && !isBannedProductId(p.id)).map(sanitizeProduct)
+          );
+        }
+      }
+    } catch {}
+    return [];
+  };
+
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return readCachedProducts();
+  }
+
   try {
-    // Fast-path: direct HTTPS REST runQuery returns in ~250ms on iOS Safari & mobile 4G
-    const fastProducts = await fetchProductsFastFromServer(5000);
+    // Fast-path: direct HTTPS REST runQuery avoids WebChannel cold-start latency on mobile & Safari
+    const fastProducts = await fetchProductsFastFromServer(10000);
     if (fastProducts !== null) {
       return fastProducts;
     }
@@ -2024,8 +2046,8 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
     const deletedRef = collection(db, 'deleted_products');
 
     const [snapshot, dSnap] = await Promise.all([
-      fetchCollectionServerFirst(productsRef, 10000),
-      fetchCollectionServerFirst(deletedRef, 4000).catch(() => null),
+      fetchCollectionServerFirst(productsRef, 12000),
+      fetchCollectionServerFirst(deletedRef, 6000).catch(() => null),
     ]);
 
     if (dSnap) {
@@ -2058,17 +2080,20 @@ export const getAllProductsAdmin = async (): Promise<Product[]> => {
     } catch {}
     return [];
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, 'products', false);
-    try {
-      const saved = localStorage.getItem('maison_products');
-      if (saved !== null) {
-        const parsed: Product[] = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return sortProductsNewestFirst(parsed.filter((p) => p && !isBannedProductId(p.id)).map(sanitizeProduct));
-        }
-      }
-    } catch {}
-    return [];
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const isTransientOfflineOrTimeout =
+      errMsg.includes('timed out') ||
+      errMsg.includes('offline') ||
+      errMsg.includes('unavailable') ||
+      errMsg.includes('Failed to fetch') ||
+      errMsg.includes('NetworkError');
+
+    if (isTransientOfflineOrTimeout) {
+      console.warn('Products sync temporarily timed out or offline; serving cached catalog.');
+    } else {
+      handleFirestoreError(error, OperationType.LIST, 'products', false);
+    }
+    return readCachedProducts();
   }
 };
 
@@ -2159,8 +2184,8 @@ export const subscribeToProducts = (
       }
     );
 
-    // Ultra-fast parallel HTTPS REST fetch delivers products in ~250ms even on iOS Safari cold boot
-    fetchProductsFastFromServer(5000)
+    // Ultra-fast parallel HTTPS REST fetch delivers products even on iOS Safari cold boot
+    fetchProductsFastFromServer(10000)
       .then((fastList) => {
         if (!isActive || hasServerSnapshot || fastList === null) return;
         hasServerSnapshot = true;
@@ -2169,7 +2194,7 @@ export const subscribeToProducts = (
       .catch(() => {});
 
     // Backup SDK server read in case REST is blocked
-    fetchWithTimeout(getDocsFromServer(productsRef), 7000)
+    fetchWithTimeout(getDocsFromServer(productsRef), 12000)
       .then((serverSnap) => {
         if (!isActive || hasServerSnapshot) return;
         hasServerSnapshot = true;
@@ -2574,8 +2599,8 @@ export const fetchInitialStoreData = async (
 
     const productsPromise = (async (): Promise<Product[]> => {
       try {
-        // Fast-path: plain HTTPS REST query returns in ~250ms with zero WebChannel/IndexedDB delay
-        const fastProducts = await fetchProductsFastFromServer(5000);
+        // Fast-path: plain HTTPS REST query avoids WebChannel/IndexedDB delay
+        const fastProducts = await fetchProductsFastFromServer(10000);
         if (fastProducts !== null) {
           if (callbacks?.onProducts) {
             try { callbacks.onProducts(fastProducts); } catch {}
