@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User } from 'firebase/auth';
 import {
   ShoppingBag,
@@ -10,6 +10,7 @@ import {
   Star,
   MessageSquare,
   CheckCircle2,
+  Check,
   MessageCircle,
 } from 'lucide-react';
 import { Product, StoreSettings } from '../types';
@@ -25,6 +26,7 @@ import { subscribeToProductReviews, saveProductReview, SavedReview } from '../fi
 import { getOptimizedImageUrl } from '../utils/cloudinary';
 import { trackTikTokViewContent } from '../utils/tiktokPixel';
 import { getDirectProductWhatsAppUrl } from '../utils/whatsapp';
+import { triggerFlyToCart } from '../utils/flyToCart';
 
 interface ProductDetailProps {
   product: Product;
@@ -62,6 +64,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const { language, formatPrice, t } = useLanguage();
   const isAr = language === 'ar';
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [justAdded, setJustAdded] = useState(false);
+  const mainImgRef = useRef<HTMLImageElement>(null);
   const [selectedColor, setSelectedColor] = useState(product.colors[0]?.name || 'Noir');
   const activeColorObj =
     product.colors?.find((c) => c.name === selectedColor) || product.colors?.[0];
@@ -286,6 +290,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           {/* Main Image Frame */}
           <div className="w-full flex-1 aspect-[3/4] max-h-[680px] bg-[#f4f3f0] relative group cursor-crosshair overflow-hidden rounded-none">
             <img
+              ref={mainImgRef}
               key={currentImage}
               src={getOptimizedImageUrl(currentImage, { width: 1000 }) || FALLBACK_SVG}
               alt={displayName}
@@ -432,11 +437,28 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             <div className="flex gap-2.5">
               <button
                 type="button"
-                onClick={() => onAddToCart(product, selectedColor, selectedSize)}
-                className="flex-1 bg-[#111111] text-white py-3.5 rounded-none font-label-caps hover:bg-[#2b2b2b] transition-colors cursor-pointer flex justify-center items-center gap-2 text-[13px] font-semibold"
+                onClick={(e) => {
+                  triggerFlyToCart(
+                    mainImgRef.current || (e.currentTarget as HTMLElement),
+                    getOptimizedImageUrl(currentImage, { width: 400 })
+                  );
+                  onAddToCart(product, selectedColor, selectedSize);
+                  setJustAdded(true);
+                  setTimeout(() => setJustAdded(false), 1600);
+                }}
+                className="flex-1 bg-[#111111] text-white py-3.5 rounded-none font-label-caps hover:bg-[#262626] transition-all active:scale-[0.98] cursor-pointer flex justify-center items-center gap-2 text-[13px] font-semibold btn-atc-sheen"
               >
-                <ShoppingBag className="w-4 h-4 text-white" />
-                <span>{t('detail.addToCart', 'Add to Bag')}</span>
+                {justAdded ? (
+                  <>
+                    <Check className="w-4 h-4 text-white stroke-[2.2]" />
+                    <span>{isAr ? 'تمت الإضافة للسلة' : 'ADDED TO CART'}</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="w-4 h-4 text-white animate-atc-icon" />
+                    <span>{isAr ? 'أضف للسلة' : t('detail.addToCart', 'Add to Cart')}</span>
+                  </>
+                )}
               </button>
               <button
                 type="button"

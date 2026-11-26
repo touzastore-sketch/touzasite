@@ -4,6 +4,7 @@ import { CartItem, StoreSettings } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getLocalizedProductName } from '../data/products';
 import { getOptimizedImageUrl } from '../utils/cloudinary';
+import { getCartWhatsAppUrl } from '../utils/whatsapp';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -296,7 +297,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 )}
               </div>
 
-              <div className="space-y-2 pt-1">
+              <div className="space-y-2.5 pt-1">
                 <button
                   id="cart-drawer-checkout-btn"
                   type="button"
@@ -304,9 +305,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     onClose();
                     onProceedToCheckout();
                   }}
-                  className="w-full bg-[#000000] hover:bg-[#25D366] text-white py-3.5 sm:py-4 rounded-xl font-label-caps transition-all cursor-pointer text-center shadow-md active:scale-[0.99] text-[14px] sm:text-[15px] font-bold flex items-center justify-center gap-2 group"
+                  className="w-full bg-[#111111] hover:bg-[#262626] text-white py-3.5 sm:py-4 rounded-none font-label-caps transition-all cursor-pointer text-center active:scale-[0.99] text-[13px] sm:text-[14px] font-semibold flex items-center justify-center gap-2 group btn-atc-sheen"
                 >
-                  <MessageCircle className="w-5 h-5 text-[#25D366] group-hover:text-white transition-colors fill-current" />
+                  <MessageCircle className="w-4.5 h-4.5 text-[#25D366] transition-transform group-hover:scale-110" />
                   <span>{language === 'ar' ? 'إتمام الطلب وتأكيده عبر واتساب' : 'Checkout & Send to WhatsApp'}</span>
                   {direction === 'rtl' ? (
                     <ArrowLeft className="w-4 h-4" />
@@ -315,13 +316,29 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   )}
                 </button>
 
+                <a
+                  href={getCartWhatsAppUrl(
+                    activeSettings?.whatsappNumber || '01070606272',
+                    cartItems,
+                    subtotal,
+                    shippingCost,
+                    language
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-[#1a6b3c] hover:bg-[#145730] text-white py-3 sm:py-3.5 rounded-none font-label-caps transition-colors cursor-pointer text-center active:scale-[0.99] text-[12.5px] sm:text-[13px] font-semibold flex items-center justify-center gap-2"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>{language === 'ar' ? 'إرسال السلة مباشرة على واتساب' : 'Send Bag Directly on WhatsApp'}</span>
+                </a>
+
                 <button
                   id="cart-drawer-continue-shopping-btn"
                   type="button"
                   onClick={onClose}
-                  className="w-full bg-white text-[#111111] hover:bg-[#f0f0f0] border border-[#c4c7c7] py-3 rounded-xl font-label-caps text-[13px] font-bold transition-all cursor-pointer text-center flex items-center justify-center gap-2 shadow-2xs active:scale-[0.99]"
+                  className="w-full bg-white text-[#111111] hover:bg-[#f4f3f0] border border-[#111111]/30 py-3 rounded-none font-label-caps text-[12px] font-medium transition-colors cursor-pointer text-center flex items-center justify-center gap-2 active:scale-[0.99]"
                 >
-                  {direction === 'rtl' ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+                  {direction === 'rtl' ? <ArrowRight className="w-3.5 h-3.5" /> : <ArrowLeft className="w-3.5 h-3.5" />}
                   <span>{language === 'ar' ? 'العودة للمتجر ومتابعة التسوق' : 'Return to Store & Continue Shopping'}</span>
                 </button>
               </div>

@@ -1560,9 +1560,9 @@ export const AppContent: React.FC = () => {
 
       {/* Floating Toast Notification for Add to Cart */}
       {toastNotification.show && (
-        <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 bg-[#000000] text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/20 animate-fade-in font-body text-[14px]">
-          <CheckCircle2 className="w-5 h-5 text-[#25D366] shrink-0" />
-          <span>
+        <div className="fixed top-[104px] left-1/2 -translate-x-1/2 z-[120] bg-[#111111] text-white px-5 py-3 rounded-none shadow-2xl flex items-center gap-3.5 border border-white/15 fade-in-up font-body text-[13px] sm:text-[14px] max-w-[92vw]">
+          <CheckCircle2 className="w-4.5 h-4.5 text-[#25D366] shrink-0" />
+          <span className="truncate">
             {language === 'ar'
               ? `تمت إضافة "${toastNotification.productName}" إلى السلة`
               : `Added "${toastNotification.productName}" to cart`}
@@ -1573,9 +1573,9 @@ export const AppContent: React.FC = () => {
               setToastNotification({ show: false, productName: '' });
               setIsCartOpen(true);
             }}
-            className="bg-white/20 hover:bg-white/30 text-white text-[12px] font-bold px-3 py-1 rounded-lg transition-colors cursor-pointer mr-2"
+            className="bg-white text-[#111111] hover:bg-[#ecebe7] text-[11px] font-semibold tracking-[0.08em] uppercase px-3 py-1.5 rounded-none transition-colors cursor-pointer shrink-0"
           >
-            {language === 'ar' ? 'عرض السلة' : 'View Cart'}
+            {language === 'ar' ? 'عرض السلة' : 'VIEW BAG'}
           </button>
         </div>
       )}

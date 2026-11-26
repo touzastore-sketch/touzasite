@@ -227,8 +227,123 @@ button, a, select, input {
   overflow: hidden;
 }
 
+/* Animated Add to Cart Luxury Sheen & Cart Bounce Micro-Interactions */
+@keyframes atcSheen {
+  0%, 72% {
+    transform: translateX(-140%) skewX(-20deg);
+    opacity: 0;
+  }
+  78% {
+    opacity: 0.28;
+  }
+  96% {
+    transform: translateX(260%) skewX(-20deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(260%) skewX(-20deg);
+    opacity: 0;
+  }
+}
+
+.btn-atc-sheen {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-atc-sheen::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 42%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+  animation: atcSheen 4.2s ease-in-out infinite;
+}
+
+.btn-atc-sheen-dark::after {
+  background: linear-gradient(
+    90deg,
+    rgba(17, 17, 17, 0) 0%,
+    rgba(17, 17, 17, 0.1) 50%,
+    rgba(17, 17, 17, 0) 100%
+  );
+}
+
+@keyframes cartBagBounce {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  20% {
+    transform: scale(1.26) rotate(-12deg);
+  }
+  45% {
+    transform: scale(0.94) rotate(8deg);
+  }
+  70% {
+    transform: scale(1.12) rotate(-4deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.animate-cart-bounce {
+  animation: cartBagBounce 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes cartPlusOne {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.8);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -6px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -22px) scale(0.95);
+  }
+}
+
+.animate-cart-plus-one {
+  animation: cartPlusOne 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes atcIconNudge {
+  0%, 75%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  82% {
+    transform: translateY(-2px) rotate(-8deg);
+  }
+  88% {
+    transform: translateY(0) rotate(6deg);
+  }
+  94% {
+    transform: translateY(-1px) rotate(-3deg);
+  }
+}
+
+.animate-atc-icon {
+  animation: atcIconNudge 3.6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-marquee {
+  .animate-marquee,
+  .btn-atc-sheen::after,
+  .animate-cart-bounce,
+  .animate-cart-plus-one,
+  .animate-atc-icon {
     animation: none !important;
   }
 }
+

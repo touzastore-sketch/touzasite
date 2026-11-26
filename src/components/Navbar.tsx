@@ -47,6 +47,15 @@ const NavbarComponent: React.FC<NavbarProps> = ({
   const isAr = language === 'ar';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [menuAnimated, setMenuAnimated] = useState(false);
+  const [cartPopKey, setCartPopKey] = useState(0);
+
+  useEffect(() => {
+    const handleCartPop = () => {
+      setCartPopKey((prev) => prev + 1);
+    };
+    window.addEventListener('touza_cart_pop', handleCartPop);
+    return () => window.removeEventListener('touza_cart_pop', handleCartPop);
+  }, []);
 
   const activeCategories: Category[] =
     categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
@@ -237,16 +246,39 @@ const NavbarComponent: React.FC<NavbarProps> = ({
             </button>
 
             <button
+              id="navbar-cart-btn"
               type="button"
               onClick={onOpenCart}
-              className="flex items-center gap-1.5 min-h-[40px] px-1 cursor-pointer transition-opacity hover:opacity-60 whitespace-nowrap shrink-0"
+              className="relative flex items-center gap-1.5 min-h-[40px] px-1.5 cursor-pointer transition-opacity hover:opacity-75 whitespace-nowrap shrink-0"
               title={t('nav.cart', 'Shopping Bag')}
               aria-label={t('nav.cart', 'Shopping Bag')}
             >
-              <ShoppingBag className="w-[18px] h-[18px] stroke-[1.5]" />
-              <span className="text-[12px] font-medium tabular-nums">
-                ({cartCount})
+              <span
+                key={`bag-${cartPopKey}`}
+                className={`inline-flex items-center gap-1.5 ${
+                  cartPopKey > 0 ? 'animate-cart-bounce' : ''
+                }`}
+              >
+                <ShoppingBag className="w-[18px] h-[18px] stroke-[1.6]" />
+                {cartCount > 0 ? (
+                  <span className="bg-[#111111] text-white min-w-[20px] h-[20px] px-1.5 inline-flex items-center justify-center text-[11px] font-semibold tabular-nums">
+                    {cartCount}
+                  </span>
+                ) : (
+                  <span className="text-[12px] font-medium tabular-nums">
+                    (0)
+                  </span>
+                )}
               </span>
+              {cartPopKey > 0 && (
+                <span
+                  key={`plus-${cartPopKey}`}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -top-1 left-1/2 text-[11px] font-bold text-[#111111] animate-cart-plus-one"
+                >
+                  +1
+                </span>
+              )}
             </button>
           </div>
         </div>

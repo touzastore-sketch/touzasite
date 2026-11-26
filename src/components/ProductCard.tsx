@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Heart, Check } from 'lucide-react';
+import { Heart, Check, ShoppingBag } from 'lucide-react';
 import { Product } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getLocalizedProductName, getLocalizedProductCategory } from '../data/products';
 import { getOptimizedImageUrl } from '../utils/cloudinary';
+import { triggerFlyToCart } from '../utils/flyToCart';
 
 interface ProductCardProps {
   product: Product;
@@ -74,8 +75,24 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
     e.stopPropagation();
     if (!onQuickAdd) return;
     const chosenColor = activeColor?.name || product.colors?.[0]?.name || 'Noir';
+    triggerFlyToCart(imgRef.current || (e.currentTarget as HTMLElement), imgSrc);
     onQuickAdd(product, chosenColor, size, e);
     setAddedSize(size);
+    setTimeout(() => setAddedSize(null), 1600);
+  };
+
+  const handleDirectAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onQuickAdd) {
+      onSelectProduct(product);
+      return;
+    }
+    const chosenColor = activeColor?.name || product.colors?.[0]?.name || 'Noir';
+    const defaultSize =
+      activeSizes.find((s) => s.inStock)?.size || activeSizes[0]?.size || 'L';
+    triggerFlyToCart(imgRef.current || (e.currentTarget as HTMLElement), imgSrc);
+    onQuickAdd(product, chosenColor, defaultSize, e);
+    setAddedSize(defaultSize);
     setTimeout(() => setAddedSize(null), 1600);
   };
 
@@ -258,6 +275,31 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
               />
             ))}
           </div>
+        )}
+
+        {/* Animated Add to Cart Button (Visible on Mobile & Desktop) */}
+        {onQuickAdd && (
+          <button
+            type="button"
+            onClick={handleDirectAddToCart}
+            className={`w-full mt-2.5 h-[38px] sm:h-[40px] border border-[#111111] rounded-none text-[11px] sm:text-[11.5px] font-medium tracking-[0.1em] uppercase transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 active:scale-[0.97] ${
+              addedSize
+                ? 'bg-[#111111] text-white'
+                : 'bg-[#ffffff] text-[#111111] hover:bg-[#111111] hover:text-white btn-atc-sheen btn-atc-sheen-dark'
+            }`}
+          >
+            {addedSize ? (
+              <>
+                <Check className="w-3.5 h-3.5 stroke-[2.2]" />
+                <span>{isAr ? 'تمت الإضافة للسلة' : 'ADDED TO CART'}</span>
+              </>
+            ) : (
+              <>
+                <ShoppingBag className="w-3.5 h-3.5 stroke-[1.7] animate-atc-icon" />
+                <span>{isAr ? 'أضف للسلة' : 'ADD TO CART'}</span>
+              </>
+            )}
+          </button>
         )}
       </div>
     </article>

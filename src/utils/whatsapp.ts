@@ -132,3 +132,52 @@ export const getDirectProductWhatsAppUrl = (
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(lines.join('\n'))}`;
 };
+
+/**
+ * Direct WhatsApp order link for the entire shopping bag straight from CartDrawer
+ */
+export const getCartWhatsAppUrl = (
+  whatsappNumber: string | undefined,
+  cartItems: CartItem[],
+  subtotal: number,
+  shippingFee: number,
+  language: 'ar' | 'en' = 'ar'
+): string => {
+  const phone = formatWhatsAppNumber(whatsappNumber);
+  const total = subtotal + shippingFee;
+  const lines: string[] = [
+    '*طلب شراء جديد من سلة متجر توزا (TOUZA)*',
+    '━━━━━━━━━━━━━━━━━━━━',
+    '*المنتجات المختارة:*',
+  ];
+
+  cartItems.forEach((item, index) => {
+    const title =
+      language === 'ar'
+        ? item.product.nameAr || item.product.name
+        : item.product.name;
+    lines.push(`${index + 1}. *${title}*`);
+    const specs: string[] = [];
+    if (item.selectedColor) specs.push(`اللون: ${item.selectedColor}`);
+    if (item.selectedSize) specs.push(`المقاس: ${item.selectedSize}`);
+    specs.push(`العدد: ${item.quantity}`);
+    specs.push(`السعر: ${item.product.price * item.quantity} ج.م`);
+    lines.push(`   - ${specs.join(' | ')}`);
+  });
+
+  lines.push('━━━━━━━━━━━━━━━━━━━━');
+  lines.push(`• المجموع الفرعي: ${subtotal} ج.م`);
+  lines.push(
+    shippingFee > 0
+      ? `• مصاريف الشحن: ${shippingFee} ج.م`
+      : '• مصاريف الشحن: مجاني'
+  );
+  lines.push(`• *الإجمالي المطلوب:* ${total} ج.م`);
+  lines.push('━━━━━━━━━━━━━━━━━━━━');
+  lines.push('برجاء تأكيد الطلب وإبلاغي بموعد الشحن والتوصيل.');
+
+  return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(
+    lines.join('\n')
+  )}`;
+};
+
