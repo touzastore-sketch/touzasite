@@ -364,14 +364,103 @@ button, a, select, input {
   backface-visibility: hidden;
 }
 
+/* Floating Branded TOUZA Boutique Bag Choreography */
+@keyframes touzaBagCatch {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1, 1) rotate(0deg);
+  }
+  18% {
+    transform: translate3d(0, 5px, 0) scale(1.08, 0.91) rotate(-9deg);
+  }
+  42% {
+    transform: translate3d(0, -4px, 0) scale(0.96, 1.05) rotate(7deg);
+  }
+  64% {
+    transform: translate3d(0, 1px, 0) scale(1.02, 0.98) rotate(-4deg);
+  }
+  82% {
+    transform: translate3d(0, 0, 0) scale(0.99, 1.01) rotate(2deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1, 1) rotate(0deg);
+  }
+}
+
+.animate-touza-bag-catch {
+  animation: touzaBagCatch 0.78s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes touzaBagNudge {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  28% {
+    transform: translate3d(0, -2px, 0) rotate(-6deg);
+  }
+  58% {
+    transform: translate3d(0, 0, 0) rotate(4.5deg);
+  }
+  82% {
+    transform: translate3d(0, 0, 0) rotate(-2deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+}
+
+.animate-touza-bag-nudge {
+  animation: touzaBagNudge 0.52s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes touzaFoilSweep {
+  0% {
+    transform: translateX(0px) skewX(-22deg);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.9;
+  }
+  82% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateX(132px) skewX(-22deg);
+    opacity: 0;
+  }
+}
+
+.animate-touza-foil-sweep {
+  animation: touzaFoilSweep 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes touzaSlipIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(-12px, 4px, 0) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.animate-touza-slip-in {
+  animation: touzaSlipIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,
   .animate-brand-marquee,
   .btn-atc-sheen::after,
   .animate-cart-bounce,
   .animate-cart-plus-one,
-  .animate-atc-icon {
+  .animate-atc-icon,
+  .animate-touza-bag-catch,
+  .animate-touza-bag-nudge,
+  .animate-touza-foil-sweep,
+  .animate-touza-slip-in {
     animation: none !important;
   }
 }
+
 

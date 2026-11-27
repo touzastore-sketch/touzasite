@@ -10,6 +10,7 @@ import { HeroBanner } from './components/HeroBanner';
 import { BrandsMarqueeStrip } from './components/BrandsMarqueeStrip';
 import { ProductCarouselSection } from './components/ProductCarouselSection';
 import { FloatingContactButtons } from './components/FloatingContactButtons';
+import { FloatingTouzaBag } from './components/FloatingTouzaBag';
 import { ScrollReveal } from './components/ScrollReveal';
 import { StorePreloader } from './components/StorePreloader';
 import { useLanguage } from './context/LanguageContext';
@@ -1556,26 +1557,17 @@ export const AppContent: React.FC = () => {
         )}
       </Suspense>
 
-      {/* Floating Toast Notification for Add to Cart */}
-      {toastNotification.show && (
-        <div className="fixed top-[104px] left-1/2 -translate-x-1/2 z-[120] bg-[#111111] text-white px-5 py-3 rounded-none shadow-2xl flex items-center gap-3.5 border border-white/15 fade-in-up font-body text-[13px] sm:text-[14px] max-w-[92vw]">
-          <CheckCircle2 className="w-4.5 h-4.5 text-[#25D366] shrink-0" />
-          <span className="truncate">
-            {language === 'ar'
-              ? `تمت إضافة "${toastNotification.productName}" إلى السلة`
-              : `Added "${toastNotification.productName}" to cart`}
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              setToastNotification({ show: false, productName: '' });
-              setIsCartOpen(true);
-            }}
-            className="bg-white text-[#111111] hover:bg-[#ecebe7] text-[11px] font-semibold tracking-[0.08em] uppercase px-3 py-1.5 rounded-none transition-colors cursor-pointer shrink-0"
-          >
-            {language === 'ar' ? 'عرض السلة' : 'VIEW BAG'}
-          </button>
-        </div>
+      {/* Floating Branded TOUZA Animated Shopping Bag (Moves & catches selected products) */}
+      {currentView !== 'admin' && currentView !== 'checkout' && (
+        <FloatingTouzaBag
+          cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+          totalAmount={cartItems.reduce(
+            (sum, item) => sum + item.product.price * item.quantity,
+            0
+          )}
+          onOpenCart={() => setIsCartOpen(true)}
+          hidden={isCartOpen}
+        />
       )}
 
       {/* Floating Animated Contact Buttons (WhatsApp & Call) */}

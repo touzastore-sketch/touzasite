@@ -1,52 +1,93 @@
+import type { TouzaBagCatchDetail } from '../components/FloatingTouzaBag';
+
+/**
+ * Triggers a subtle luxury acknowledgement sway on the Floating TOUZA Bag
+ * whenever the customer chooses a size or color on a product.
+ */
+export function triggerBagNudge(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('touza_bag_nudge'));
+}
+
 /**
  * Launches a GPU-accelerated flying product thumbnail from the clicked Add-to-Cart
- * element straight into the Navbar shopping bag icon (#navbar-cart-btn), then
- * fires a `touza_cart_pop` event so the bag animates on impact.
+ * element straight into the Floating TOUZA Luxury Bag (#floating-touza-bag) —
+ * falling back to the Navbar cart button (#navbar-cart-btn) if hidden —
+ * then fires `touza_bag_catch` & `touza_cart_pop` so both bags animate on impact.
  */
 export function triggerFlyToCart(
   sourceEl: HTMLElement | null,
-  imageUrl?: string
+  imageUrl?: string,
+  meta?: Omit<TouzaBagCatchDetail, 'imageUrl'>
 ): void {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+  const detail: TouzaBagCatchDetail = {
+    ...meta,
+    imageUrl,
+  };
+
+  const dispatchImpact = () => {
+    window.dispatchEvent(new CustomEvent('touza_cart_pop'));
+    window.dispatchEvent(new CustomEvent('touza_bag_catch', { detail }));
+  };
 
   const prefersReducedMotion =
     window.matchMedia &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const targetEl = document.getElementById('navbar-cart-btn');
+  const floatingBagEl = document.getElementById('floating-touza-bag');
+  const navbarBagEl = document.getElementById('navbar-cart-btn');
+
+  // Prefer the visible Floating TOUZA Branded Bag as the primary catch target
+  const floatingRect = floatingBagEl?.getBoundingClientRect();
+  const isFloatingVisible =
+    floatingBagEl &&
+    floatingRect &&
+    floatingRect.width > 0 &&
+    floatingRect.height > 0;
+
+  const targetEl = isFloatingVisible ? floatingBagEl : navbarBagEl;
 
   if (prefersReducedMotion || !sourceEl || !targetEl) {
-    window.dispatchEvent(new CustomEvent('touza_cart_pop'));
+    dispatchImpact();
     return;
   }
 
   const startRect = sourceEl.getBoundingClientRect();
   const endRect = targetEl.getBoundingClientRect();
 
-  // If either element is off-screen or zero-sized, just pop the cart icon
+  // If either element is off-screen or zero-sized, fire impact immediately
   if (
     startRect.width === 0 ||
     startRect.height === 0 ||
     endRect.width === 0 ||
     endRect.height === 0
   ) {
-    window.dispatchEvent(new CustomEvent('touza_cart_pop'));
+    dispatchImpact();
     return;
   }
 
-  const flyerWidth = 58;
-  const flyerHeight = 72;
+  // Signal the TOUZA bag to lean slightly open and prepare to catch the product
+  window.dispatchEvent(new CustomEvent('touza_bag_incoming'));
+
+  const flyerWidth = 60;
+  const flyerHeight = 76;
   const startX = startRect.left + startRect.width / 2 - flyerWidth / 2;
   const startY = startRect.top + startRect.height / 2 - flyerHeight / 2;
+
+  // Aim directly into the open mouth of the TOUZA bag (top ~26% of bag height)
   const endX = endRect.left + endRect.width / 2 - flyerWidth / 2;
-  const endY = endRect.top + endRect.height / 2 - flyerHeight / 2;
+  const endY = isFloatingVisible
+    ? endRect.top + endRect.height * 0.24 - flyerHeight / 2
+    : endRect.top + endRect.height / 2 - flyerHeight / 2;
 
   const deltaX = endX - startX;
   const deltaY = endY - startY;
 
-  // Create curved mid-point lifted slightly upward for a natural luxury arc
-  const midX = deltaX * 0.48;
-  const midY = Math.min(deltaY * 0.35 - 70, deltaY - 40);
+  // Smooth elevated luxury parabolic arc toward the TOUZA bag
+  const midX = deltaX * 0.46;
+  const midY = Math.min(deltaY * 0.32 - 84, -56);
 
   const flyer = document.createElement('div');
   flyer.setAttribute('aria-hidden', 'true');
@@ -57,9 +98,11 @@ export function triggerFlyToCart(
   flyer.style.height = `${flyerHeight}px`;
   flyer.style.zIndex = '100000';
   flyer.style.pointerEvents = 'none';
-  flyer.style.backgroundColor = '#f2f2f0';
-  flyer.style.border = '1px solid #111111';
-  flyer.style.boxShadow = '0 14px 32px rgba(0, 0, 0, 0.24)';
+  flyer.style.backgroundColor = '#f8f6f1';
+  flyer.style.border = '1.5px solid #121211';
+  flyer.style.outline = '1px solid rgba(200, 176, 138, 0.7)';
+  flyer.style.outlineOffset = '-3px';
+  flyer.style.boxShadow = '0 16px 34px rgba(0, 0, 0, 0.26)';
   flyer.style.overflow = 'hidden';
   flyer.style.willChange = 'transform, opacity';
 
@@ -77,11 +120,12 @@ export function triggerFlyToCart(
     flyer.style.display = 'flex';
     flyer.style.alignItems = 'center';
     flyer.style.justifyContent = 'center';
-    flyer.style.backgroundColor = '#111111';
-    flyer.style.color = '#ffffff';
-    flyer.style.fontSize = '11px';
-    flyer.style.fontWeight = '600';
-    flyer.textContent = '+1';
+    flyer.style.backgroundColor = '#121211';
+    flyer.style.color = '#e8d8ba';
+    flyer.style.fontFamily = '"Playfair Display", Georgia, serif';
+    flyer.style.fontSize = '10px';
+    flyer.style.letterSpacing = '0.16em';
+    flyer.textContent = 'TOUZA';
   }
 
   document.body.appendChild(flyer);
@@ -94,36 +138,39 @@ export function triggerFlyToCart(
           opacity: 1,
         },
         {
-          transform: `translate3d(${midX}px, ${midY}px, 0) scale(1.06) rotate(${deltaX >= 0 ? 6 : -6}deg)`,
-          opacity: 0.96,
-          offset: 0.45,
+          transform: `translate3d(${midX}px, ${midY}px, 0) scale(1.06) rotate(${deltaX >= 0 ? 7 : -7}deg)`,
+          opacity: 0.98,
+          offset: 0.44,
         },
         {
-          transform: `translate3d(${deltaX}px, ${deltaY}px, 0) scale(0.22) rotate(${deltaX >= 0 ? 14 : -14}deg)`,
-          opacity: 0.2,
+          transform: `translate3d(${deltaX}px, ${deltaY - 10}px, 0) scale(0.38) rotate(${deltaX >= 0 ? 10 : -10}deg)`,
+          opacity: 0.85,
+          offset: 0.84,
+        },
+        {
+          transform: `translate3d(${deltaX}px, ${deltaY + 8}px, 0) scale(0.16) rotate(0deg)`,
+          opacity: 0,
         },
       ],
       {
-        duration: 660,
+        duration: 680,
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
         fill: 'forwards',
       }
     );
 
-    anim.onfinish = () => {
-      flyer.remove();
-      window.dispatchEvent(new CustomEvent('touza_cart_pop'));
+    let finished = false;
+    const finishOnce = () => {
+      if (finished) return;
+      finished = true;
+      if (flyer.parentNode) flyer.remove();
+      dispatchImpact();
     };
 
-    // Safety cleanup in case animation is interrupted
-    setTimeout(() => {
-      if (flyer.parentNode) {
-        flyer.remove();
-        window.dispatchEvent(new CustomEvent('touza_cart_pop'));
-      }
-    }, 850);
+    anim.onfinish = finishOnce;
+    setTimeout(finishOnce, 860);
   } else {
     flyer.remove();
-    window.dispatchEvent(new CustomEvent('touza_cart_pop'));
+    dispatchImpact();
   }
 }

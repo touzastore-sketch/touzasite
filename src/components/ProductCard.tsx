@@ -4,7 +4,7 @@ import { Product } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { getLocalizedProductName, getLocalizedProductCategory } from '../data/products';
 import { getOptimizedImageUrl } from '../utils/cloudinary';
-import { triggerFlyToCart } from '../utils/flyToCart';
+import { triggerFlyToCart, triggerBagNudge } from '../utils/flyToCart';
 
 interface ProductCardProps {
   product: Product;
@@ -93,7 +93,11 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
     }
     const chosenColor = activeColor?.name || product.colors?.[0]?.name || 'Noir';
     const chosenSize = selectedSize || firstAvailableSize;
-    triggerFlyToCart(imgRef.current || (e.currentTarget as HTMLElement), imgSrc);
+    triggerFlyToCart(imgRef.current || (e.currentTarget as HTMLElement), imgSrc, {
+      productName: displayName,
+      size: chosenSize,
+      color: chosenColor,
+    });
     onQuickAdd(product, chosenColor, chosenSize, e);
     setAddedSize(chosenSize);
     setTimeout(() => setAddedSize(null), 1600);
@@ -221,6 +225,7 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   setActiveColorIndex(idx);
+                  triggerBagNudge();
                 }}
                 onMouseEnter={() => setActiveColorIndex(idx)}
                 title={isAr && col.nameAr ? col.nameAr : col.name}
@@ -263,6 +268,7 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedSize(sObj.size);
+                      triggerBagNudge();
                     }}
                     aria-pressed={isSelected}
                     className={`min-w-[26px] sm:min-w-[28px] h-[26px] sm:h-[27px] px-1.5 border rounded-none text-[10px] sm:text-[11px] font-medium transition-colors duration-150 cursor-pointer flex items-center justify-center active:scale-95 ${

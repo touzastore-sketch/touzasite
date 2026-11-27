@@ -26,7 +26,7 @@ import { subscribeToProductReviews, saveProductReview, SavedReview } from '../fi
 import { getOptimizedImageUrl } from '../utils/cloudinary';
 import { trackTikTokViewContent } from '../utils/tiktokPixel';
 import { getDirectProductWhatsAppUrl } from '../utils/whatsapp';
-import { triggerFlyToCart } from '../utils/flyToCart';
+import { triggerFlyToCart, triggerBagNudge } from '../utils/flyToCart';
 
 interface ProductDetailProps {
   product: Product;
@@ -118,6 +118,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         if (firstInStock) setSelectedSize(firstInStock);
       }
     }
+    triggerBagNudge();
   };
 
   const [openAccordions, setOpenAccordions] = useState<{ [key: string]: boolean }>({
@@ -418,7 +419,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   <button
                     key={s.size}
                     type="button"
-                    onClick={() => setSelectedSize(s.size)}
+                    onClick={() => {
+                      setSelectedSize(s.size);
+                      triggerBagNudge();
+                    }}
                     className={`py-2.5 border font-body text-[14px] transition-colors cursor-pointer text-center rounded-none ${
                       isSelected
                         ? 'border-[#111111] bg-[#111111] text-white font-medium'
@@ -440,7 +444,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 onClick={(e) => {
                   triggerFlyToCart(
                     mainImgRef.current || (e.currentTarget as HTMLElement),
-                    getOptimizedImageUrl(currentImage, { width: 400 })
+                    getOptimizedImageUrl(currentImage, { width: 400 }),
+                    {
+                      productName: displayName,
+                      size: selectedSize,
+                      color: selectedColor,
+                    }
                   );
                   onAddToCart(product, selectedColor, selectedSize);
                   setJustAdded(true);
