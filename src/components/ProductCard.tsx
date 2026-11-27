@@ -43,6 +43,20 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
       ? activeColor.sizes
       : product.sizes || [];
 
+  const firstAvailableSize =
+    activeSizes.find((s) => s.inStock)?.size || activeSizes[0]?.size || 'L';
+
+  const [selectedSize, setSelectedSize] = useState<string>(firstAvailableSize);
+
+  React.useEffect(() => {
+    const stillValid = activeSizes.some(
+      (s) => s.size === selectedSize && s.inStock
+    );
+    if (!stillValid) {
+      setSelectedSize(firstAvailableSize);
+    }
+  }, [activeColorIndex, product.id, firstAvailableSize]);
+
   const rawImg = activeColor?.imageUrl || product.images?.[0];
   const fallbackImage =
     'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400"><rect width="100%" height="100%" fill="%23f2f2f0"/><text x="50%" y="50%" fill="%238a8782" font-family="serif" font-size="16" letter-spacing="4" text-anchor="middle">TOUZA</text></svg>';
@@ -71,16 +85,6 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
     }
   }, [imgSrc]);
 
-  const handleQuickSizeAdd = (size: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!onQuickAdd) return;
-    const chosenColor = activeColor?.name || product.colors?.[0]?.name || 'Noir';
-    triggerFlyToCart(imgRef.current || (e.currentTarget as HTMLElement), imgSrc);
-    onQuickAdd(product, chosenColor, size, e);
-    setAddedSize(size);
-    setTimeout(() => setAddedSize(null), 1600);
-  };
-
   const handleDirectAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!onQuickAdd) {
@@ -88,11 +92,10 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
       return;
     }
     const chosenColor = activeColor?.name || product.colors?.[0]?.name || 'Noir';
-    const defaultSize =
-      activeSizes.find((s) => s.inStock)?.size || activeSizes[0]?.size || 'L';
+    const chosenSize = selectedSize || firstAvailableSize;
     triggerFlyToCart(imgRef.current || (e.currentTarget as HTMLElement), imgSrc);
-    onQuickAdd(product, chosenColor, defaultSize, e);
-    setAddedSize(defaultSize);
+    onQuickAdd(product, chosenColor, chosenSize, e);
+    setAddedSize(chosenSize);
     setTimeout(() => setAddedSize(null), 1600);
   };
 
@@ -104,7 +107,7 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   return (
     <article
       onClick={() => onSelectProduct(product)}
-      className="group cursor-pointer flex flex-col bg-[#ffffff]"
+      className="group cursor-pointer flex flex-col h-full bg-[#ffffff]"
     >
       {/* Bread & Boxers Light Studio Frame */}
       <div
@@ -151,7 +154,7 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
 
         {/* Bottom-Start Fit / Category Label (Bread & Boxers Signature Square Tag) */}
         {displayCategory && (
-          <span className="absolute bottom-2.5 start-2.5 bg-[#111111]/90 text-white px-2.5 py-1 text-[10px] tracking-[0.1em] uppercase font-medium z-10 transition-opacity duration-200 sm:group-hover:opacity-0">
+          <span className="absolute bottom-2.5 start-2.5 bg-[#111111]/90 text-white px-2.5 py-1 text-[10px] tracking-[0.1em] uppercase font-medium z-10">
             {displayCategory}
           </span>
         )}
@@ -182,54 +185,10 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
             }`}
           />
         </button>
-
-        {/* Desktop Slide-Up Quick-Add Size Drawer */}
-        {onQuickAdd && activeSizes.length > 0 && (
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="hidden sm:block absolute inset-x-0 bottom-0 bg-white/95 backdrop-blur-sm border-t border-[#e5e3de] px-3 py-2.5 translate-y-full group-hover:translate-y-0 transition-transform duration-200 ease-out z-20"
-          >
-            {addedSize ? (
-              <div className="flex items-center justify-center gap-1.5 py-1 text-[12px] font-medium text-[#111111]">
-                <Check className="w-3.5 h-3.5 stroke-[2]" />
-                <span>
-                  {isAr ? `تمت إضافة مقاس ${addedSize}` : `Added Size ${addedSize}`}
-                </span>
-              </div>
-            ) : (
-              <div>
-                <p className="text-[10px] tracking-[0.08em] uppercase text-[#6e6c68] text-center mb-1.5">
-                  {isAr ? 'إضافة سريعة — اختر المقاس' : 'Quick Add'}
-                </p>
-                <div className="flex items-center justify-center flex-wrap gap-1">
-                  {activeSizes.map((sObj) =>
-                    sObj.inStock ? (
-                      <button
-                        key={sObj.size}
-                        type="button"
-                        onClick={(e) => handleQuickSizeAdd(sObj.size, e)}
-                        className="min-w-[30px] h-7 px-1.5 text-[11px] font-medium text-[#111111] hover:bg-[#111111] hover:text-white transition-colors duration-150 cursor-pointer"
-                      >
-                        {sObj.size}
-                      </button>
-                    ) : (
-                      <span
-                        key={sObj.size}
-                        className="min-w-[30px] h-7 px-1.5 text-[11px] text-[#b5b2ac] line-through flex items-center justify-center cursor-not-allowed"
-                      >
-                        {sObj.size}
-                      </span>
-                    )
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Exact Bread & Boxers 2-Line Typography Below Image */}
-      <div className="flex flex-col gap-1 px-0.5">
+      {/* Exact Bread & Boxers Typography + Mobile-First Size Picker & Add to Cart */}
+      <div className="flex flex-col flex-1 gap-1 px-0.5">
         <h3 className="font-body text-[13.5px] sm:text-[14px] font-normal text-[#111111] leading-snug line-clamp-1 group-hover:underline underline-offset-4 decoration-[#111111]/40">
           {displayName}
         </h3>
@@ -277,30 +236,76 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
           </div>
         )}
 
-        {/* Animated Add to Cart Button (Visible on Mobile & Desktop) */}
-        {onQuickAdd && (
-          <button
-            type="button"
-            onClick={handleDirectAddToCart}
-            className={`w-full mt-2.5 h-[38px] sm:h-[40px] border border-[#111111] rounded-none text-[11px] sm:text-[11.5px] font-medium tracking-[0.1em] uppercase transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 active:scale-[0.97] ${
-              addedSize
-                ? 'bg-[#111111] text-white'
-                : 'bg-[#ffffff] text-[#111111] hover:bg-[#111111] hover:text-white btn-atc-sheen btn-atc-sheen-dark'
-            }`}
-          >
-            {addedSize ? (
-              <>
-                <Check className="w-3.5 h-3.5 stroke-[2.2]" />
-                <span>{isAr ? 'تمت الإضافة للسلة' : 'ADDED TO CART'}</span>
-              </>
-            ) : (
-              <>
-                <ShoppingBag className="w-3.5 h-3.5 stroke-[1.7] animate-atc-icon" />
-                <span>{isAr ? 'أضف للسلة' : 'ADD TO CART'}</span>
-              </>
-            )}
-          </button>
-        )}
+        {/* Bottom-Aligned Size Selector + Animated Add to Cart (Mobile & Desktop) */}
+        <div
+          className="mt-auto pt-2 flex flex-col gap-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {activeSizes.length > 0 && (
+            <div className="flex items-center flex-wrap gap-1">
+              {activeSizes.map((sObj) => {
+                const isSelected = selectedSize === sObj.size;
+                if (!sObj.inStock) {
+                  return (
+                    <span
+                      key={sObj.size}
+                      aria-disabled="true"
+                      className="min-w-[26px] sm:min-w-[28px] h-[26px] sm:h-[27px] px-1.5 border border-[#ebe8e2] bg-[#faf9f7] text-[#b5b2ac] text-[10px] sm:text-[11px] font-medium line-through flex items-center justify-center cursor-not-allowed select-none"
+                    >
+                      {sObj.size}
+                    </span>
+                  );
+                }
+                return (
+                  <button
+                    key={sObj.size}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedSize(sObj.size);
+                    }}
+                    aria-pressed={isSelected}
+                    className={`min-w-[26px] sm:min-w-[28px] h-[26px] sm:h-[27px] px-1.5 border rounded-none text-[10px] sm:text-[11px] font-medium transition-colors duration-150 cursor-pointer flex items-center justify-center active:scale-95 ${
+                      isSelected
+                        ? 'bg-[#111111] text-white border-[#111111]'
+                        : 'bg-[#ffffff] text-[#111111] border-[#d8d5ce] hover:border-[#111111]'
+                    }`}
+                  >
+                    {sObj.size}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {onQuickAdd && (
+            <button
+              type="button"
+              onClick={handleDirectAddToCart}
+              className={`w-full h-[38px] sm:h-[40px] border border-[#111111] rounded-none text-[10.5px] sm:text-[11.5px] font-medium tracking-[0.09em] uppercase transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 active:scale-[0.97] ${
+                addedSize
+                  ? 'bg-[#111111] text-white'
+                  : 'bg-[#ffffff] text-[#111111] hover:bg-[#111111] hover:text-white btn-atc-sheen btn-atc-sheen-dark'
+              }`}
+            >
+              {addedSize ? (
+                <>
+                  <Check className="w-3.5 h-3.5 stroke-[2.2] shrink-0" />
+                  <span className="truncate">
+                    {isAr ? `تمت الإضافة · ${addedSize}` : `ADDED · ${addedSize}`}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <ShoppingBag className="w-3.5 h-3.5 stroke-[1.7] animate-atc-icon shrink-0" />
+                  <span className="truncate">
+                    {isAr ? 'أضف للسلة' : 'ADD TO CART'}
+                  </span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
     </article>
   );

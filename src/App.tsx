@@ -7,6 +7,7 @@ import { DEFAULT_CATEGORIES, CATEGORIES_VERSION } from './data/defaultCategories
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { HeroBanner } from './components/HeroBanner';
+import { BrandsMarqueeStrip } from './components/BrandsMarqueeStrip';
 import { ProductCarouselSection } from './components/ProductCarouselSection';
 import { FloatingContactButtons } from './components/FloatingContactButtons';
 import { ScrollReveal } from './components/ScrollReveal';
@@ -373,7 +374,7 @@ export const AppContent: React.FC = () => {
     shippingLabelEn: 'Express Delivery',
     shippingNoteAr: 'شامل جميع الرسوم والتوصيل للمحافظات.',
     shippingNoteEn: 'All duties & delivery across Egypt included.',
-    defaultLanguage: 'ar',
+    defaultLanguage: 'en',
     enableVodafoneCash: true,
     vodafoneCashNumber: '01070606272',
     vodafoneCashInstructionsAr: 'يرجى تحويل المبلغ المطلوب إلى رقم محفظة فودافون كاش الموضح أعلاه، ثم إدخال رقم الموبايل المحول منه لتأكيد الطلب.',
@@ -423,12 +424,6 @@ export const AppContent: React.FC = () => {
       localStorage.setItem('maison_settings', safeJsonStringify(storeSettings));
     } catch (err) {
       console.error('Failed to store settings:', err);
-    }
-    if (storeSettings.defaultLanguage) {
-      const manualLang = localStorage.getItem('touza_user_lang_manual');
-      if (!manualLang) {
-        setLanguage(storeSettings.defaultLanguage);
-      }
     }
   }, [storeSettings]);
 
@@ -1113,6 +1108,9 @@ export const AppContent: React.FC = () => {
               storeSettings={storeSettings}
               onVideoReady={() => setIsVideoReady(true)}
             />
+
+            {/* Luxury Animated Global Brands Marquee Strip */}
+            <BrandsMarqueeStrip onExplore={() => handleNavigate('shop', 'All')} />
 
             {/* Band 2 (Screenshot 2): 4-Column Horizontal Product Carousel (100% Live Firestore Products) */}
             <ProductCarouselSection

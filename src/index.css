@@ -337,8 +337,36 @@ button, a, select, input {
   animation: atcIconNudge 3.6s ease-in-out infinite;
 }
 
+/* Luxury Global Brands Infinite Marquee (Preserves Latin typographic tracking in both AR & EN) */
+.brand-marquee-serif {
+  font-family: "Playfair Display", Georgia, serif !important;
+  letter-spacing: 0.14em !important;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.brand-marquee-sans {
+  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  letter-spacing: 0.22em !important;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.animate-brand-marquee {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  width: max-content;
+  animation: marquee 38s linear infinite;
+  -webkit-animation: marquee 38s linear infinite;
+  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,
+  .animate-brand-marquee,
   .btn-atc-sheen::after,
   .animate-cart-bounce,
   .animate-cart-plus-one,

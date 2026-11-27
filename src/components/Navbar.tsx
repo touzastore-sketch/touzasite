@@ -7,11 +7,15 @@ import {
   X,
   Menu,
   MessageCircle,
+  ChevronRight,
+  ChevronLeft,
+  Ruler,
 } from 'lucide-react';
 import { ViewMode, StoreSettings, Category } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/defaultCategories';
 import { useLanguage } from '../context/LanguageContext';
 import { formatWhatsAppNumber } from '../utils/whatsapp';
+import { SocialLinks } from './SocialLinks';
 
 interface NavbarProps {
   currentView: ViewMode;
@@ -284,7 +288,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
         </div>
       </header>
 
-      {/* Slide-Out Mobile & Editorial Drawer */}
+      {/* Classic Tailored Luxury Maison Slide-Out Drawer */}
       {mobileMenuOpen && (
         <div
           className="fixed inset-0 z-[99999] overflow-hidden"
@@ -293,14 +297,16 @@ const NavbarComponent: React.FC<NavbarProps> = ({
         >
           <div
             onClick={() => setMobileMenuOpen(false)}
-            className="fixed inset-0 bg-black/45 backdrop-blur-[2px] transition-opacity duration-300 cursor-pointer z-40"
+            className={`fixed inset-0 bg-black/50 backdrop-blur-[3px] transition-opacity duration-300 cursor-pointer z-40 ${
+              menuAnimated ? 'opacity-100' : 'opacity-0'
+            }`}
             aria-label={isAr ? 'إغلاق القائمة' : 'Close menu'}
           />
 
           <aside
             className={`fixed top-0 bottom-0 ${
               isAr ? 'right-0' : 'left-0'
-            } max-w-full flex z-50 transition-transform duration-300 ease-out h-[100dvh] ${
+            } max-w-full flex z-50 transition-transform duration-350 ease-[cubic-bezier(0.22,1,0.36,1)] h-[100dvh] ${
               menuAnimated
                 ? 'translate-x-0'
                 : isAr
@@ -308,132 +314,257 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                 : '-translate-x-full'
             }`}
           >
-            <div className="w-[84vw] sm:w-[380px] max-w-full bg-[#ecebe7] text-[#111111] flex flex-col justify-between h-full pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] select-none shadow-2xl">
-              <div className="flex items-center justify-between px-7 py-4 border-b border-[#d5d2ca]">
-                <span className="brand-wordmark text-[25px] font-medium">
-                  TOUZA
-                </span>
+            <div
+              className={`w-[86vw] sm:w-[400px] max-w-full bg-[#f7f5f0] text-[#141413] flex flex-col justify-between h-full pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] select-none shadow-[0_24px_64px_rgba(0,0,0,0.28)] ${
+                isAr ? 'border-s border-[#dedad0]' : 'border-e border-[#dedad0]'
+              }`}
+            >
+              {/* Classic Atelier Header */}
+              <div className="px-7 pt-3 pb-5 border-b border-[#e2ded5] flex items-center justify-between gap-4">
+                <div className="flex flex-col">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      onNavigate('home');
+                    }}
+                    className="brand-wordmark text-[26px] leading-none font-medium text-[#111111] text-start cursor-pointer hover:opacity-75 transition-opacity"
+                  >
+                    TOUZA
+                  </button>
+                  <span className="mt-1.5 text-[10px] tracking-[0.2em] uppercase text-[#7c7870] font-body">
+                    {isAr ? 'للأزياء الرجالية · بورسعيد' : "MEN'S WEAR · ATELIER"}
+                  </span>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-10 h-10 flex items-center justify-center text-[#111111] hover:opacity-60 transition-opacity cursor-pointer"
+                  className="w-9 h-9 border border-[#d9d5cb] bg-[#fbfaf7] hover:bg-[#111111] hover:border-[#111111] hover:text-white flex items-center justify-center text-[#111111] transition-colors duration-200 cursor-pointer shrink-0"
                   aria-label="Close menu"
                 >
-                  <X className="w-5 h-5 stroke-[1.5]" />
+                  <X className="w-4 h-4 stroke-[1.6]" />
                 </button>
               </div>
 
-              <nav className="flex-1 overflow-y-auto px-7 py-8 space-y-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onNavigate('home');
-                  }}
-                  className={`w-full text-start py-3.5 border-b border-[#d5d2ca]/70 font-editorial text-[22px] cursor-pointer transition-opacity hover:opacity-60 ${
-                    currentView === 'home' ? 'font-semibold' : 'font-normal'
-                  }`}
-                >
-                  {isAr ? 'الرئيسية' : 'Home'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onNavigate('shop', 'All');
-                  }}
-                  className="w-full text-start py-3.5 border-b border-[#d5d2ca]/70 font-editorial text-[22px] font-normal cursor-pointer transition-opacity hover:opacity-60"
-                >
-                  {isAr ? 'جميع القطع' : 'Shop All'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onNavigate('shop', 'New Arrivals');
-                  }}
-                  className="w-full text-start py-3.5 border-b border-[#d5d2ca]/70 font-editorial text-[22px] font-normal cursor-pointer transition-opacity hover:opacity-60"
-                >
-                  {isAr ? 'وصل حديثاً' : 'New Arrivals'}
-                </button>
-
-                {activeCategories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      onNavigate('shop', cat.nameEn);
-                    }}
-                    className="w-full text-start py-3.5 border-b border-[#d5d2ca]/70 font-editorial text-[22px] font-normal cursor-pointer transition-opacity hover:opacity-60"
-                  >
-                    {isAr ? cat.nameAr : cat.nameEn}
-                  </button>
-                ))}
-
-                {onOpenSizeGuide && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      onOpenSizeGuide();
-                    }}
-                    className="w-full text-start py-3.5 border-b border-[#d5d2ca]/70 font-editorial text-[22px] font-normal cursor-pointer transition-opacity hover:opacity-60"
-                  >
-                    {isAr ? 'جدول المقاسات' : 'Size Guide'}
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenSearch();
-                  }}
-                  className="w-full text-start py-3.5 border-b border-[#d5d2ca]/70 font-editorial text-[22px] font-normal cursor-pointer transition-opacity hover:opacity-60"
-                >
-                  {isAr ? 'البحث' : 'Search'}
-                </button>
-              </nav>
-
-              <div className="px-7 pt-5 border-t border-[#d5d2ca] space-y-4">
-                <div className="flex items-center justify-between text-[13px] text-[#4a4845]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      onOpenWishlist();
-                    }}
-                    className="cursor-pointer hover:text-[#111111] transition-colors"
-                  >
-                    {isAr ? 'المفضلة' : 'Saved'} ({wishlistCount})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      onOpenCart();
-                    }}
-                    className="cursor-pointer hover:text-[#111111] transition-colors"
-                  >
-                    {isAr ? 'حقيبة التسوق' : 'Bag'} ({cartCount})
-                  </button>
+              {/* Scrollable Editorial Navigation Body */}
+              <div className="flex-1 overflow-y-auto px-7 py-7 hide-scrollbar">
+                {/* Eyebrow */}
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-[10px] tracking-[0.22em] uppercase text-[#8a857c] font-body font-medium">
+                    {isAr ? 'التشكيلة' : 'COLLECTION'}
+                  </span>
+                  <span className="flex-1 h-[1px] bg-[#e2ded5]" />
                 </div>
 
+                {/* Numbered Classic Editorial Links */}
+                <nav className="flex flex-col">
+                  {(() => {
+                    const primaryLinks: Array<{
+                      id: string;
+                      label: string;
+                      isActive?: boolean;
+                      onClick: () => void;
+                    }> = [
+                      {
+                        id: 'home',
+                        label: isAr ? 'الرئيسية' : 'Home',
+                        isActive: currentView === 'home',
+                        onClick: () => {
+                          setMobileMenuOpen(false);
+                          onNavigate('home');
+                        },
+                      },
+                      {
+                        id: 'shop-all',
+                        label: isAr ? 'جميع القطع' : 'Shop All',
+                        onClick: () => {
+                          setMobileMenuOpen(false);
+                          onNavigate('shop', 'All');
+                        },
+                      },
+                      {
+                        id: 'new-arrivals',
+                        label: isAr ? 'وصل حديثاً' : 'New Arrivals',
+                        onClick: () => {
+                          setMobileMenuOpen(false);
+                          onNavigate('shop', 'New Arrivals');
+                        },
+                      },
+                      ...activeCategories.map((cat) => ({
+                        id: cat.id,
+                        label: isAr ? cat.nameAr : cat.nameEn,
+                        onClick: () => {
+                          setMobileMenuOpen(false);
+                          onNavigate('shop', cat.nameEn);
+                        },
+                      })),
+                    ];
+
+                    return primaryLinks.map((item, idx) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={item.onClick}
+                        className="group w-full flex items-center justify-between py-4 border-b border-[#e4e0d7] cursor-pointer text-start transition-colors"
+                      >
+                        <span className="flex items-baseline gap-3.5 min-w-0">
+                          <span className="font-editorial editorial-italic text-[12px] text-[#969085] w-5 shrink-0 tabular-nums">
+                            {String(idx + 1).padStart(2, '0')}
+                          </span>
+                          <span
+                            className={`font-editorial text-[22px] sm:text-[24px] leading-[1.15] text-[#141413] transition-transform duration-200 ${
+                              isAr
+                                ? 'group-hover:-translate-x-1'
+                                : 'group-hover:translate-x-1'
+                            } ${item.isActive ? 'font-semibold' : 'font-normal'}`}
+                          >
+                            {item.label}
+                          </span>
+                          {item.isActive && (
+                            <span
+                              aria-hidden="true"
+                              className="w-1.5 h-1.5 rounded-full bg-[#111111] self-center shrink-0"
+                            />
+                          )}
+                        </span>
+
+                        {isAr ? (
+                          <ChevronLeft className="w-4 h-4 stroke-[1.4] text-[#8a857c] group-hover:text-[#111111] group-hover:-translate-x-0.5 transition-all shrink-0" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 stroke-[1.4] text-[#8a857c] group-hover:text-[#111111] group-hover:translate-x-0.5 transition-all shrink-0" />
+                        )}
+                      </button>
+                    ));
+                  })()}
+                </nav>
+
+                {/* Tailored Client Services Grid */}
+                <div className="mt-7">
+                  <div className="flex items-center gap-3 mb-3.5">
+                    <span className="text-[10px] tracking-[0.22em] uppercase text-[#8a857c] font-body font-medium">
+                      {isAr ? 'الخدمات السريعة' : 'CLIENT SERVICES'}
+                    </span>
+                    <span className="flex-1 h-[1px] bg-[#e2ded5]" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {onOpenSizeGuide && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          onOpenSizeGuide();
+                        }}
+                        className="flex items-center gap-2 px-3.5 py-2.5 border border-[#dedad0] bg-[#fcfbf8] hover:bg-[#111111] hover:border-[#111111] hover:text-white text-[#141413] text-[12px] font-body font-medium transition-colors cursor-pointer"
+                      >
+                        <Ruler className="w-3.5 h-3.5 stroke-[1.6] shrink-0 opacity-75" />
+                        <span className="truncate">{isAr ? 'المقاسات' : 'Size Guide'}</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        onOpenSearch();
+                      }}
+                      className="flex items-center gap-2 px-3.5 py-2.5 border border-[#dedad0] bg-[#fcfbf8] hover:bg-[#111111] hover:border-[#111111] hover:text-white text-[#141413] text-[12px] font-body font-medium transition-colors cursor-pointer"
+                    >
+                      <Search className="w-3.5 h-3.5 stroke-[1.6] shrink-0 opacity-75" />
+                      <span className="truncate">{isAr ? 'البحث' : 'Search'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        onOpenWishlist();
+                      }}
+                      className="flex items-center justify-between gap-2 px-3.5 py-2.5 border border-[#dedad0] bg-[#fcfbf8] hover:bg-[#111111] hover:border-[#111111] hover:text-white text-[#141413] text-[12px] font-body font-medium transition-colors cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2 truncate">
+                        <Heart className="w-3.5 h-3.5 stroke-[1.6] shrink-0 opacity-75" />
+                        <span className="truncate">{isAr ? 'المفضلة' : 'Saved'}</span>
+                      </span>
+                      <span className="text-[11px] opacity-70 tabular-nums">({wishlistCount})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        onOpenCart();
+                      }}
+                      className="flex items-center justify-between gap-2 px-3.5 py-2.5 border border-[#dedad0] bg-[#fcfbf8] hover:bg-[#111111] hover:border-[#111111] hover:text-white text-[#141413] text-[12px] font-body font-medium transition-colors cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2 truncate">
+                        <ShoppingBag className="w-3.5 h-3.5 stroke-[1.6] shrink-0 opacity-75" />
+                        <span className="truncate">{isAr ? 'السلة' : 'Bag'}</span>
+                      </span>
+                      <span className="text-[11px] opacity-70 tabular-nums">({cartCount})</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Classic Maison Footer */}
+              <div className="px-7 pt-5 border-t border-[#e2ded5] bg-[#f2efe8] space-y-4">
+                {/* Language Switch Row */}
+                <div className="flex items-center justify-between text-[11px] font-body">
+                  <span className="tracking-[0.18em] uppercase text-[#7c7870]">
+                    {isAr ? 'اللغة' : 'LANGUAGE'}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setLanguage('en')}
+                      className={`cursor-pointer transition-colors ${
+                        !isAr
+                          ? 'text-[#111111] font-semibold underline underline-offset-4'
+                          : 'text-[#8a857c] hover:text-[#111111]'
+                      }`}
+                    >
+                      EN
+                    </button>
+                    <span className="text-[#c9c4b8]">/</span>
+                    <button
+                      type="button"
+                      onClick={() => setLanguage('ar')}
+                      className={`cursor-pointer transition-colors ${
+                        isAr
+                          ? 'text-[#111111] font-semibold underline underline-offset-4'
+                          : 'text-[#8a857c] hover:text-[#111111]'
+                      }`}
+                    >
+                      عربي
+                    </button>
+                  </div>
+                </div>
+
+                {/* Classic WhatsApp Concierge CTA */}
                 <a
                   href={whatsappHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full py-3 px-4 border border-[#111111] bg-[#111111] text-white text-[12px] tracking-[0.12em] uppercase font-medium flex items-center justify-center gap-2 hover:bg-[#2a2a2a] transition-colors"
+                  className="w-full py-3.5 px-5 border border-[#111111] bg-[#111111] text-[#f7f5f0] text-[11.5px] tracking-[0.16em] uppercase font-medium flex items-center justify-center gap-2.5 hover:bg-[#242423] transition-colors btn-atc-sheen"
                 >
-                  <MessageCircle className="w-4 h-4 stroke-[1.5]" />
+                  <MessageCircle className="w-4 h-4 stroke-[1.6] text-[#25D366]" />
                   <span>
                     {isAr ? 'الطلب المباشر عبر واتساب' : 'ORDER VIA WHATSAPP'}
                   </span>
                 </a>
+
+                {/* Quiet Atelier Signature & Socials */}
+                <div className="flex items-center justify-between pt-1 text-[11px] text-[#7c7870]">
+                  <span className="font-body">
+                    {isAr ? 'بورسعيد · شارع ٢٣ يوليو' : 'Port Said · 23 July St.'}
+                  </span>
+                  <div className="opacity-75 scale-90 origin-end">
+                    <SocialLinks variant="horizontal" storeSettings={storeSettings} />
+                  </div>
+                </div>
 
                 {user?.email === 'touzastore@gmail.com' && onOpenAdmin && (
                   <button
@@ -442,7 +573,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                       setMobileMenuOpen(false);
                       onOpenAdmin();
                     }}
-                    className="w-full text-center text-[11px] text-[#6e6c68] hover:text-[#111111] cursor-pointer pt-1"
+                    className="w-full text-center text-[11px] tracking-[0.12em] uppercase text-[#7c7870] hover:text-[#111111] cursor-pointer pt-1 border-t border-[#e2ded5]"
                   >
                     {isAr ? 'لوحة التحكم' : 'Admin Dashboard'}
                   </button>

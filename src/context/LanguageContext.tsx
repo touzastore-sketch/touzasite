@@ -284,17 +284,10 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>(() => {
     try {
-      const manual = localStorage.getItem('touza_user_lang_manual');
+      const manual = localStorage.getItem('touza_user_lang_v2');
       if (manual === 'ar' || manual === 'en') return manual;
-      const settingsSaved = localStorage.getItem('maison_settings');
-      if (settingsSaved) {
-        const parsed = JSON.parse(settingsSaved);
-        if (parsed.defaultLanguage === 'ar' || parsed.defaultLanguage === 'en') {
-          return parsed.defaultLanguage;
-        }
-      }
     } catch {}
-    return 'ar';
+    return 'en';
   });
 
   const setLanguage = (lang: Language) => {
@@ -302,7 +295,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = lang;
     try {
-      localStorage.setItem('touza_user_lang_manual', lang);
+      localStorage.setItem('touza_user_lang_v2', lang);
     } catch {}
   };
 
