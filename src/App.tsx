@@ -27,6 +27,7 @@ import {
   subscribeToAuth,
   signInWithGoogle,
   subscribeToCategories,
+  getAllCategories,
   saveCategoryAdmin,
   updateCategoryAdmin,
   deleteCategoryAdmin,
@@ -202,9 +203,7 @@ export const AppContent: React.FC = () => {
       if (saved) {
         const parsed: Category[] = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const deprecated = new Set(['cat-pants', 'cat-polos', 'cat-shirts', 'cat-shorts', 'cat-suit', 'cat-tshirts']);
-          const cleanList = parsed.filter((c) => !deprecated.has(c.id));
-          if (cleanList.length > 0) return cleanList;
+          return parsed;
         }
       }
       return DEFAULT_CATEGORIES;
@@ -610,10 +609,16 @@ export const AppContent: React.FC = () => {
       }, 8000);
 
       isSyncing = true;
-      getAllProductsAdmin()
-        .then((freshProducts) => {
+      Promise.all([
+        getAllProductsAdmin().catch(() => null),
+        getAllCategories().catch(() => null),
+      ])
+        .then(([freshProducts, freshCategories]) => {
           if (isMounted && Array.isArray(freshProducts) && Date.now() - lastLocalProductMutationRef.current >= 3000) {
             setProducts(sortProductsNewestFirst(freshProducts));
+          }
+          if (isMounted && Array.isArray(freshCategories) && freshCategories.length > 0) {
+            setCategories(freshCategories);
           }
         })
         .catch(() => {})
@@ -1060,6 +1065,7 @@ export const AppContent: React.FC = () => {
       {currentView !== 'admin' && (
         <Navbar
           currentView={currentView}
+          activeCategory={categoryFilter}
           onNavigate={handleNavigate}
           cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
           wishlistCount={wishlistIds.length}
@@ -1102,7 +1108,7 @@ export const AppContent: React.FC = () => {
 
         {currentView === 'home' && (
           <div className="bg-[#ffffff]">
-            {/* Band 1 (Screenshot 1): Full-Bleed 50/50 Dark Editorial Split Hero */}
+            {/* Band 1: Full-Bleed 50/50 Dark Editorial Split Hero */}
             <HeroBanner
               onShopNow={() => handleNavigate('shop', 'All')}
               onShopSecondary={() => handleNavigate('shop', categories[0]?.nameEn || 'All')}
@@ -1110,10 +1116,10 @@ export const AppContent: React.FC = () => {
               onVideoReady={() => setIsVideoReady(true)}
             />
 
-            {/* Luxury Animated Global Brands Marquee Strip */}
+            {/* Band 2: Warm Stone Luxury Global Brands Marquee */}
             <BrandsMarqueeStrip onExplore={() => handleNavigate('shop', 'All')} />
 
-            {/* Band 2 (Screenshot 2): 4-Column Horizontal Product Carousel (100% Live Firestore Products) */}
+            {/* Band 3: Crisp White 4-Column Live Product Showcase */}
             <ProductCarouselSection
               products={products}
               isInitialSyncDone={isInitialSyncDone}
@@ -1124,47 +1130,40 @@ export const AppContent: React.FC = () => {
               onViewAll={() => handleNavigate('shop', 'All')}
             />
 
-            {/* Band 3 (Screenshot 2 Bottom / Screenshot 3 Top): Full-Width Black Editorial Strip #1 */}
-            <div className="w-full bg-[#000000] text-white py-3.5 px-6 overflow-hidden">
-              <div className="max-w-[1440px] mx-auto flex items-center justify-center md:justify-between gap-8 text-[11px] sm:text-[12px] tracking-[0.14em] uppercase font-body whitespace-nowrap">
-                <span>{language === 'ar' ? 'طلب فوري عبر واتساب بدون تسجيل' : 'DIRECT WHATSAPP ORDERING'}</span>
-                <span className="hidden sm:inline">{language === 'ar' ? 'شحن سريع لجميع محافظات مصر' : 'EXPRESS NATIONWIDE SHIPPING'}</span>
-                <span className="hidden md:inline">{language === 'ar' ? 'أقوى تشكيلة كاجوال رجالي ٢٠٢٦' : 'MEN’S CASUAL ESSENTIALS 2026'}</span>
-                <span className="hidden lg:inline">{language === 'ar' ? 'استبدال واسترجاع خلال ١٤ يوم' : '14-DAY EASY EXCHANGES'}</span>
-              </div>
-            </div>
-
-            {/* Band 4 (Screenshot 3): Full-Bleed 50/50 Editorial Split #1 — 100% Men's */}
+            {/* Band 4: Full-Bleed 50/50 Dark Editorial Split #1 — Craft & Tailoring */}
             <ScrollReveal>
               <section className="w-full grid grid-cols-1 md:grid-cols-2 gap-0 bg-[#111111]">
                 {/* Left Panel: Folded Luxury Men's Essentials */}
                 <div
                   onClick={() => handleNavigate('shop', 'All')}
-                  className="group relative aspect-[4/5] md:aspect-[1/1.05] max-h-[780px] w-full overflow-hidden bg-[#1a1917] cursor-pointer"
+                  className="group relative aspect-[4/5] md:aspect-[1/1] max-h-[680px] w-full overflow-hidden bg-[#1a1917] cursor-pointer"
                 >
                   <img
                     src={editorialFabricCraft}
-                    alt={language === 'ar' ? 'أساسيات يومية للرجال' : 'Essentials for him'}
+                    alt={language === 'ar' ? 'أساسيات يومية فاخرة للرجال' : 'Crafted essentials for him'}
                     loading="lazy"
                     className="w-full h-full object-cover object-center transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
-                  <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 md:p-14 text-white flex flex-col items-start text-start">
-                    <h3 className="font-editorial text-[34px] sm:text-[42px] md:text-[46px] font-normal leading-[1.08] mb-2">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
+                  <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 md:p-12 text-white flex flex-col items-start text-start">
+                    <span className="text-[10.5px] tracking-[0.18em] uppercase text-[#d8c4a0] font-body mb-2">
+                      {language === 'ar' ? 'خامات مختارة' : 'FINE FABRICS'}
+                    </span>
+                    <h3 className="font-editorial text-[32px] sm:text-[40px] md:text-[44px] font-normal leading-[1.08] mb-2">
                       {language === 'ar' ? (
                         <>
-                          أساسيات <span className="editorial-italic">للرجال</span>
+                          أساسيات <span className="editorial-italic">فاخرة</span>
                         </>
                       ) : (
                         <>
-                          Essentials <span className="editorial-italic">for him</span>
+                          Crafted <span className="editorial-italic">essentials</span>
                         </>
                       )}
                     </h3>
                     <p className="font-body text-[14px] sm:text-[15px] text-white/85 mb-6 max-w-md">
                       {language === 'ar'
                         ? 'خامات فاخرة ومريحة مصممة للاستخدام اليومي.'
-                        : 'Soft heavyweight essentials crafted for every day.'}
+                        : 'Soft heavyweight essentials tailored for every day.'}
                     </p>
                     <button
                       type="button"
@@ -1179,10 +1178,10 @@ export const AppContent: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Right Panel: Male Model Tailored Casual Lookbook (Replacing Female Image with 100% Male Model) */}
+                {/* Right Panel: Male Model Tailored Casual Lookbook */}
                 <div
                   onClick={() => handleNavigate('shop', categories[0]?.nameEn || 'All')}
-                  className="group relative aspect-[4/5] md:aspect-[1/1.05] max-h-[780px] w-full overflow-hidden bg-[#1a1917] cursor-pointer"
+                  className="group relative aspect-[4/5] md:aspect-[1/1] max-h-[680px] w-full overflow-hidden bg-[#1a1917] cursor-pointer border-t md:border-t-0 md:border-s border-white/10"
                 >
                   <img
                     src={editorialWinterLookbook}
@@ -1190,9 +1189,12 @@ export const AppContent: React.FC = () => {
                     loading="lazy"
                     className="w-full h-full object-cover object-top transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
-                  <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 md:p-14 text-white flex flex-col items-start text-start">
-                    <h3 className="font-editorial text-[34px] sm:text-[42px] md:text-[46px] font-normal leading-[1.08] mb-2">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
+                  <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 md:p-12 text-white flex flex-col items-start text-start">
+                    <span className="text-[10.5px] tracking-[0.18em] uppercase text-[#d8c4a0] font-body mb-2">
+                      {language === 'ar' ? 'إصدار الجواكيت' : 'OUTERWEAR EDIT'}
+                    </span>
+                    <h3 className="font-editorial text-[32px] sm:text-[40px] md:text-[44px] font-normal leading-[1.08] mb-2">
                       {language === 'ar' ? (
                         <>
                           أناقة <span className="editorial-italic">يومية</span>
@@ -1223,114 +1225,29 @@ export const AppContent: React.FC = () => {
               </section>
             </ScrollReveal>
 
-            {/* Band 5 (Screenshot 4 Top): Full-Width Black Editorial Strip #2 */}
-            <div className="w-full bg-[#000000] text-white py-3.5 px-6 overflow-hidden">
-              <div className="max-w-[1440px] mx-auto flex items-center justify-center md:justify-between gap-8 text-[11px] sm:text-[12px] tracking-[0.14em] uppercase font-body whitespace-nowrap">
-                <span>{language === 'ar' ? 'توصيل لجميع المحافظات' : 'FAST EGYPT DELIVERY'}</span>
-                <span className="hidden sm:inline">{language === 'ar' ? 'استبدال خلال ١٤ يوم' : '14-DAY RETURNS'}</span>
-                <span className="hidden md:inline">{language === 'ar' ? 'معاينة قبل الاستلام' : 'INSPECT ON DELIVERY'}</span>
-                <span className="hidden lg:inline">{language === 'ar' ? 'بورسعيد — شارع ٢٣ يوليو' : 'PORT SAID ATELIER'}</span>
-              </div>
-            </div>
-
-            {/* Band 6 (Screenshot 4): Full-Bleed 50/50 Street Layering Split #2 — 100% Men's */}
+            {/* Band 5: "Our categories" — Mid-Page Light Studio 4-Column Anchor (Alternating Light Contrast) */}
             <ScrollReveal>
-              <section className="w-full grid grid-cols-1 md:grid-cols-2 gap-0 bg-[#111111]">
-                {/* Left Panel: Male Model in Olive Half-Zip on Autumn Street */}
-                <div
-                  onClick={() => handleNavigate('shop', categories[0]?.nameEn || 'All')}
-                  className="group relative aspect-[4/5] md:aspect-[1/1.05] max-h-[780px] w-full overflow-hidden bg-[#1a1917] cursor-pointer"
-                >
-                  <img
-                    src={splitStreetOlive}
-                    alt={language === 'ar' ? 'إطلالة شتاء دافئة للرجال' : 'Layer up menswear'}
-                    loading="lazy"
-                    className="w-full h-full object-cover object-top transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
-                  <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 md:p-14 text-white flex flex-col items-start text-start">
-                    <h3 className="font-editorial text-[34px] sm:text-[42px] md:text-[46px] font-normal leading-[1.08] mb-2">
-                      {language === 'ar' ? (
-                        <>
-                          دفء <span className="editorial-italic">الشتاء</span>
-                        </>
-                      ) : (
-                        <>
-                          Layer <span className="editorial-italic">up</span>
-                        </>
-                      )}
-                    </h3>
-                    <p className="font-body text-[14px] sm:text-[15px] text-white/85 mb-6 max-w-md">
-                      {language === 'ar'
-                        ? 'سويت شيرتات وجواكيت ثقيلة مصممة لأيام البرد.'
-                        : 'Long sleeves, sweats, and jackets built for colder days.'}
+              <section className="w-full bg-[#ffffff] py-14 md:py-20">
+                <div className="max-w-[1440px] mx-auto px-4 sm:px-8 md:px-12 flex items-end justify-between gap-4 mb-7 md:mb-10">
+                  <div>
+                    <p className="font-body text-[10.5px] sm:text-[11px] tracking-[0.18em] uppercase text-[#8a7554] mb-1.5">
+                      {language === 'ar' ? 'تصفح حسب القسم' : 'SHOP BY CATEGORY'}
                     </p>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleNavigate('shop', categories[0]?.nameEn || 'All');
-                      }}
-                      className="border border-white/80 bg-transparent text-white hover:bg-white hover:text-[#111111] transition-colors duration-200 px-7 py-3 rounded-none text-[11px] font-medium tracking-[0.16em] uppercase cursor-pointer"
-                    >
-                      {language === 'ar' ? 'تسوق الشتوي' : 'SHOP WINTER'}
-                    </button>
+                    <h2 className="font-editorial text-[30px] sm:text-[38px] md:text-[42px] font-normal leading-[1.08] tracking-[-0.01em] text-[#111111]">
+                      {language === 'ar' ? 'أقسامنا' : 'Our categories'}
+                    </h2>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleNavigate('shop', 'All')}
+                    className="font-body text-[11.5px] sm:text-[12px] tracking-[0.12em] uppercase text-[#111111] border-b border-[#111111]/60 pb-0.5 hover:border-[#111111] hover:opacity-70 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                  >
+                    {language === 'ar' ? 'تصفح الكل' : 'EXPLORE ALL'}
+                  </button>
                 </div>
 
-                {/* Right Panel: Male Model in All-Black Minimalist Streetwear (100% Male Model!) */}
-                <div
-                  onClick={() => handleNavigate('shop', 'All')}
-                  className="group relative aspect-[4/5] md:aspect-[1/1.05] max-h-[780px] w-full overflow-hidden bg-[#1a1917] cursor-pointer"
-                >
-                  <img
-                    src={splitStreetBlack}
-                    alt={language === 'ar' ? 'كاجوال أسود يومي للرجال' : 'Minimalist black menswear'}
-                    loading="lazy"
-                    className="w-full h-full object-cover object-top transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
-                  <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 md:p-14 text-white flex flex-col items-start text-start">
-                    <h3 className="font-editorial text-[34px] sm:text-[42px] md:text-[46px] font-normal leading-[1.08] mb-2">
-                      {language === 'ar' ? (
-                        <>
-                          إطلالة <span className="editorial-italic">بسيطة</span>
-                        </>
-                      ) : (
-                        <>
-                          Everyday <span className="editorial-italic">minimal</span>
-                        </>
-                      )}
-                    </h3>
-                    <p className="font-body text-[14px] sm:text-[15px] text-white/85 mb-6 max-w-md">
-                      {language === 'ar'
-                        ? 'قطع يومية مريحة وأنيقة — مثالية للخروج والعمل.'
-                        : 'Relaxed silhouettes and timeless blacks — effortless anywhere.'}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleNavigate('shop', 'All');
-                      }}
-                      className="border border-white/80 bg-transparent text-white hover:bg-white hover:text-[#111111] transition-colors duration-200 px-7 py-3 rounded-none text-[11px] font-medium tracking-[0.16em] uppercase cursor-pointer"
-                    >
-                      {language === 'ar' ? 'تسوق الكل' : 'SHOP ALL'}
-                    </button>
-                  </div>
-                </div>
-              </section>
-            </ScrollReveal>
-            {/* Band 7: "Our categories" — Full-Width Seamless Studio 4-Column Band (100% TOUZA Men's Jackets) */}
-            <ScrollReveal>
-              <section className="w-full bg-[#ffffff] pt-14 md:pt-20 pb-10 md:pb-14">
-                <div className="max-w-[1440px] mx-auto px-6 sm:px-10 md:px-14 mb-6 md:mb-8">
-                  <h2 className="font-editorial text-[32px] sm:text-[38px] md:text-[42px] font-normal leading-[1.1] text-[#111111]">
-                    {language === 'ar' ? 'أقسامنا' : 'Our categories'}
-                  </h2>
-                </div>
-
-                <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-0 bg-[#dcdad6]">
+                <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-0 bg-[#dcdad6] border-y border-[#e5e3de]">
                   {[
                     {
                       id: 'cat-corduroy',
@@ -1376,7 +1293,7 @@ export const AppContent: React.FC = () => {
                     <div
                       key={tile.id}
                       onClick={() => handleNavigate('shop', tile.targetCategory)}
-                      className="group relative aspect-[4/4.5] w-full overflow-hidden bg-[#dcdad6] cursor-pointer"
+                      className="group relative aspect-[4/4.6] w-full overflow-hidden bg-[#dcdad6] cursor-pointer border-r border-b lg:border-b-0 border-black/[0.06] last:border-r-0"
                     >
                       <img
                         src={tile.image}
@@ -1391,7 +1308,7 @@ export const AppContent: React.FC = () => {
                             e.stopPropagation();
                             handleNavigate('shop', tile.targetCategory);
                           }}
-                          className="pointer-events-auto bg-[#ffffff] border border-[#111111] text-[#111111] group-hover:bg-[#111111] group-hover:text-white transition-colors duration-200 px-4 sm:px-6 py-2.5 sm:py-3 rounded-none text-[10px] sm:text-[12px] tracking-[0.1em] uppercase font-body font-medium whitespace-nowrap cursor-pointer"
+                          className="pointer-events-auto bg-[#ffffff] border border-[#111111] text-[#111111] group-hover:bg-[#111111] group-hover:text-white transition-colors duration-200 px-4 sm:px-6 py-2.5 sm:py-3 rounded-none text-[10px] sm:text-[11.5px] tracking-[0.12em] uppercase font-body font-medium whitespace-nowrap cursor-pointer shadow-xs"
                         >
                           {language === 'ar' ? tile.labelAr : tile.labelEn}
                         </button>
@@ -1401,6 +1318,147 @@ export const AppContent: React.FC = () => {
                 </div>
               </section>
             </ScrollReveal>
+
+            {/* Band 6: Full-Bleed 50/50 Dark Editorial Split #2 — Winter Street Lookbook */}
+            <ScrollReveal>
+              <section className="w-full grid grid-cols-1 md:grid-cols-2 gap-0 bg-[#111111]">
+                {/* Left Panel: Male Model in Olive Half-Zip on Autumn Street */}
+                <div
+                  onClick={() => handleNavigate('shop', categories[0]?.nameEn || 'All')}
+                  className="group relative aspect-[4/5] md:aspect-[1/1] max-h-[680px] w-full overflow-hidden bg-[#1a1917] cursor-pointer"
+                >
+                  <img
+                    src={splitStreetOlive}
+                    alt={language === 'ar' ? 'إطلالة شتاء دافئة للرجال' : 'Layer up menswear'}
+                    loading="lazy"
+                    className="w-full h-full object-cover object-top transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
+                  <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 md:p-12 text-white flex flex-col items-start text-start">
+                    <span className="text-[10.5px] tracking-[0.18em] uppercase text-[#d8c4a0] font-body mb-2">
+                      {language === 'ar' ? 'إطلالة الشتاء' : 'WINTER LAYERING'}
+                    </span>
+                    <h3 className="font-editorial text-[32px] sm:text-[40px] md:text-[44px] font-normal leading-[1.08] mb-2">
+                      {language === 'ar' ? (
+                        <>
+                          دفء <span className="editorial-italic">الشتاء</span>
+                        </>
+                      ) : (
+                        <>
+                          Layer <span className="editorial-italic">up</span>
+                        </>
+                      )}
+                    </h3>
+                    <p className="font-body text-[14px] sm:text-[15px] text-white/85 mb-6 max-w-md">
+                      {language === 'ar'
+                        ? 'سويت شيرتات وجواكيت ثقيلة مصممة لأيام البرد.'
+                        : 'Long sleeves, sweats, and jackets built for colder days.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigate('shop', categories[0]?.nameEn || 'All');
+                      }}
+                      className="border border-white/80 bg-transparent text-white hover:bg-white hover:text-[#111111] transition-colors duration-200 px-7 py-3 rounded-none text-[11px] font-medium tracking-[0.16em] uppercase cursor-pointer"
+                    >
+                      {language === 'ar' ? 'تسوق الشتوي' : 'SHOP WINTER'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right Panel: Male Model in All-Black Minimalist Streetwear */}
+                <div
+                  onClick={() => handleNavigate('shop', 'All')}
+                  className="group relative aspect-[4/5] md:aspect-[1/1] max-h-[680px] w-full overflow-hidden bg-[#1a1917] cursor-pointer border-t md:border-t-0 md:border-s border-white/10"
+                >
+                  <img
+                    src={splitStreetBlack}
+                    alt={language === 'ar' ? 'كاجوال أسود يومي للرجال' : 'Minimalist black menswear'}
+                    loading="lazy"
+                    className="w-full h-full object-cover object-top transition-transform duration-1000 ease-out group-hover:scale-[1.03]"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent pointer-events-none" />
+                  <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10 md:p-12 text-white flex flex-col items-start text-start">
+                    <span className="text-[10.5px] tracking-[0.18em] uppercase text-[#d8c4a0] font-body mb-2">
+                      {language === 'ar' ? 'أناقة يومية' : 'MONOCHROME EDIT'}
+                    </span>
+                    <h3 className="font-editorial text-[32px] sm:text-[40px] md:text-[44px] font-normal leading-[1.08] mb-2">
+                      {language === 'ar' ? (
+                        <>
+                          إطلالة <span className="editorial-italic">بسيطة</span>
+                        </>
+                      ) : (
+                        <>
+                          Everyday <span className="editorial-italic">minimal</span>
+                        </>
+                      )}
+                    </h3>
+                    <p className="font-body text-[14px] sm:text-[15px] text-white/85 mb-6 max-w-md">
+                      {language === 'ar'
+                        ? 'قطع يومية مريحة وأنيقة — مثالية للخروج والعمل.'
+                        : 'Relaxed silhouettes and timeless blacks — effortless anywhere.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigate('shop', 'All');
+                      }}
+                      className="border border-white/80 bg-transparent text-white hover:bg-white hover:text-[#111111] transition-colors duration-200 px-7 py-3 rounded-none text-[11px] font-medium tracking-[0.16em] uppercase cursor-pointer"
+                    >
+                      {language === 'ar' ? 'تسوق الكل' : 'SHOP ALL'}
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </ScrollReveal>
+
+            {/* Band 7: Single Unified Maison Concierge & Trust Ribbon */}
+            <div className="w-full bg-[#121211] text-[#f4f1ea] border-t border-white/10">
+              <div className="max-w-[1440px] mx-auto px-4 sm:px-8 md:px-12 py-5 sm:py-6 grid grid-cols-2 lg:grid-cols-4 gap-y-4 gap-x-4 text-center">
+                {[
+                  {
+                    ar: 'طلب فوري عبر واتساب',
+                    en: 'DIRECT WHATSAPP ORDERING',
+                    subAr: 'تأكيد سريع بدون تسجيل',
+                    subEn: 'Instant concierge checkout',
+                  },
+                  {
+                    ar: 'شحن لجميع المحافظات',
+                    en: 'NATIONWIDE SHIPPING',
+                    subAr: 'توصيل سريع داخل مصر',
+                    subEn: 'Express across Egypt',
+                  },
+                  {
+                    ar: 'معاينة قبل الاستلام',
+                    en: 'INSPECT ON DELIVERY',
+                    subAr: 'جودة مضمونة ١٠٠٪',
+                    subEn: 'Quality verified at your door',
+                  },
+                  {
+                    ar: 'استبدال خلال ١٤ يوم',
+                    en: '14-DAY EASY EXCHANGES',
+                    subAr: 'مرونة كاملة في المقاسات',
+                    subEn: 'Effortless size exchange',
+                  },
+                ].map((item, i) => (
+                  <div
+                    key={i}
+                    className={`flex flex-col items-center justify-center px-2 ${
+                      i > 0 ? 'lg:border-s lg:border-white/10' : ''
+                    }`}
+                  >
+                    <span className="text-[10.5px] sm:text-[11.5px] tracking-[0.15em] uppercase font-body font-medium text-[#f8f6f1]">
+                      {language === 'ar' ? item.ar : item.en}
+                    </span>
+                    <span className="text-[11px] font-body text-[#b8a586] mt-0.5">
+                      {language === 'ar' ? item.subAr : item.subEn}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

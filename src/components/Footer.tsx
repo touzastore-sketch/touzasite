@@ -102,7 +102,7 @@ const FooterComponent: React.FC<FooterProps> = ({
 
   return (
     <footer id="footer" className="bg-[#ecebe7] text-[#111111] w-full border-t border-[#dcd9d1]">
-      <div className="max-w-[1440px] mx-auto px-6 sm:px-10 md:px-14 pt-14 md:pt-20 pb-12">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 md:px-12 pt-14 md:pt-20 pb-12">
         {/* Top Row: Iconic Oversized Serif Wordmark */}
         <div className="mb-12 md:mb-16">
           <div className="brand-wordmark text-[50px] sm:text-[64px] md:text-[74px] leading-[0.95] text-[#111111] font-normal">

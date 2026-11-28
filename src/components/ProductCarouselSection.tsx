@@ -69,18 +69,23 @@ export const ProductCarouselSection: React.FC<ProductCarouselSectionProps> = ({
   return (
     <section
       id="featured-collection"
-      className="py-12 md:py-16 px-4 sm:px-8 md:px-12 max-w-[1440px] mx-auto w-full bg-[#ffffff]"
+      className="py-14 md:py-20 px-4 sm:px-8 md:px-12 max-w-[1440px] mx-auto w-full bg-[#ffffff]"
     >
-      {/* Bread & Boxers Editorial Serif Section Header (Visible at bottom of Screenshot 1) */}
-      <div className="flex items-baseline justify-between gap-4 mb-6 md:mb-8">
-        <h2 className="font-editorial text-[30px] sm:text-[38px] md:text-[42px] text-[#111111] font-normal leading-tight tracking-[-0.01em]">
-          {isAr ? 'مختارات للرجال' : 'Essentials for him'}
-        </h2>
+      {/* Editorial Serif Section Header */}
+      <div className="flex items-end justify-between gap-4 mb-7 md:mb-10">
+        <div>
+          <p className="font-body text-[10.5px] sm:text-[11px] tracking-[0.18em] uppercase text-[#8a7554] mb-1.5">
+            {isAr ? 'إصدار الشتاء ٢٠٢٦ · مختارات توزا' : 'WINTER 2026 · CURATED EDIT'}
+          </p>
+          <h2 className="font-editorial text-[30px] sm:text-[38px] md:text-[42px] text-[#111111] font-normal leading-[1.08] tracking-[-0.01em]">
+            {isAr ? 'مختارات توزا للرجال' : 'Signature Pieces'}
+          </h2>
+        </div>
 
         <button
           type="button"
           onClick={onViewAll}
-          className="font-body text-[12px] tracking-[0.1em] uppercase text-[#111111] border-b border-[#111111]/60 pb-0.5 hover:border-[#111111] hover:opacity-70 transition-all cursor-pointer whitespace-nowrap shrink-0"
+          className="font-body text-[11.5px] sm:text-[12px] tracking-[0.12em] uppercase text-[#111111] border-b border-[#111111]/60 pb-0.5 hover:border-[#111111] hover:opacity-70 transition-all cursor-pointer whitespace-nowrap shrink-0"
         >
           {isAr ? `عرض الكل (${products.length})` : `VIEW ALL (${products.length})`}
         </button>

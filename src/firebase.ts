@@ -1241,19 +1241,50 @@ export const subscribeToProductReviews = (
 // CATEGORY FIRESTORE FUNCTIONS
 // ==========================================
 
-const DEPRECATED_CATEGORY_IDS = new Set(['cat-pants', 'cat-polos', 'cat-shirts', 'cat-shorts', 'cat-suit', 'cat-tshirts']);
+const fetchCategoriesFastFromServer = async (timeoutMs = 10000): Promise<Category[] | null> => {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return null;
+  }
+  try {
+    const restCategories = await fetchCollectionViaRest('categories', timeoutMs);
+    if (!restCategories) return null;
+
+    const list: Category[] = restCategories
+      .filter((item) => item && item.id)
+      .map((item) => {
+        const cData = item.data as Category;
+        return {
+          id: item.id,
+          ...cData,
+          imageUrl: ensureAutoOptimizedCloudinaryUrl(cData.imageUrl),
+        } as Category;
+      });
+
+    if (list.length > 0) {
+      try {
+        localStorage.setItem('maison_categories', safeJsonStringify(list));
+      } catch {}
+      return list;
+    }
+    return [];
+  } catch {
+    return null;
+  }
+};
 
 export const getAllCategories = async (): Promise<Category[]> => {
   try {
+    // Fast-path: direct HTTPS REST runQuery avoids WebChannel / stale IndexedDB cache delay
+    const fastCategories = await fetchCategoriesFastFromServer(10000);
+    if (fastCategories && fastCategories.length > 0) {
+      return fastCategories;
+    }
+
     const catsRef = collection(db, 'categories');
-    const snapshot = await fetchWithTimeout(getDocs(catsRef), 5000);
+    const snapshot = await fetchCollectionServerFirst(catsRef, 8000);
     const categories: Category[] = [];
 
     snapshot.forEach((docSnap) => {
-      if (DEPRECATED_CATEGORY_IDS.has(docSnap.id)) {
-        deleteDoc(doc(db, 'categories', docSnap.id)).catch(() => {});
-        return;
-      }
       const cData = docSnap.data() as Category;
       categories.push({
         id: docSnap.id,
@@ -1284,13 +1315,10 @@ export const getAllCategories = async (): Promise<Category[]> => {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const valid = parsed.filter((c: Category) => !DEPRECATED_CATEGORY_IDS.has(c.id));
-          if (valid.length > 0) {
-            return valid.map((c: Category) => ({
-              ...c,
-              imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
-            }));
-          }
+          return parsed.map((c: Category) => ({
+            ...c,
+            imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
+          }));
         }
       }
     } catch {}
@@ -1317,18 +1345,26 @@ export const notifyStoreStateChanged = (type: 'products' | 'categories' | 'setti
 export const subscribeToCategories = (
   callback: (categories: Category[]) => void
 ): (() => void) => {
+  let isActive = true;
+
+  // Immediate REST fast-fetch so newly created categories appear instantaneously even before WebChannel connects
+  fetchCategoriesFastFromServer(10000)
+    .then((fresh) => {
+      if (isActive && fresh && fresh.length > 0) {
+        callback(fresh);
+      }
+    })
+    .catch(() => {});
+
   try {
     const catsRef = collection(db, 'categories');
     const unsubscribe = onSnapshot(
       catsRef,
       (snapshot) => {
+        if (!isActive) return;
         const firestoreCats: Category[] = [];
         if (!snapshot.empty) {
           snapshot.forEach((docSnap) => {
-            if (DEPRECATED_CATEGORY_IDS.has(docSnap.id)) {
-              deleteDoc(doc(db, 'categories', docSnap.id)).catch(() => {});
-              return;
-            }
             const cData = docSnap.data() as Category;
             firestoreCats.push({
               id: docSnap.id,
@@ -1343,8 +1379,8 @@ export const subscribeToCategories = (
             localStorage.setItem('maison_categories', safeJsonStringify(firestoreCats));
           } catch {}
           callback(firestoreCats);
-        } else {
-          // If Firestore categories collection has no valid categories, seed default single winter category
+        } else if (!snapshot.metadata?.fromCache) {
+          // Only seed default category if confirmed empty from server
           const defaultCats = DEFAULT_CATEGORIES.map((c) => ({
             ...c,
             imageUrl: ensureAutoOptimizedCloudinaryUrl(c.imageUrl),
@@ -1362,10 +1398,15 @@ export const subscribeToCategories = (
         console.warn('Realtime categories listener notice:', err);
       }
     );
-    return unsubscribe;
+    return () => {
+      isActive = false;
+      unsubscribe();
+    };
   } catch (error) {
     console.warn('Could not initialize realtime categories listener:', error);
-    return () => {};
+    return () => {
+      isActive = false;
+    };
   }
 };
 
@@ -2653,15 +2694,20 @@ export const fetchInitialStoreData = async (
       }
     })();
 
-    const categoriesPromise = fetchWithTimeout(getDocs(collection(db, 'categories')), FAST_TIMEOUT)
-      .then((snap) => {
+    const categoriesPromise = (async (): Promise<Category[]> => {
+      try {
+        const fastCategories = await fetchCategoriesFastFromServer(10000);
+        if (fastCategories && fastCategories.length > 0) {
+          if (callbacks?.onCategories) {
+            try { callbacks.onCategories(fastCategories); } catch {}
+          }
+          return fastCategories;
+        }
+
+        const snap = await fetchCollectionServerFirst(collection(db, 'categories'), FAST_TIMEOUT);
         if (snap && !snap.empty) {
           const list: Category[] = [];
           snap.forEach((d) => {
-            if (DEPRECATED_CATEGORY_IDS.has(d.id)) {
-              deleteDoc(doc(db, 'categories', d.id)).catch(() => {});
-              return;
-            }
             const cData = d.data() as Category;
             list.push({
               id: d.id,
@@ -2687,8 +2733,10 @@ export const fetchInitialStoreData = async (
           try { callbacks.onCategories(defaultCats); } catch {}
         }
         return defaultCats;
-      })
-      .catch(() => DEFAULT_CATEGORIES);
+      } catch {
+        return DEFAULT_CATEGORIES;
+      }
+    })();
 
     const promoCodesPromise = fetchWithTimeout(getDocs(collection(db, 'promoCodes')), FAST_TIMEOUT)
       .then((snap) => {

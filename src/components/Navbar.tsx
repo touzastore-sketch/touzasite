@@ -18,6 +18,7 @@ import drawerEditorialThumb from '../assets/images/touza_split_studio_model_1795
 
 interface NavbarProps {
   currentView: ViewMode;
+  activeCategory?: string;
   onNavigate: (view: ViewMode, categoryFilter?: string) => void;
   cartCount: number;
   wishlistCount: number;
@@ -32,8 +33,28 @@ interface NavbarProps {
   user?: User | null;
 }
 
+const toRomanNumeral = (num: number): string => {
+  const map: Array<[number, string]> = [
+    [10, 'X'],
+    [9, 'IX'],
+    [5, 'V'],
+    [4, 'IV'],
+    [1, 'I'],
+  ];
+  let n = num;
+  let out = '';
+  for (const [val, sym] of map) {
+    while (n >= val) {
+      out += sym;
+      n -= val;
+    }
+  }
+  return out || String(num);
+};
+
 const NavbarComponent: React.FC<NavbarProps> = ({
   currentView,
+  activeCategory,
   onNavigate,
   cartCount,
   wishlistCount,
@@ -157,14 +178,14 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                 {isAr ? 'وصل حديثاً' : 'NEW IN'}
               </button>
 
-              {activeCategories.slice(0, 1).map((cat) => (
+              {activeCategories.slice(0, 3).map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
-                  onClick={() => onNavigate('shop', cat.nameEn)}
+                  onClick={() => onNavigate('shop', cat.nameEn || cat.nameAr)}
                   className="whitespace-nowrap shrink-0 cursor-pointer relative py-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[1px] after:bg-[#111111] hover:after:w-full after:transition-all after:duration-200"
                 >
-                  {isAr ? cat.nameAr : cat.nameEn}
+                  {isAr ? (cat.nameAr || cat.nameEn) : (cat.nameEn || cat.nameAr)}
                 </button>
               ))}
 
@@ -388,11 +409,11 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                 </div>
 
                 {/* Middle Scroll-Safe Classical Navigation */}
-                <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col justify-between hide-scrollbar">
-                  {/* Roman Numeral Editorial Links */}
-                  <nav className="flex flex-col">
+                <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col justify-between gap-4 hide-scrollbar">
+                  {/* Roman Numeral Editorial Links — Dynamically Syncs ALL Store Categories */}
+                  <nav className="flex flex-col shrink-0">
                     {(() => {
-                      const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+                      const normalizedActiveCat = (activeCategory || '').trim().toLowerCase();
                       const primaryLinks: Array<{
                         id: string;
                         label: string;
@@ -411,6 +432,9 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                         {
                           id: 'shop-all',
                           label: isAr ? 'جميع القطع' : 'Shop All',
+                          isActive:
+                            currentView === 'shop' &&
+                            (!normalizedActiveCat || normalizedActiveCat === 'all'),
                           onClick: () => {
                             setMobileMenuOpen(false);
                             onNavigate('shop', 'All');
@@ -419,19 +443,34 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                         {
                           id: 'new-arrivals',
                           label: isAr ? 'وصل حديثاً' : 'New Arrivals',
+                          isActive:
+                            currentView === 'shop' &&
+                            normalizedActiveCat === 'new arrivals',
                           onClick: () => {
                             setMobileMenuOpen(false);
                             onNavigate('shop', 'New Arrivals');
                           },
                         },
-                        ...activeCategories.map((cat) => ({
-                          id: cat.id,
-                          label: isAr ? cat.nameAr : cat.nameEn,
-                          onClick: () => {
-                            setMobileMenuOpen(false);
-                            onNavigate('shop', cat.nameEn);
-                          },
-                        })),
+                        ...activeCategories.map((cat) => {
+                          const catKeyEn = (cat.nameEn || '').trim().toLowerCase();
+                          const catKeyAr = (cat.nameAr || '').trim().toLowerCase();
+                          const targetFilter = cat.nameEn || cat.nameAr || 'All';
+                          return {
+                            id: cat.id,
+                            label: isAr
+                              ? cat.nameAr || cat.nameEn
+                              : cat.nameEn || cat.nameAr,
+                            isActive:
+                              currentView === 'shop' &&
+                              (normalizedActiveCat === catKeyEn ||
+                                normalizedActiveCat === catKeyAr ||
+                                normalizedActiveCat === cat.id.toLowerCase()),
+                            onClick: () => {
+                              setMobileMenuOpen(false);
+                              onNavigate('shop', targetFilter);
+                            },
+                          };
+                        }),
                       ];
 
                       return primaryLinks.map((item, idx) => (
@@ -439,14 +478,14 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                           <button
                             type="button"
                             onClick={item.onClick}
-                            className="group w-full flex items-center justify-between py-3 sm:py-3.5 cursor-pointer text-start transition-colors"
+                            className="group w-full flex items-center justify-between py-2.5 sm:py-3 cursor-pointer text-start transition-colors"
                           >
                             <span className="flex items-baseline gap-3.5 min-w-0">
                               <span className="font-editorial editorial-italic text-[11.5px] text-[#9c8563] w-5 shrink-0 text-center">
-                                {romanNumerals[idx] || String(idx + 1)}
+                                {toRomanNumeral(idx + 1)}
                               </span>
                               <span
-                                className={`font-editorial text-[21px] sm:text-[23px] leading-[1.15] text-[#141413] transition-all duration-200 ${
+                                className={`font-editorial text-[20px] sm:text-[22px] leading-[1.15] text-[#141413] truncate transition-all duration-200 ${
                                   isAr
                                     ? 'group-hover:-translate-x-1'
                                     : 'group-hover:translate-x-1'
@@ -487,7 +526,7 @@ const NavbarComponent: React.FC<NavbarProps> = ({
                   </nav>
 
                   {/* Compact Framed Editorial Lookbook Card */}
-                  <div className="mt-4 pt-3">
+                  <div className="pt-2 shrink-0">
                     <button
                       type="button"
                       onClick={() => {
